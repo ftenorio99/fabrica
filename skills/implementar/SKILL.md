@@ -21,11 +21,13 @@ Pare e explique o motivo (no chat e, quando indicado, na issue) se algum destes 
 - `git fetch origin`, `git switch <branch>` e `git pull`. Se a `main` avançou desde a spec, faça `git rebase origin/main` e resolva conflitos simples; se o conflito mexer no escopo, pare e reporte.
 - Na spec, mude o status para `aprovada` e registre a data no histórico. Nos ADRs citados pela spec, mude o status de `proposto` para `aceito`.
 - Commit: `docs: marca spec da issue #<nº> como aprovada`.
+- Se a branch já tiver commits de implementação, é uma retomada depois de um ajuste da spec: eles continuam valendo. Leia o histórico da spec para ver o que mudou e implemente só a diferença.
 
 ## 3. Implementar
 - Leia a spec inteira, o `CLAUDE.md` e o código que será tocado antes de escrever.
 - Siga o desenho técnico da spec: os arquivos, interfaces e decisões descritos nela. Pequenos ajustes forçados pela realidade (uma API de biblioteca diferente da prevista, um nome de arquivo gerado pela ferramenta) são permitidos e vão para a seção "Desvios da spec" do PR.
 - **Desvio relevante** é qualquer mudança de comportamento, de critério de aceite, de escopo ou de decisão listada para o usuário confirmar. Nesse caso, pare: comente na issue o que encontrou e as opções, com uma recomendação. Não decida sozinho.
+- **Pedido de mudança do usuário:** se o próprio usuário pedir, no chat ou na issue, uma mudança desse tipo depois da `spec-aprovada`, não a aplique direto nem edite a spec por conta própria. A spec aprovada é o contrato. Faça commit e push do que já existe, registre o pedido na issue e indique o caminho: o usuário remove `spec-aprovada`, roda `/fabrica:spec <nº> <ajuste>` (que ajusta a spec na mesma branch), aprova de novo e retoma com `/fabrica:implementar <nº>`.
 - Escreva os testes de cada critério marcado como unitário ou e2e junto com o código que ele cobre.
 - Commits pequenos, cada um com uma mudança lógica, no padrão do `CLAUDE.md` (Conventional Commits, descrição em português). Antes de cada commit, revise o stage (`git diff --staged`) e confira que nada gerado ou secreto entrou.
 - Não faça nada fora do escopo da spec, nem melhorias "de passagem". Se notar algo que merece atenção, anote para o PR.
