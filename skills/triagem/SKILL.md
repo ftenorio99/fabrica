@@ -73,3 +73,4 @@ Depois, ajuste as labels:
 - Todo comentário seu, na issue ou no PR, começa com o marcador `<!-- fabrica:triagem -->` numa linha própria. Os comentários do agente e do usuário saem da mesma conta do GitHub, e o marcador é o que os distingue (veja [estados.md](../status/estados.md)).
 - Não invente requisitos: se o PRD e a issue não dizem, é uma pergunta.
 - Em rodadas seguintes, publique um novo comentário de triagem completo (com o mesmo marcador); não edite os anteriores, para manter o histórico.
+- Se `gh issue edit` falhar porque uma label não existe, pare, comente na issue e diga no chat: "A label `<label>` não existe neste repositório. Rode `/fabrica:setup` e repita a etapa." Não crie a label sozinho.
