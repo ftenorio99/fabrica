@@ -6,7 +6,7 @@ Regras deste projeto para o Claude Code. Base mantida no repositório `fabrica` 
 Toda tarefa segue o mesmo loop, com duas aprovações humanas: a spec antes de qualquer código e o PR antes do merge.
 
 1. Issue com a label `agente` → triagem (`/fabrica:triagem`). Se faltar informação: perguntas na issue + `precisa-info`.
-2. Spec em `specs/SPEC-<nº>.md` com critérios de aceite (`/fabrica:spec`) → `spec-pronta`.
+2. Spec em `specs/SPEC-<nº>.md` com critérios de aceite (`/fabrica:spec`), gravada na branch da issue → `spec-pronta`. A implementação continua na mesma branch, e spec e código chegam juntos no PR.
 3. O usuário aplica `spec-aprovada`. Sem essa label, não escreva código para a issue.
 4. Implementação (`/fabrica:implementar`) com `make test` e `make lint` verdes. Falhou duas vezes → pare e reporte na issue.
 5. Revisão automática contra a spec (`/fabrica:revisar`) → PR com `Fixes #<nº>` → `pronto-revisao`.
