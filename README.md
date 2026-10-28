@@ -10,6 +10,15 @@ issue (agente) → triagem → spec (spec-pronta) → [aprovo a spec] → implem
 
 Para saber o que falta em cada issue e quem age, rode `/fabrica:status` em qualquer diretório. As regras de estado ficam em `skills/status/estados.md`.
 
+## Pré-requisitos
+- [Context7](https://context7.com), para as skills `spec` e `implementar` consultarem a documentação atual das bibliotecas. Instale por usuário, uma vez por máquina:
+  ```
+  npx ctx7 setup --claude
+  ```
+  Escolha o modo MCP. O comando faz login por OAuth, gera uma API key e configura o MCP remoto em `~/.claude.json`, com a chave no header `Authorization`, além de uma regra em `~/.claude/rules/context7.md` e uma skill em `~/.claude/skills/context7-mcp/`. A chave fica só em `~/.claude.json`, nunca neste repositório nem nos projetos. O motivo de não declarar o servidor no plugin está no [ADR 0001](docs/adr/0001-context7-instalado-por-usuario.md).
+
+  Sem o Context7, as skills continuam funcionando: usam a documentação local do pacote ou o conhecimento do modelo e registram a API como não verificada.
+
 ## Instalação
 No Claude Code:
 ```
