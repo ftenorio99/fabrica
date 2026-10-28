@@ -1,7 +1,7 @@
 # SPEC-13: Consultar documentação atualizada das bibliotecas via Context7 na spec e na implementação
 
 **Issue:** #13 · **PRD:** — (a fábrica não tem `docs/prd.md`) · **Classe:** implementacao-simples · **Tamanho:** P
-**Status:** rascunho · **Atualizada em:** 2026-10-28
+**Status:** aprovada · **Atualizada em:** 2026-10-28
 
 ## Contexto
 As skills `spec` e `implementar` escolhem e usam APIs de bibliotecas que mudam rápido (ex.: Next 16, Drizzle e Postgres 18 no kairo). Hoje elas dependem só do conhecimento do modelo, que pode estar desatualizado. O Context7 já está instalado por usuário nesta máquina (`npx ctx7 setup --claude`, MCP remoto em `~/.claude.json`), conforme o comentário de atualização da issue. Falta as skills saberem quando e em que ordem consultar a documentação, e registrarem de onde veio cada decisão.
@@ -83,3 +83,4 @@ A fábrica não tem `make test`; os critérios são verificados à mão e regist
 
 ## Histórico
 - 2026-10-28: criação.
+- 2026-10-28: aprovada.

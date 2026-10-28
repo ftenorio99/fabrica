@@ -1,6 +1,6 @@
 # ADR 0001: Context7 instalado por usuário, não pelo plugin
 
-**Status:** proposto · **Data:** 2026-10-28 · **Origem:** issue #13
+**Status:** aceito · **Data:** 2026-10-28 · **Origem:** issue #13
 
 ## Contexto
 As skills `spec` e `implementar` decidem e escrevem código contra bibliotecas que mudam rápido (ex.: Next 16, Drizzle e Postgres 18 no kairo). O Context7 entrega documentação atual e por versão via MCP (`resolve-library-id` e `query-docs`) e precisa de uma API key para ter limites maiores que o plano gratuito (1.000 chamadas por mês). A chave nunca pode entrar no repositório.
