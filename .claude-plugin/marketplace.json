@@ -1,0 +1,13 @@
+{
+  "name": "fabrica",
+  "owner": {
+    "name": "Fernando Tenorio"
+  },
+  "plugins": [
+    {
+      "name": "fabrica",
+      "source": "./",
+      "description": "Fábrica de software pessoal: skills, agentes e hooks do fluxo padrão."
+    }
+  ]
+}
