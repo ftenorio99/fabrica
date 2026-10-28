@@ -23,16 +23,23 @@ soh=$'\001' stx=$'\002'
 # única palavra, com espaços e separadores trocados por \001 (e \002 marca
 # a aspa, para "" virar palavra vazia); o corpo de heredoc some.
 # $(...) e crases dentro de aspas duplas abrem um nível novo, lido com as
-# mesmas regras e emitido como comandos à parte, depois do comando principal.
+# mesmas regras e emitido como comandos à parte, logo depois do comando
+# em que aparece.
 # O argumento de bash/sh -c, de eval e de here-string para shell e o corpo
 # de heredoc para shell também vão como código. Sai com 2 se não conseguir
-# separar (aspas, $( ou heredoc sem fechamento).
+# separar (aspas, $( ou heredoc sem fechamento) ou se houver pipe para shell.
 code_view() {
   awk -v sq="'" '
     function emit(t) { ob[L] = ob[L] t }
     function addw(t) { cw[L] = cw[L] t; iw[L] = 1; emit(t) }
     function flushword() { if (iw[L]) { nw[L]++; w[L, nw[L]] = cw[L] } cw[L] = ""; iw[L] = 0 }
-    function resetcmd() { flushword(); nw[L] = 0; hsnext = 0 }
+    # Fim de um comando no nível principal: o código extra que apareceu nele
+    # ($(...) em aspas, bash -c, eval) vai logo depois, antes do próximo
+    # comando, para valer o mesmo diretório.
+    function resetcmd() {
+      flushword(); nw[L] = 0; hsnext = 0
+      if (L == 0 && pend != "") { emit("\n" pend "\n"); pend = "" }
+    }
     function cmdname(   i, x) {
       for (i = 1; i <= nw[L]; i++) {
         x = w[L, i]
@@ -52,14 +59,14 @@ code_view() {
       return 0
     }
     function mapped(t) { gsub(/[ \t\n;&|()`]/, soh, t); return t }
-    function rawcode(t) { gsub("[\"" sq "]", " ", t); extra = extra "\n" t }
+    function rawcode(t) { gsub("[\"" sq "]", " ", t); pend = pend "\n" t }
     function push(t) { L++; ob[L] = ""; cw[L] = ""; iw[L] = 0; nw[L] = 0; dq[L] = 0; pd[L] = 0; term[L] = t }
-    function pop() { flushword(); extra = extra "\n" ob[L]; L-- }
+    function pop() { flushword(); pend = pend "\n" ob[L]; L-- }
     { s = s (NR > 1 ? "\n" : "") $0 }
     END {
       soh = sprintf("%c", 1); stx = sprintf("%c", 2)
       dqspecial = "\\\"$`"; special = "\\#" sq "\"<\n;&|()` \t"
-      n = length(s); i = 1; L = 0; nh = 0; extra = ""
+      n = length(s); i = 1; L = 0; nh = 0; pend = ""
       while (i <= n) {
         c = substr(s, i, 1)
         if (c == "\\" && substr(s, i + 1, 1) == "\n") { i += 2; continue }
@@ -144,13 +151,27 @@ code_view() {
               cmp = line
               if (hs[h]) sub(/^\t+/, "", cmp)
               if (cmp == hd[h]) { found = 1; break }
-              if (hsh[h]) extra = extra "\n" line
+              if (hsh[h]) emit(line "\n")
             }
             if (!found) exit 2
           }
           nh = 0; continue
         }
         if (c ~ /[;&|()`]/) {
+          # Pipe para um shell executa o texto da esquerda: sai para o
+          # modo de dúvida, que analisa tudo como código.
+          if (c == "|" && substr(s, i + 1, 1) != "|" && substr(s, i - 1, 1) != "|") {
+            j = i + 1
+            for (r = 0; r < 2; r++) {
+              while (substr(s, j, 1) ~ /[ \t]/) j++
+              k = j
+              while (k <= n && substr(s, k, 1) !~ /[ \t\n;&|()]/) k++
+              word = substr(s, j, k - j)
+              if (word != "sudo") break
+              j = k
+            }
+            if (isshell(word)) exit 2
+          }
           if (c == "(") pd[L]++
           else if (c == ")") pd[L]--
           resetcmd(); emit(c); i++; continue
@@ -161,18 +182,14 @@ code_view() {
         addw(substr(s, i, j - i)); i = j
       }
       if (L > 0 || dq[0] || nh > 0) exit 2
-      printf "%s\n%s", ob[0], extra
+      if (pend != "") emit("\n" pend)
+      printf "%s", ob[0]
     }
   ' <<<"$cmd"
 }
 
-# Pipe para um shell executa o texto da esquerda: analisa tudo como código.
 fallback=0
-if grep -Eq '\|[[:space:]]*(sudo[[:space:]]+)?([^[:space:]]*/)?(bash|sh|zsh|dash|ksh)([[:space:]]|$|[;&|)])' <<<"$cmd"; then
-  fallback=1
-elif ! code=$(code_view); then
-  fallback=1
-fi
+code=$(code_view) || fallback=1
 if (( fallback )); then
   code=$(tr '\047"' '  ' <<<"$cmd")
 fi

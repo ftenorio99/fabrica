@@ -65,6 +65,8 @@ check allow CA2 "$MAIN" "echo 'git push origin main'"
 check allow CA2 "$MAIN" $'gh issue comment 1 --body-file - <<\'EOF\'\ngit commit -m x\ngit push origin main\nEOF'
 check allow CA2 "$MAIN" $'cat <<-EOF\n\tgit commit -m x\n\tEOF'
 check allow CA2 "$MAIN" 'ls # git commit -m x'
+check allow CA2 "$FEAT" "gh pr create --title t --body 'O hook trata pipe para shell (x | bash ) e bloqueia git push origin main'"
+check allow CA2 "$FEAT" $'gh pr create --body-file - <<\'EOF\'\nO hook trata echo x | bash\ne bloqueia git push origin main\nEOF'
 
 # CA3: commit e push na main continuam bloqueados.
 check deny CA3 "$MAIN" 'git commit -m x'
@@ -92,6 +94,7 @@ check deny CA4 "$FEAT" 'echo "git push origin main'
 check deny CA4 "$FEAT" 'bash <<< "git push origin main"'
 check deny CA4 "$MAIN" 'sudo -u eu git commit -m x'
 check deny CA4 "$MAIN" 'env -i git commit -m x'
+check deny CA4 "$FEAT" $'cat <<EOF | bash\ngit push origin main\nEOF'
 
 # CA5: diretório certo.
 check deny CA5 "$FEAT" "cd $MAIN && git commit -m x"
@@ -101,6 +104,9 @@ check deny CA5 "$FEAT" "cd \"$MAIN\" && git commit -m x"
 check deny CA5 "$FEAT" "git -C '$MAIN' commit -m x"
 check deny CA5 "$FEAT" "git --git-dir $MAIN/.git commit -m x"
 check deny CA5 "$MAIN" 'git -c "user.name=x" commit -m x'
+check deny CA5 "$MAIN" "echo \"\$(git commit -m x)\"; cd $FEAT"
+check deny CA5 "$MAIN" "bash -c 'git commit -m x'; cd $FEAT"
+check deny CA5 "$MAIN" "eval 'git commit -m x' && cd $FEAT && ls"
 check allow CA5 "$MAIN" "git -C $FEAT push origin feat/x"
 check allow CA5 "$MAIN" "cd $FEAT && git commit -m x"
 
