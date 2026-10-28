@@ -115,6 +115,9 @@ check deny CA5 "$MAIN" 'D=$(cd /tmp && pwd) && git commit -m x'
 check deny CA5 "$MAIN" '(cd /tmp && ls); git commit -m x'
 check allow CA5 "$MAIN" "(cd $FEAT && git commit -m x)"
 check allow CA5 "$MAIN" "eval 'cd $FEAT' && git commit -m x"
+check deny CA5 "$MAIN" 'D=`cd /tmp && pwd`; git commit -m x'
+check deny CA5 "$MAIN" 'cd /tmp && cd - ; git commit -m x'
+check allow CA5 "$MAIN" "cd $FEAT && cd /tmp && cd - && git commit -m x"
 check allow CA5 "$MAIN" "git -C $FEAT push origin feat/x"
 check allow CA5 "$MAIN" "cd $FEAT && git commit -m x"
 

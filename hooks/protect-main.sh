@@ -69,7 +69,7 @@ code_view() {
       gsub("[\"" sq "]", " ", t)
       pend = pend (own ? sub_open() t sub_close() : "\n" t)
     }
-    function push(t) { L++; ob[L] = ""; cw[L] = ""; iw[L] = 0; nw[L] = 0; dq[L] = 0; pd[L] = 0; term[L] = t }
+    function push(t) { L++; ob[L] = ""; cw[L] = ""; iw[L] = 0; nw[L] = 0; dq[L] = 0; pd[L] = 0; bt[L] = 0; term[L] = t }
     function pop() { flushword(); pend = pend sub_open() ob[L] sub_close(); L-- }
     { s = s (NR > 1 ? "\n" : "") $0 }
     END {
@@ -187,6 +187,7 @@ code_view() {
           resetcmd()
           if (c == "(") { pd[L]++; emit(sub_open()) }
           else if (c == ")") { pd[L]--; emit(sub_close()) }
+          else if (c == "`") { bt[L] = !bt[L]; emit(bt[L] ? sub_open() : sub_close()) }
           else emit(c)
           i++; continue
         }
@@ -260,17 +261,20 @@ check_push() {
 }
 
 set -f
-curdir=$cwd
-saved=()
+curdir=$cwd prevdir=$cwd
+saved=() saved_prev=()
 while IFS= read -r segment; do
   read -ra words <<<"$segment"
   (( ${#words[@]} )) || continue
   # Marcadores de código em outro processo: salva e restaura o diretório.
   case ${words[0]} in
-    "${soh}S") saved+=("$curdir"); continue ;;
+    "${soh}S") saved+=("$curdir"); saved_prev+=("$prevdir"); continue ;;
     "${soh}R")
       # ")" sem par (ex.: padrão de case) não tem diretório salvo.
-      (( ${#saved[@]} )) && { curdir=${saved[-1]}; unset 'saved[-1]'; }
+      if (( ${#saved[@]} )); then
+        curdir=${saved[-1]} prevdir=${saved_prev[-1]}
+        unset 'saved[-1]' 'saved_prev[-1]'
+      fi
       continue ;;
   esac
   # Texto citado volta ao valor real, numa palavra só.
@@ -297,7 +301,11 @@ while IFS= read -r segment; do
 
   if [[ ${words[k]} == cd ]]; then
     next=${words[k + 1]-$HOME}
-    [[ $next == - ]] || curdir=$(resolve "$next" "$curdir")
+    if [[ $next == - ]]; then
+      next=$prevdir prevdir=$curdir curdir=$next
+    else
+      prevdir=$curdir curdir=$(resolve "$next" "$curdir")
+    fi
     continue
   fi
   [[ ${words[k]##*/} == git ]] || continue
