@@ -1,7 +1,7 @@
 # SPEC-14: Criar as labels da fábrica automaticamente em cada repositório
 
 **Issue:** #14 · **PRD:** — (a fábrica não tem `docs/prd.md`) · **Classe:** implementacao-simples · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-10-28
+**Status:** aprovada · **Atualizada em:** 2026-10-28
 
 ## Contexto
 O fluxo depende de seis labels (`agente`, `precisa-info`, `spec-pronta`, `spec-aprovada`, `escalonado`, `pronto-revisao`), definidas em `skills/status/estados.md`. Nenhuma skill as cria: no `kairo` foram criadas à mão, e na `fabrica` não foi possível aplicar `agente` na #13 até criá-las. Além disso, as descrições no GitHub já divergem de `estados.md` (não só a de `escalonado`), e as cores não estão registradas em lugar nenhum do repositório.
@@ -102,3 +102,4 @@ A fábrica não tem `make test`; os critérios são verificados à mão e regist
 
 ## Histórico
 - 2026-10-28: criação.
+- 2026-10-28: aprovada.
