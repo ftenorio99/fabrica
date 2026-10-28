@@ -48,7 +48,7 @@ Pare e explique o motivo (no chat e, quando indicado, na issue) se algum destes 
 - `git push`.
 
 ## 5. Revisar
-Com tudo verde, siga as instruções de [../revisar/SKILL.md](../revisar/SKILL.md) para a mesma issue, levando junto as anotações de verificações manuais e desvios.
+Com tudo verde, siga as instruções de [../revisar/SKILL.md](../revisar/SKILL.md) para a mesma issue, levando junto as anotações de verificações manuais, desvios e APIs não verificadas.
 
 ## Regras
 - Todo comentário seu, na issue ou no PR, começa com o marcador `<!-- fabrica:implementar -->` numa linha própria. Os comentários do agente e do usuário saem da mesma conta do GitHub, e o marcador é o que os distingue (veja [estados.md](../status/estados.md)).
