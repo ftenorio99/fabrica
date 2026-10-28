@@ -8,6 +8,7 @@ Este repositório é a fábrica de software pessoal, empacotada como plugin do C
 - `skills/<nome>/SKILL.md`: uma skill por etapa do fluxo. No uso, são chamadas como `/fabrica:<nome>`.
 - `agents/`: subagentes usados pelas skills (ex.: revisor).
 - `hooks/`: hooks que valem onde o plugin estiver instalado (ex.: `protect-main.sh`).
+- `scripts/`: scripts chamados pelas skills (ex.: `setup-labels.sh`).
 - `templates/`: arquivos copiados para os projetos (`CLAUDE.md`, issue, spec).
 
 ## Escrevendo skills

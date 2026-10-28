@@ -3,14 +3,16 @@
 Fonte da verdade do estado de uma issue na fábrica. Não existe arquivo de estado à parte: o estado é lido das **labels**, dos **marcadores de comentário** (`<!-- fabrica:triagem -->`, `<!-- fabrica:spec -->`) e do **PR** da branch da issue. Esta tabela serve ao `/fabrica:status` hoje e ao dispatcher do GitHub Actions na Fase 1.
 
 ## Labels
-| Label | Quem aplica | Significado |
-|---|---|---|
-| `agente` | usuário | A issue entra na fábrica. |
-| `precisa-info` | triagem, spec | Há perguntas para o usuário na issue. |
-| `spec-pronta` | spec | Spec na branch, aguardando aprovação. |
-| `spec-aprovada` | usuário | Implementação liberada. Conta para o limite de 3 em andamento. |
-| `escalonado` | implementar, revisar | O agente parou por falha e precisa do usuário. Sai quando a etapa é retomada. |
-| `pronto-revisao` | revisar | PR com CI verde e revisão automática feita, aguardando o usuário. |
+Esta tabela é lida por `scripts/setup-labels.sh`, que cria ou corrige as labels num repositório (`/fabrica:setup`). O `Significado` vira a descrição da label no GitHub, com no máximo 100 caracteres, e a `Cor` vai em hexadecimal sem `#`.
+
+| Label | Quem aplica | Cor | Significado |
+|---|---|---|---|
+| `agente` | usuário | `5319e7` | A issue entra na fábrica. |
+| `precisa-info` | triagem, spec | `fbca04` | Há perguntas para o usuário na issue. |
+| `spec-pronta` | spec | `0e8a16` | Spec na branch, aguardando aprovação. |
+| `spec-aprovada` | usuário | `1d76db` | Implementação liberada. Conta para o limite de 3 em andamento. |
+| `escalonado` | implementar, revisar | `d93f0b` | O agente parou por falha e precisa do usuário. Sai quando a etapa é retomada. |
+| `pronto-revisao` | revisar | `c2e0c6` | PR com CI verde e revisão automática feita, aguardando o usuário. |
 
 ## Estados
 Avalie de cima para baixo; vale a primeira linha cuja condição for verdadeira.

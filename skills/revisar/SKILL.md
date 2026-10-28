@@ -74,3 +74,4 @@ Se já existir PR da branch (`gh pr view`), atualize a descrição em vez de abr
 - Não mude a spec para fazer a implementação passar. Se a spec estiver errada, comente na issue.
 - Todo comentário seu, na issue ou no PR, começa com o marcador `<!-- fabrica:revisar -->` numa linha própria. Os comentários do agente e do usuário saem da mesma conta do GitHub, e o marcador é o que os distingue (veja [estados.md](../status/estados.md)).
 - O status de cada CA no PR precisa ter evidência; "implementado" sem evidência não conta.
+- Se `gh issue edit` falhar porque uma label não existe, pare, comente na issue e diga no chat: "A label `<label>` não existe neste repositório. Rode `/fabrica:setup` e repita a etapa." Não crie a label sozinho.

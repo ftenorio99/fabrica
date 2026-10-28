@@ -19,6 +19,12 @@ Para saber o que falta em cada issue e quem age, rode `/fabrica:status` em qualq
 
   Sem o Context7, as skills continuam funcionando: usam a documentação local do pacote ou o conhecimento do modelo e registram a API como não verificada.
 
+## Labels
+O fluxo usa seis labels (`agente`, `precisa-info`, `spec-pronta`, `spec-aprovada`, `escalonado`, `pronto-revisao`). Nome, cor e descrição ficam na tabela "Labels" de `skills/status/estados.md`, e `scripts/setup-labels.sh` cria ou corrige as seis num repositório sem tocar nas demais.
+- **Projeto novo:** a skill `prd` roda o setup sozinha ao terminar. Se o repositório ainda não existir no GitHub, ela avisa, e você roda `/fabrica:setup` depois do `gh repo create`.
+- **Repositório que já existe:** rode `/fabrica:setup` no clone, ou `/fabrica:setup <dono>/<repo>` de qualquer diretório. Rodar de novo é seguro.
+- Se uma etapa avisar que uma label não existe, rode `/fabrica:setup` e repita a etapa.
+
 ## Instalação
 No Claude Code:
 ```
@@ -30,9 +36,10 @@ Para desenvolver a própria fábrica sem instalar: `claude --plugin-dir ~/projet
 ## Conteúdo
 | Caminho | O que é |
 |---|---|
-| `skills/` | Uma skill por etapa: `prd`, `triagem`, `spec`, `implementar`, `revisar`; e `status`, o quadro do fluxo em todos os repositórios |
+| `skills/` | Uma skill por etapa: `prd`, `triagem`, `spec`, `implementar`, `revisar`; `status`, o quadro do fluxo em todos os repositórios; e `setup`, que cria as labels num repositório |
 | `agents/` | Subagentes usados pelas skills |
 | `hooks/` | `protect-main.sh`: bloqueia commit e push direto na `main` |
+| `scripts/` | `setup-labels.sh`: cria ou corrige as labels da fábrica num repositório |
 | `templates/` | `CLAUDE.md` base dos projetos, template de issue e de spec |
 
 ## Fases
