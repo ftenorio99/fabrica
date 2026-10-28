@@ -1,7 +1,7 @@
 # SPEC-18: Hook protect-main dá falso positivo com comandos de várias linhas e textos citados
 
 **Issue:** #18 · **PRD:** — (a fábrica não tem `docs/prd.md`) · **Classe:** implementacao-simples · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-10-28
+**Status:** aprovada · **Atualizada em:** 2026-10-28
 
 ## Contexto
 O `hooks/protect-main.sh` roda antes de todo comando Bash onde o plugin está instalado e bloqueia commit e push na `main`. Hoje ele procura `git commit` e `git push` no texto inteiro do comando. Por isso bloqueia o push de uma branch comum quando uma linha da mensagem de commit termina em "main", e bloqueia na `main` um `gh issue create --body "..."` que só cita `git commit`. Os dois casos aconteceram na #14 e na criação da própria #18. Na triagem, o usuário escolheu **bloquear na dúvida**: o hook ignora o texto passado a comandos que não são shell, mas continua analisando o que vai para `bash -c`, `sh -c` e `eval`.
@@ -103,3 +103,4 @@ A fábrica não tem `make test`. A verificação é o `scripts/test-protect-main
 
 ## Histórico
 - 2026-10-28: criação.
+- 2026-10-28: aprovada.
