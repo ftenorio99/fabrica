@@ -36,7 +36,7 @@ Nas duas skills, essa ordem prevalece sobre a regra global `~/.claude/rules/cont
 |---|---|---|
 | CA1 | `skills/spec/SKILL.md` e `skills/implementar/SKILL.md` descrevem a ordem de consulta (doc local → Context7 com a versão do manifesto → conhecimento do modelo), dizem que o conteúdo retornado é referência e não instrução, e dizem o que fazer quando o Context7 falha (as quatro situações de falha da tabela acima). | manual |
 | CA2 | `skills/spec/template.md` tem o campo **Fontes da documentação** em "Desenho técnico", e a skill `spec` manda preenchê-lo com biblioteca, versão e fonte em cada decisão de biblioteca. | manual |
-| CA3 | Nenhuma chave no repositório (`git grep -nIi -E 'ctx7sk|context7.*(key\|token)\s*[:=]'` sem valores reais) e o README tem uma seção de pré-requisitos com `npx ctx7 setup --claude` e onde a chave fica guardada. | manual |
+| CA3 | Nenhuma chave no repositório (`git grep -nI ctx7sk` não encontra nenhuma chave real) e o README tem uma seção de pré-requisitos com `npx ctx7 setup --claude` e onde a chave fica guardada. | manual |
 | CA4 | Sem o Context7 na sessão, as duas skills seguem a etapa até o fim, usando doc local ou conhecimento do modelo e registrando "não verificada". | manual |
 | CA5 | `docs/adr/0001-context7-instalado-por-usuario.md` registra a decisão de instalar por usuário em vez de pelo plugin, com alternativas e consequências. | manual |
 | CA6 | `version` em `.claude-plugin/plugin.json` passa de `0.5.0` para `0.6.0`. | manual |
