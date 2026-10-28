@@ -12,7 +12,7 @@ Você vai conduzir uma entrevista curta e escrever o PRD (documento de requisito
 Ideia inicial do usuário: $ARGUMENTS
 
 ## Regras
-- Não escreva código, não crie issues e não altere outros arquivos além de `docs/prd.md`.
+- Não escreva código, não crie issues e não altere outros arquivos além de `docs/prd.md`. A única ação fora dele é o setup das labels do passo 5.
 - Proponha em vez de só perguntar: para cada decisão, ofereça 2 a 4 opções concretas com a sua recomendação primeiro. Use o AskUserQuestion, com no máximo 4 perguntas por rodada.
 - Não pergunte o que dá para descobrir sozinho: leia antes o `CLAUDE.md`, o `README.md` e o que já existir em `docs/`.
 - Se o usuário não souber responder algo, registre em "Perguntas em aberto" e siga em frente.
@@ -41,3 +41,8 @@ Entre as rodadas, resuma em uma ou duas linhas o que você entendeu, para o usu�
 ## 4. Revisão
 - Mostre ao usuário o PRD inteiro e pergunte o que ajustar. Repita até ele aprovar.
 - Ao final, não faça commit. Diga que o PRD está pronto e ofereça abrir um PR na branch `docs/prd` com o commit `docs: adiciona prd do produto` (ou `docs: atualiza prd` quando for uma atualização).
+
+## 5. Labels
+- Sem pedir confirmação, rode `bash <diretório base desta skill>/../../scripts/setup-labels.sh` no diretório do projeto, para as labels da fábrica existirem antes da primeira issue.
+- Se ainda não houver remote no GitHub (repositório não criado), não trate como falha: avise que o setup roda com `/fabrica:setup` depois do `gh repo create`.
+- Mostre o resultado em uma linha (repositório e labels criadas ou corrigidas).
