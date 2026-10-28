@@ -53,15 +53,24 @@ code_view() {
     function shellarg(   x, i) {
       if (hsnext) return 1
       x = cmdname()
-      if (x == "eval") return 1
+      if (x == "eval") return 2
       if (!isshell(x)) return 0
       for (i = 1; i <= nw[L]; i++) if (w[L, i] ~ /^-[A-Za-z]*c[A-Za-z]*$/) return 1
       return 0
     }
     function mapped(t) { gsub(/[ \t\n;&|()`]/, soh, t); return t }
-    function rawcode(t) { gsub("[\"" sq "]", " ", t); pend = pend "\n" t }
+    # Código que roda em outro processo ($(...), crases, bash -c, heredoc e
+    # here-string para shell) vai entre os marcadores \001S e \001R: um cd
+    # dentro dele não muda o diretório dos comandos seguintes. eval roda no
+    # shell atual e vai sem marcadores.
+    function sub_open() { return "\n" soh "S\n" }
+    function sub_close() { return "\n" soh "R\n" }
+    function rawcode(t, own) {
+      gsub("[\"" sq "]", " ", t)
+      pend = pend (own ? sub_open() t sub_close() : "\n" t)
+    }
     function push(t) { L++; ob[L] = ""; cw[L] = ""; iw[L] = 0; nw[L] = 0; dq[L] = 0; pd[L] = 0; term[L] = t }
-    function pop() { flushword(); pend = pend "\n" ob[L]; L-- }
+    function pop() { flushword(); pend = pend sub_open() ob[L] sub_close(); L-- }
     { s = s (NR > 1 ? "\n" : "") $0 }
     END {
       soh = sprintf("%c", 1); stx = sprintf("%c", 2)
@@ -98,18 +107,18 @@ code_view() {
           j = index(substr(s, i + 1), sq)
           if (!j) exit 2
           body = substr(s, i + 1, j - 1)
-          if (shellarg()) rawcode(body)
+          if ((sa = shellarg())) rawcode(body, sa == 1)
           addw(stx mapped(body)); i += j + 1; continue
         }
         if (c == "\"") {
-          if (shellarg()) {
+          if ((sa = shellarg())) {
             j = i + 1; body = ""
             while (j <= n && substr(s, j, 1) != "\"") {
               if (substr(s, j, 1) == "\\") { body = body substr(s, j, 2); j += 2 }
               else { body = body substr(s, j, 1); j++ }
             }
             if (j > n) exit 2
-            rawcode(body); addw(stx); i = j + 1; continue
+            rawcode(body, sa == 1); addw(stx); i = j + 1; continue
           }
           dq[L] = 1; addw(stx); i++; continue
         }
@@ -144,6 +153,7 @@ code_view() {
           resetcmd(); emit("\n"); i++
           for (h = 1; h <= nh; h++) {
             found = 0
+            if (hsh[h]) emit(soh "S\n")
             while (i <= n) {
               e = index(substr(s, i), "\n")
               line = e ? substr(s, i, e - 1) : substr(s, i)
@@ -154,6 +164,7 @@ code_view() {
               if (hsh[h]) emit(line "\n")
             }
             if (!found) exit 2
+            if (hsh[h]) emit(soh "R\n")
           }
           nh = 0; continue
         }
@@ -172,9 +183,12 @@ code_view() {
             }
             if (isshell(word)) exit 2
           }
-          if (c == "(") pd[L]++
-          else if (c == ")") pd[L]--
-          resetcmd(); emit(c); i++; continue
+          # $( ) e ( ) sem aspas também rodam em outro processo.
+          resetcmd()
+          if (c == "(") { pd[L]++; emit(sub_open()) }
+          else if (c == ")") { pd[L]--; emit(sub_close()) }
+          else emit(c)
+          i++; continue
         }
         if (c ~ /[ \t]/) { flushword(); emit(c); i++; continue }
         j = i + 1
@@ -247,9 +261,18 @@ check_push() {
 
 set -f
 curdir=$cwd
+saved=()
 while IFS= read -r segment; do
   read -ra words <<<"$segment"
   (( ${#words[@]} )) || continue
+  # Marcadores de código em outro processo: salva e restaura o diretório.
+  case ${words[0]} in
+    "${soh}S") saved+=("$curdir"); continue ;;
+    "${soh}R")
+      # ")" sem par (ex.: padrão de case) não tem diretório salvo.
+      (( ${#saved[@]} )) && { curdir=${saved[-1]}; unset 'saved[-1]'; }
+      continue ;;
+  esac
   # Texto citado volta ao valor real, numa palavra só.
   words=("${words[@]//$soh/ }")
   words=("${words[@]//$stx/}")

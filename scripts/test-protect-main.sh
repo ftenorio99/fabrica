@@ -107,6 +107,14 @@ check deny CA5 "$MAIN" 'git -c "user.name=x" commit -m x'
 check deny CA5 "$MAIN" "echo \"\$(git commit -m x)\"; cd $FEAT"
 check deny CA5 "$MAIN" "bash -c 'git commit -m x'; cd $FEAT"
 check deny CA5 "$MAIN" "eval 'git commit -m x' && cd $FEAT && ls"
+check deny CA5 "$MAIN" 'D="$(cd /tmp && pwd)" && git commit -m x'
+check deny CA5 "$MAIN" "D=\"\$(cd $FEAT && pwd)\"; git push"
+check deny CA5 "$MAIN" "bash -c 'cd /tmp'; git commit -m x"
+check deny CA5 "$MAIN" $'bash <<EOF\ncd /tmp\nEOF\ngit commit -m x'
+check deny CA5 "$MAIN" 'D=$(cd /tmp && pwd) && git commit -m x'
+check deny CA5 "$MAIN" '(cd /tmp && ls); git commit -m x'
+check allow CA5 "$MAIN" "(cd $FEAT && git commit -m x)"
+check allow CA5 "$MAIN" "eval 'cd $FEAT' && git commit -m x"
 check allow CA5 "$MAIN" "git -C $FEAT push origin feat/x"
 check allow CA5 "$MAIN" "cd $FEAT && git commit -m x"
 
