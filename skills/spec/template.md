@@ -31,6 +31,9 @@
 **Decisões:**
 - <decisão> — <justificativa em uma frase>. Alternativa descartada: <qual e por quê>.
 
+**Fontes da documentação:**
+- <biblioteca> <versão> — <caminho da doc local | ID do Context7 | não verificada>. <"versão não confirmada", se for o caso>
+
 **ADR:** <docs/adr/NNNN-titulo.md, ou "nenhum">
 
 ## Testes
