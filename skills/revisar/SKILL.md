@@ -28,7 +28,7 @@ O revisor devolve, para cada critério de aceite, se está atendido e com qual e
 ## 3. Corrigir
 - Corrija todos os achados `bloqueante` e `importante` que procedem. Se discordar de um achado, registre o motivo; ele vai para o PR.
 - Depois de corrigir, rode `make lint` e `make test`, faça commit (`fix: ...` ou o tipo adequado) e push, e faça uma nova rodada de revisão.
-- No máximo **duas rodadas de correção**. Se ainda restarem achados bloqueantes, abra o PR mesmo assim como rascunho (`--draft`), liste os achados pendentes e não aplique `pronto-revisao`.
+- No máximo **duas rodadas de correção**. Se ainda restarem achados bloqueantes, abra o PR mesmo assim como rascunho (`--draft`), liste os achados pendentes, aplique `escalonado` na issue e não aplique `pronto-revisao`.
 - Sugestões não são aplicadas: elas vão listadas no PR para o usuário decidir.
 
 ## 4. Abrir o PR
@@ -66,10 +66,11 @@ Se já existir PR da branch (`gh pr view`), atualize a descrição em vez de abr
 
 ## 5. CI e labels
 - Espere o CI: `gh pr checks --watch`. Se falhar por causa da mudança, corrija como no passo 3 (conta como rodada). Se falhar por motivo externo (instabilidade, credencial), registre no PR e siga.
-- Com CI verde e sem achados bloqueantes: `gh issue edit <nº> --add-label pronto-revisao`.
+- Com CI verde e sem achados bloqueantes: `gh issue edit <nº> --add-label pronto-revisao --remove-label escalonado`.
 - Comente na issue com o link do PR e diga ao usuário no chat que o PR está pronto para a revisão dele.
 
 ## Regras
 - Nunca faça merge, nem aprove o próprio PR.
 - Não mude a spec para fazer a implementação passar. Se a spec estiver errada, comente na issue.
+- Todo comentário seu, na issue ou no PR, começa com o marcador `<!-- fabrica:revisar -->` numa linha própria. Os comentários do agente e do usuário saem da mesma conta do GitHub, e o marcador é o que os distingue (veja [estados.md](../status/estados.md)).
 - O status de cada CA no PR precisa ter evidência; "implementado" sem evidência não conta.

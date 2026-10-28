@@ -18,6 +18,7 @@ Pare e explique o motivo (no chat e, quando indicado, na issue) se algum destes 
 - **Ambiente:** confira as ferramentas que o projeto exige (versões em `.nvmrc`, `packageManager`, `engines`, `CLAUDE.md` e na seção de riscos da spec). Se faltar alguma, pare e diga exatamente o que instalar. Não instale ferramentas do sistema por conta própria.
 
 ## 2. Preparar a branch
+- Se a issue tiver `escalonado`, é uma retomada depois de um bloqueio: leia o último comentário do agente e a resposta do usuário e remova a label (`gh issue edit <nº> --remove-label escalonado`).
 - `git fetch origin`, `git switch <branch>` e `git pull`. Se a `main` avançou desde a spec, faça `git rebase origin/main` e resolva conflitos simples; se o conflito mexer no escopo, pare e reporte.
 - Na spec, mude o status para `aprovada` e registre a data no histórico. Nos ADRs citados pela spec, mude o status de `proposto` para `aceito`.
 - Commit: `docs: marca spec da issue #<nº> como aprovada`.
@@ -26,7 +27,7 @@ Pare e explique o motivo (no chat e, quando indicado, na issue) se algum destes 
 ## 3. Implementar
 - Leia a spec inteira, o `CLAUDE.md` e o código que será tocado antes de escrever.
 - Siga o desenho técnico da spec: os arquivos, interfaces e decisões descritos nela. Pequenos ajustes forçados pela realidade (uma API de biblioteca diferente da prevista, um nome de arquivo gerado pela ferramenta) são permitidos e vão para a seção "Desvios da spec" do PR.
-- **Desvio relevante** é qualquer mudança de comportamento, de critério de aceite, de escopo ou de decisão listada para o usuário confirmar. Nesse caso, pare: comente na issue o que encontrou e as opções, com uma recomendação. Não decida sozinho.
+- **Desvio relevante** é qualquer mudança de comportamento, de critério de aceite, de escopo ou de decisão listada para o usuário confirmar. Nesse caso, pare: comente na issue o que encontrou e as opções, com uma recomendação, aplique `escalonado` e avise o usuário. Não decida sozinho.
 - **Pedido de mudança do usuário:** se o próprio usuário pedir, no chat ou na issue, uma mudança desse tipo depois da `spec-aprovada`, não a aplique direto nem edite a spec por conta própria. A spec aprovada é o contrato. Faça commit e push do que já existe, registre o pedido na issue e indique o caminho: o usuário remove `spec-aprovada`, roda `/fabrica:spec <nº> <ajuste>` (que ajusta a spec na mesma branch), aprova de novo e retoma com `/fabrica:implementar <nº>`.
 - Escreva os testes de cada critério marcado como unitário ou e2e junto com o código que ele cobre.
 - Commits pequenos, cada um com uma mudança lógica, no padrão do `CLAUDE.md` (Conventional Commits, descrição em português). Antes de cada commit, revise o stage (`git diff --staged`) e confira que nada gerado ou secreto entrou.
@@ -34,10 +35,13 @@ Pare e explique o motivo (no chat e, quando indicado, na issue) se algum destes 
 
 ## 4. Verificar
 - Rode `make lint` e `make test` (e `make e2e` se a spec pedir). Conte como **uma rodada de verificação** cada vez que a implementação estiver pronta e você rodar os comandos.
-- Se falhar, corrija e rode de novo. Depois de **duas rodadas de correção** ainda com falha, pare: comente na issue o comando, o erro resumido e o que já foi tentado, faça push do que existe e avise o usuário. Não siga para a revisão.
+- Se falhar, corrija e rode de novo. Depois de **duas rodadas de correção** ainda com falha, pare: comente na issue o comando, o erro resumido e o que já foi tentado, faça push do que existe, aplique `escalonado` (`gh issue edit <nº> --add-label escalonado`) e avise o usuário. Não siga para a revisão.
 - Execute cada verificação manual descrita na seção "Testes" da spec (por exemplo, introduzir um erro, conferir que o comando falha e reverter). Anote o comando e o resultado de cada uma; isso vai para o PR.
 - Confira que o diff final contra a `main` (`git diff origin/main...HEAD --stat`) só contém o que a spec prevê.
 - `git push`.
 
 ## 5. Revisar
 Com tudo verde, siga as instruções de [../revisar/SKILL.md](../revisar/SKILL.md) para a mesma issue, levando junto as anotações de verificações manuais e desvios.
+
+## Regras
+- Todo comentário seu, na issue ou no PR, começa com o marcador `<!-- fabrica:implementar -->` numa linha própria. Os comentários do agente e do usuário saem da mesma conta do GitHub, e o marcador é o que os distingue (veja [estados.md](../status/estados.md)).
