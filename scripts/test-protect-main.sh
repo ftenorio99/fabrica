@@ -58,6 +58,7 @@ check() {
 check allow CA1 "$FEAT" $'git commit -m "chore: algo sobre a main\n\ncorpo" && git push origin feat/x'
 check allow CA1 "$MAIN" 'gh issue create --body "exemplo: git commit -m x"'
 check allow CA1 "$FEAT" 'git push -u origin feat/x'
+check allow CA1 "$MAIN" $'gh issue create --title t --body "$(cat <<\'EOF\'\nO hook bloqueia `git commit` na main (e o push.\ngit commit -m x\nEOF\n)"'
 
 # CA2: texto citado não bloqueia.
 check allow CA2 "$MAIN" "echo 'git push origin main'"
@@ -73,6 +74,11 @@ check deny CA3 "$MAIN" 'git push'
 check deny CA3 "$FEAT" 'git status; git push origin main'
 check deny CA3 "$FEAT" $'git status\ngit push origin main'
 check deny CA3 "$FEAT" 'FOO=1 git push origin main'
+check deny CA3 "$FEAT" "git push origin 'main'"
+check deny CA3 "$FEAT" 'git push origin "HEAD:main"'
+check deny CA3 "$MAIN" 'if git commit -m x; then echo ok; fi'
+check deny CA3 "$FEAT" 'while git push origin main; do break; done'
+check deny CA3 "$FEAT" $'git push \\\n  origin main'
 
 # CA4: bloqueio na dúvida.
 check deny CA4 "$FEAT" 'bash -c "git push origin main"'
@@ -83,11 +89,18 @@ check deny CA4 "$MAIN" 'echo "`git commit -m x`"'
 check deny CA4 "$FEAT" $'bash <<EOF\ngit push origin main\nEOF'
 check deny CA4 "$FEAT" 'echo "git push origin main" | bash'
 check deny CA4 "$FEAT" 'echo "git push origin main'
+check deny CA4 "$FEAT" 'bash <<< "git push origin main"'
+check deny CA4 "$MAIN" 'sudo -u eu git commit -m x'
+check deny CA4 "$MAIN" 'env -i git commit -m x'
 
 # CA5: diretório certo.
 check deny CA5 "$FEAT" "cd $MAIN && git commit -m x"
 check deny CA5 "$FEAT" "git -C $MAIN commit -m x"
 check deny CA5 "$FEAT" "git status; cd $MAIN && git commit -m x"
+check deny CA5 "$FEAT" "cd \"$MAIN\" && git commit -m x"
+check deny CA5 "$FEAT" "git -C '$MAIN' commit -m x"
+check deny CA5 "$FEAT" "git --git-dir $MAIN/.git commit -m x"
+check deny CA5 "$MAIN" 'git -c "user.name=x" commit -m x'
 check allow CA5 "$MAIN" "git -C $FEAT push origin feat/x"
 check allow CA5 "$MAIN" "cd $FEAT && git commit -m x"
 

@@ -6,8 +6,8 @@
 # O comando é lido em duas etapas: code_view separa o código do texto
 # citado (aspas, heredocs) e o laço final divide o código em comandos
 # simples, analisando só os git commit e git push que vão rodar.
-# Na dúvida (bash -c, eval, $(...), heredoc ou pipe para shell, aspas
-# sem fechamento), o texto é tratado como código e pode bloquear.
+# Na dúvida (bash -c, eval, $(...), heredoc, here-string ou pipe para
+# shell, aspas sem fechamento), o texto é tratado como código e pode bloquear.
 
 input=$(cat)
 cmd=$(jq -r '.tool_input.command // ""' <<<"$input")
@@ -17,38 +17,73 @@ cwd=$(jq -r '.cwd // ""' <<<"$input")
 # Filtro rápido: sem essas palavras, não há o que analisar.
 grep -Eq 'commit|push' <<<"$cmd" || exit 0
 
-# Devolve só o código do comando: texto entre aspas e corpo de heredoc
-# viram espaço. Exceções mantidas como código: argumento de bash/sh -c e
-# de eval, $(...) e crases dentro de aspas duplas, heredoc para shell e
-# palavra entre aspas na posição de comando. Sai com 2 se não conseguir
+soh=$'\001' stx=$'\002'
+
+# Devolve só o código do comando. O texto entre aspas continua como uma
+# única palavra, com espaços e separadores trocados por \001 (e \002 marca
+# a aspa, para "" virar palavra vazia); o corpo de heredoc some.
+# $(...) e crases dentro de aspas duplas abrem um nível novo, lido com as
+# mesmas regras e emitido como comandos à parte, depois do comando principal.
+# O argumento de bash/sh -c, de eval e de here-string para shell e o corpo
+# de heredoc para shell também vão como código. Sai com 2 se não conseguir
 # separar (aspas, $( ou heredoc sem fechamento).
 code_view() {
   awk -v sq="'" '
-    function flushword() { if (inword) { nw++; w[nw] = cw } cw = ""; inword = 0 }
-    function resetcmd() { flushword(); nw = 0 }
-    function cmdname(   i) {
-      for (i = 1; i <= nw; i++) {
-        if (w[i] ~ /^[A-Za-z_][A-Za-z0-9_]*=/) continue
-        if (w[i] ~ /^(\{|!|time|sudo|command|exec|nohup|then|do|else|env)$/) continue
-        return w[i]
+    function emit(t) { ob[L] = ob[L] t }
+    function addw(t) { cw[L] = cw[L] t; iw[L] = 1; emit(t) }
+    function flushword() { if (iw[L]) { nw[L]++; w[L, nw[L]] = cw[L] } cw[L] = ""; iw[L] = 0 }
+    function resetcmd() { flushword(); nw[L] = 0; hsnext = 0 }
+    function cmdname(   i, x) {
+      for (i = 1; i <= nw[L]; i++) {
+        x = w[L, i]
+        if (x ~ /^[A-Za-z_][A-Za-z0-9_]*=/ || x ~ /^-/) continue
+        if (x ~ /^(\{|!|if|elif|while|until|then|do|else|time|sudo|command|exec|nohup|env)$/) continue
+        return x
       }
       return ""
     }
-    function isshell(name) { sub(/.*\//, "", name); return name ~ /^(bash|sh|zsh|dash|ksh)$/ }
-    function shellarg(   name, i) {
-      name = cmdname()
-      if (name == "eval") return 1
-      if (!isshell(name)) return 0
-      for (i = 1; i <= nw; i++) if (w[i] ~ /^-[A-Za-z]*c[A-Za-z]*$/) return 1
+    function isshell(x) { sub(/.*\//, "", x); return x ~ /^(bash|sh|zsh|dash|ksh)$/ }
+    function shellarg(   x, i) {
+      if (hsnext) return 1
+      x = cmdname()
+      if (x == "eval") return 1
+      if (!isshell(x)) return 0
+      for (i = 1; i <= nw[L]; i++) if (w[L, i] ~ /^-[A-Za-z]*c[A-Za-z]*$/) return 1
       return 0
     }
+    function mapped(t) { gsub(/[ \t\n;&|()`]/, soh, t); return t }
+    function rawcode(t) { gsub("[\"" sq "]", " ", t); extra = extra "\n" t }
+    function push(t) { L++; ob[L] = ""; cw[L] = ""; iw[L] = 0; nw[L] = 0; dq[L] = 0; pd[L] = 0; term[L] = t }
+    function pop() { flushword(); extra = extra "\n" ob[L]; L-- }
     { s = s (NR > 1 ? "\n" : "") $0 }
     END {
-      n = length(s); i = 1; out = ""; nh = 0
+      soh = sprintf("%c", 1); stx = sprintf("%c", 2)
+      dqspecial = "\\\"$`"; special = "\\#" sq "\"<\n;&|()` \t"
+      n = length(s); i = 1; L = 0; nh = 0; extra = ""
       while (i <= n) {
         c = substr(s, i, 1)
-        if (c == "\\") { out = out substr(s, i, 2); cw = cw substr(s, i + 1, 1); inword = 1; i += 2; continue }
-        if (c == "#" && !inword) {
+        if (c == "\\" && substr(s, i + 1, 1) == "\n") { i += 2; continue }
+
+        # Dentro de aspas duplas: texto, exceto $(...) e crases.
+        if (dq[L]) {
+          # Trecho sem caractere especial vai de uma vez (concatenar
+          # caractere por caractere fica quadrático em comandos longos).
+          j = i
+          while (j <= n && !index(dqspecial, substr(s, j, 1))) j++
+          if (j > i) { addw(mapped(substr(s, i, j - i))); i = j; continue }
+          if (c == "\\") { addw(mapped(substr(s, i + 1, 1))); i += 2; continue }
+          if (c == "\"") { dq[L] = 0; i++; continue }
+          if (c == "$" && substr(s, i + 1, 1) == "(") { push(""); i += 2; continue }
+          if (c == "`") { push("`"); i++; continue }
+          addw(mapped(c)); i++; continue
+        }
+
+        # Fim de um nível aberto dentro de aspas duplas.
+        if (L > 0 && term[L] == "`" && c == "`") { pop(); i++; continue }
+        if (L > 0 && term[L] == "" && c == ")" && pd[L] == 0) { pop(); i++; continue }
+
+        if (c == "\\") { addw(mapped(substr(s, i + 1, 1))); i += 2; continue }
+        if (c == "#" && !iw[L]) {
           while (i <= n && substr(s, i, 1) != "\n") i++
           continue
         }
@@ -56,44 +91,26 @@ code_view() {
           j = index(substr(s, i + 1), sq)
           if (!j) exit 2
           body = substr(s, i + 1, j - 1)
-          if (shellarg()) out = out "\n" body "\n"
-          else if (nw == 0 && !inword) out = out body
-          else out = out " "
-          cw = cw "Q"; inword = 1; i += j + 1; continue
+          if (shellarg()) rawcode(body)
+          addw(stx mapped(body)); i += j + 1; continue
         }
         if (c == "\"") {
-          j = i + 1; body = ""; code = ""
-          while (j <= n) {
-            d = substr(s, j, 1)
-            if (d == "\\") { body = body substr(s, j, 2); j += 2; continue }
-            if (d == "\"") break
-            if (d == "$" && substr(s, j + 1, 1) == "(") {
-              depth = 1; k = j + 2
-              while (k <= n && depth > 0) {
-                e = substr(s, k, 1)
-                if (e == "(") depth++
-                else if (e == ")") depth--
-                k++
-              }
-              if (depth > 0) exit 2
-              code = code "\n" substr(s, j + 2, k - j - 3) "\n"
-              body = body substr(s, j, k - j); j = k; continue
+          if (shellarg()) {
+            j = i + 1; body = ""
+            while (j <= n && substr(s, j, 1) != "\"") {
+              if (substr(s, j, 1) == "\\") { body = body substr(s, j, 2); j += 2 }
+              else { body = body substr(s, j, 1); j++ }
             }
-            if (d == "`") {
-              k = index(substr(s, j + 1), "`")
-              if (!k) exit 2
-              code = code "\n" substr(s, j + 1, k - 1) "\n"
-              body = body substr(s, j, k + 1); j += k + 1; continue
-            }
-            body = body d; j++
+            if (j > n) exit 2
+            rawcode(body); addw(stx); i = j + 1; continue
           }
-          if (j > n) exit 2
-          if (shellarg()) out = out "\n" body "\n"
-          else if (nw == 0 && !inword) out = out body
-          else out = out " " code " "
-          cw = cw "Q"; inword = 1; i = j + 1; continue
+          dq[L] = 1; addw(stx); i++; continue
         }
-        if (substr(s, i, 3) == "<<<") { flushword(); out = out " "; i += 3; continue }
+        if (substr(s, i, 3) == "<<<") {
+          flushword()
+          if (isshell(cmdname())) hsnext = 1
+          emit(" "); i += 3; continue
+        }
         if (substr(s, i, 2) == "<<") {
           flushword()
           k = i + 2; strip = 0
@@ -114,10 +131,10 @@ code_view() {
           }
           if (delim == "") exit 2
           nh++; hd[nh] = delim; hs[nh] = strip; hsh[nh] = isshell(cmdname())
-          out = out " "; i = k; continue
+          emit(" "); i = k; continue
         }
         if (c == "\n") {
-          resetcmd(); out = out "\n"; i++
+          resetcmd(); emit("\n"); i++
           for (h = 1; h <= nh; h++) {
             found = 0
             while (i <= n) {
@@ -127,18 +144,24 @@ code_view() {
               cmp = line
               if (hs[h]) sub(/^\t+/, "", cmp)
               if (cmp == hd[h]) { found = 1; break }
-              if (hsh[h]) out = out line "\n"
+              if (hsh[h]) extra = extra "\n" line
             }
             if (!found) exit 2
           }
           nh = 0; continue
         }
-        if (c ~ /[;&|()`]/) { resetcmd(); out = out c; i++; continue }
-        if (c ~ /[ \t]/) { flushword(); out = out c; i++; continue }
-        cw = cw c; inword = 1; out = out c; i++
+        if (c ~ /[;&|()`]/) {
+          if (c == "(") pd[L]++
+          else if (c == ")") pd[L]--
+          resetcmd(); emit(c); i++; continue
+        }
+        if (c ~ /[ \t]/) { flushword(); emit(c); i++; continue }
+        j = i + 1
+        while (j <= n && !index(special, substr(s, j, 1))) j++
+        addw(substr(s, i, j - i)); i = j
       }
-      if (nh > 0) exit 2
-      printf "%s", out
+      if (L > 0 || dq[0] || nh > 0) exit 2
+      printf "%s\n%s", ob[0], extra
     }
   ' <<<"$cmd"
 }
@@ -166,8 +189,20 @@ resolve() {
   printf '%s' "$target"
 }
 
+# Diretório de trabalho a partir de um --git-dir.
+from_git_dir() {
+  local target
+  target=$(resolve "$1" "$2")
+  [[ $target == */.git ]] && target=${target%/.git}
+  printf '%s' "$target"
+}
+
+declare -A commit_checked
 check_commit() {
   local dir=$1 branch
+  # O mesmo diretório só precisa ser conferido uma vez.
+  [[ -n ${commit_checked[$dir]} ]] && return 0
+  commit_checked[$dir]=1
   git -C "$dir" rev-parse --git-dir >/dev/null 2>&1 || return 0
   branch=$(git -C "$dir" branch --show-current 2>/dev/null)
   [[ $branch == main || $branch == master ]] || return 0
@@ -198,23 +233,30 @@ curdir=$cwd
 while IFS= read -r segment; do
   read -ra words <<<"$segment"
   (( ${#words[@]} )) || continue
+  # Texto citado volta ao valor real, numa palavra só.
+  words=("${words[@]//$soh/ }")
+  words=("${words[@]//$stx/}")
 
   # Primeira palavra do comando, depois de atribuições e prefixos.
-  k=0
+  k=0 wrapped=0
   while (( k < ${#words[@]} )); do
     case ${words[k]} in
-      [A-Za-z_]*=*|'{'|'!'|time|sudo|command|exec|nohup|then|do|else|env) k=$((k + 1)) ;;
+      [A-Za-z_]*=*|'{'|'!'|if|elif|while|until|then|do|else) k=$((k + 1)) ;;
+      sudo|env|time|command|exec|nohup) wrapped=1; k=$((k + 1)) ;;
       *) break ;;
     esac
   done
-  # Sem separar o texto, procura o git em qualquer posição do comando.
-  if (( fallback )); then
-    while (( k < ${#words[@]} )) && [[ ${words[k]##*/} != git ]]; do k=$((k + 1)); done
+  # Depois de sudo/env com opções, ou sem separar o texto, procura o git
+  # em qualquer posição do comando.
+  if (( fallback || wrapped )); then
+    j=$k
+    while (( j < ${#words[@]} )) && [[ ${words[j]##*/} != git ]]; do j=$((j + 1)); done
+    (( j < ${#words[@]} )) && k=$j
   fi
   (( k < ${#words[@]} )) || continue
 
   if [[ ${words[k]} == cd ]]; then
-    next=${words[k + 1]:-$HOME}
+    next=${words[k + 1]-$HOME}
     [[ $next == - ]] || curdir=$(resolve "$next" "$curdir")
     continue
   fi
@@ -227,7 +269,9 @@ while IFS= read -r segment; do
     case ${words[k]} in
       -C) gitdir=$(resolve "${words[k + 1]}" "$gitdir"); k=$((k + 2)) ;;
       -C?*) gitdir=$(resolve "${words[k]#-C}" "$gitdir"); k=$((k + 1)) ;;
-      -c) k=$((k + 2)) ;;
+      --git-dir) gitdir=$(from_git_dir "${words[k + 1]}" "$gitdir"); k=$((k + 2)) ;;
+      --git-dir=*) gitdir=$(from_git_dir "${words[k]#--git-dir=}" "$gitdir"); k=$((k + 1)) ;;
+      -c|--work-tree|--namespace) k=$((k + 2)) ;;
       -*) k=$((k + 1)) ;;
       *) break ;;
     esac
