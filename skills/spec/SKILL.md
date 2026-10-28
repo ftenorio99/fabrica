@@ -61,4 +61,5 @@ A spec é o contrato entre o usuário e quem implementa: ela é aprovada **antes
 ## Regras
 - Não escreva código de produção nem testes. A spec descreve; a implementação é a próxima etapa.
 - Não aplique `spec-aprovada`: só o usuário aplica.
+- Todo comentário seu, na issue ou no PR, começa com o marcador `<!-- fabrica:spec -->` numa linha própria. Os comentários do agente e do usuário saem da mesma conta do GitHub, e o marcador é o que os distingue (veja [estados.md](../status/estados.md)).
 - Não invente requisitos. Se surgir uma lacuna de negócio, pergunte na issue, aplique `precisa-info` e remova `spec-pronta`.

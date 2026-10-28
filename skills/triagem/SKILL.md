@@ -70,5 +70,6 @@ Depois, ajuste as labels:
 ## Regras
 - Não escreva spec, código nem branch.
 - Não pergunte no chat o que pode ser perguntado na issue.
+- Todo comentário seu, na issue ou no PR, começa com o marcador `<!-- fabrica:triagem -->` numa linha própria. Os comentários do agente e do usuário saem da mesma conta do GitHub, e o marcador é o que os distingue (veja [estados.md](../status/estados.md)).
 - Não invente requisitos: se o PRD e a issue não dizem, é uma pergunta.
 - Em rodadas seguintes, publique um novo comentário de triagem completo (com o mesmo marcador); não edite os anteriores, para manter o histórico.

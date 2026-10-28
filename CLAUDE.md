@@ -14,7 +14,7 @@ Este repositório é a fábrica de software pessoal, empacotada como plugin do C
 - O texto da skill é instrução para o Claude: imperativo, direto, em português.
 - O `description` do frontmatter diz o que a skill faz e quando usar; é ele que decide quando a skill é acionada.
 - Material de apoio (templates, exemplos) fica ao lado do `SKILL.md`, na pasta da skill, e é referenciado pelo caminho relativo.
-- Cada skill aplica e remove as labels da sua etapa, conforme a tabela de labels em `templates/CLAUDE.md`.
+- Cada skill aplica e remove as labels da sua etapa, conforme a tabela de labels em `skills/status/estados.md`. Ao mudar o fluxo (labels, marcadores, etapas), atualize essa máquina de estados no mesmo PR.
 
 ## Testando localmente
 `claude --plugin-dir ~/projetos/fabrica` carrega o plugin direto desta pasta, sem instalar.
