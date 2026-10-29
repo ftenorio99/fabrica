@@ -16,6 +16,7 @@ Os termos (item com issue, marco atual, perto de fechar, janela) e o marcador es
 - Nunca aplique `agente`.
 - Nada é criado ou alterado antes da confirmação do usuário.
 - Não commite na `main`: a anotação do PRD vai pela branch `docs/backlog` e por PR.
+- Em qualquer saída depois de criar a worktree do passo 1 (plano vazio, PRD inválido, cancelamento, erro ou fim do passo 5), remova-a com `git worktree remove --force <tmp>`. O git não deixa a mesma branch em duas worktrees, e uma worktree esquecida quebra a próxima execução.
 
 ## Formato do fatiamento
 ```markdown
@@ -34,6 +35,7 @@ Itens de 1 a 2 dias de trabalho humano, agrupados por marco e em ordem de depend
 
 ## 1. Ler
 - Confirme que está num clone com remote no GitHub (`gh repo view --json nameWithOwner`). Se não estiver, pare e diga o que falta.
+- Se sobrou uma worktree da branch `docs/backlog` de uma execução anterior (`git worktree list`), remova-a com `git worktree remove --force <caminho>`.
 - `git fetch origin`. Veja se existe PR aberto da branch `docs/backlog` (`gh pr list --head docs/backlog --state open`).
   - **Sem PR aberto:** leia o PRD da `main` (`git show origin/main:docs/prd.md`).
   - **Com PR aberto:** a branch tem a migração e as anotações ainda sem merge, mas pode estar atrás da `main`. Crie a worktree do passo 5 (`git worktree add <tmp> docs/backlog`, depois `git pull`), traga a `main` para ela (`git merge origin/main`) e leia o PRD dali. Assim, as mudanças do PRD mergeadas na `main` depois que o PR foi aberto entram no plano. Se o merge der conflito, rode `git merge --abort`, remova a worktree e pare: peça para mergear ou fechar o PR `docs/backlog` pendente antes de rodar de novo. Se o usuário cancelar no passo 4, remova a worktree sem push.
