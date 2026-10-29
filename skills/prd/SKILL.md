@@ -19,7 +19,7 @@ Ideia inicial do usuário: $ARGUMENTS
 - Nunca altere labels nem issues, nem no modo atualização. Aplicar a mudança nas issues é do `/fabrica:backlog` e do usuário.
 
 ## 1. Contexto
-- Se `docs/prd.md` já existir, o PRD é a baseline do produto: siga a seção [Mudanças de requisitos](#mudanças-de-requisitos) em vez dos passos 2 a 4.
+- Se `docs/prd.md` já existir, o PRD é a baseline do produto: siga a seção [Mudanças de requisitos](#mudanças-de-requisitos) em vez dos passos 2 a 5. O setup de labels do passo 5 não roda no modo atualização.
 - Se o projeto tiver critérios definidos para o produto (no `CLAUDE.md` ou num documento citado pelo usuário), use-os para avaliar as respostas e avise quando uma escolha os contrariar.
 
 ## 2. Entrevista
