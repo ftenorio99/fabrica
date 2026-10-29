@@ -1,7 +1,7 @@
 # SPEC-32: Escrever o manual de uso da fábrica em docs/
 
 **Issue:** #32 · **PRD:** — (a fábrica não tem `docs/prd.md`) · **Classe:** documentacao · **Tamanho:** G
-**Status:** rascunho · **Atualizada em:** 2026-10-29
+**Status:** aprovada · **Atualizada em:** 2026-10-29
 
 ## Contexto
 O README da fábrica (63 linhas) junta instalação, fluxo, backlog, labels e proteção da `main` numa página. Não existe manual de uso, e várias dúvidas já apareceram no uso real:
@@ -93,3 +93,4 @@ Verificações manuais, que vão para o PR:
 
 ## Histórico
 - 2026-10-29: criação.
+- 2026-10-29: aprovada.
