@@ -263,12 +263,16 @@ for c in 'unset HOME; git commit -m x' 'unset -v XDG_CONFIG_HOME' 'unset FOO XDG
   'git config --global --remove-section core' 'git config --global --rename-section core x' \
   'git config --global remove-section core' 'git config rename-section core x' \
   'git commit --no-veri -m x' 'git commit --no-verif -m x' 'git push --no-veri origin main' \
-  'git config --global --get core.hooksPath'; do
+  'git config --global --get core.hooksPath' \
+  'unset "HOME"; git commit -m x' "unset 'XDG_CONFIG_HOME'" \
+  'env --u=HOME git commit -m x' 'env --uns HOME git commit -m x' 'env --ignore-e git commit -m x' \
+  'env -C /tmp -i git commit -m x' "env -S'-i sh -c env'" \
+  'git config --global --rem core' 'git config --ren core yy' 'git config --global --remove-sec core'; do
   check deny "$c" "" B29
 done
 for c in 'git commit --no-verbose -m x' 'echo $HOME' 'cd ~ && ls' 'printenv HOME' 'env | grep PATH' \
   'env FOO=1 make test' 'git config --global user.name x' 'git config --list' 'unset HOMEBREW_X' \
-  'cp .env.example .env -i'; do
+  'cp .env.example .env -i' 'git log --remotes' 'git add --renormalize .' 'env -C /tmp ls'; do
   check allow "$c" "" B29
 done
 check allow 'git log -n 5'
