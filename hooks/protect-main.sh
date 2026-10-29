@@ -8,6 +8,9 @@
 # simples, analisando só os git commit e git push que vão rodar.
 # Na dúvida (bash -c, eval, $(...), heredoc, here-string ou pipe para
 # shell, aspas sem fechamento), o texto é tratado como código e pode bloquear.
+# Variáveis definidas no próprio comando (W=/dir; cd $W) são expandidas em
+# cd, git -C e --git-dir. Se o diretório depender de algo que não dá para
+# resolver ($(...), variável desconhecida), commit e push bloqueiam na dúvida.
 
 input=$(cat)
 cmd=$(jq -r '.tool_input.command // ""' <<<"$input")
@@ -17,14 +20,16 @@ cwd=$(jq -r '.cwd // ""' <<<"$input")
 # Filtro rápido: sem essas palavras, não há o que analisar.
 grep -Eq 'commit|push' <<<"$cmd" || exit 0
 
-soh=$'\001' stx=$'\002'
+soh=$'\001' stx=$'\002' etx=$'\003' eot=$'\004'
 
 # Devolve só o código do comando. O texto entre aspas continua como uma
 # única palavra, com espaços e separadores trocados por \001 (e \002 marca
 # a aspa, para "" virar palavra vazia); o corpo de heredoc some.
 # $(...) e crases dentro de aspas duplas abrem um nível novo, lido com as
 # mesmas regras e emitido como comandos à parte, logo depois do comando
-# em que aparece.
+# em que aparece. Um $ que não expande (entre aspas simples ou escapado)
+# vira \003, e uma substituição de comando no meio de uma palavra deixa
+# \004 nela, para o laço saber que o valor não é conhecido.
 # O argumento de bash/sh -c, de eval e de here-string para shell e o corpo
 # de heredoc para shell também vão como código. Sai com 2 se não conseguir
 # separar (aspas, $( ou heredoc sem fechamento) ou se houver pipe para shell.
@@ -62,18 +67,23 @@ code_view() {
     # Código que roda em outro processo ($(...), crases, bash -c, heredoc e
     # here-string para shell) vai entre os marcadores \001S e \001R: um cd
     # dentro dele não muda o diretório dos comandos seguintes. eval roda no
-    # shell atual e vai sem marcadores.
+    # shell atual e vai sem marcadores. Um shell filho (bash -c, heredoc e
+    # here-string para shell) abre com \001X: ele só herda as variáveis
+    # exportadas.
     function sub_open() { return "\n" soh "S\n" }
+    function child_open() { return "\n" soh "X\n" }
     function sub_close() { return "\n" soh "R\n" }
     function rawcode(t, own) {
       gsub("[\"" sq "]", " ", t)
-      pend = pend (own ? sub_open() t sub_close() : "\n" t)
+      pend = pend (own ? child_open() t sub_close() : "\n" t)
     }
     function push(t) { L++; ob[L] = ""; cw[L] = ""; iw[L] = 0; nw[L] = 0; dq[L] = 0; pd[L] = 0; bt[L] = 0; term[L] = t }
-    function pop() { flushword(); pend = pend sub_open() ob[L] sub_close(); L-- }
+    function pop() { flushword(); pend = pend sub_open() ob[L] sub_close(); L--; addw(eot) }
+    # $ literal: não é expandido pelo shell.
+    function lit(t) { gsub(/\$/, etx, t); return t }
     { s = s (NR > 1 ? "\n" : "") $0 }
     END {
-      soh = sprintf("%c", 1); stx = sprintf("%c", 2)
+      soh = sprintf("%c", 1); stx = sprintf("%c", 2); etx = sprintf("%c", 3); eot = sprintf("%c", 4)
       dqspecial = "\\\"$`"; special = "\\#" sq "\"<\n;&|()` \t"
       n = length(s); i = 1; L = 0; nh = 0; pend = ""
       while (i <= n) {
@@ -87,7 +97,7 @@ code_view() {
           j = i
           while (j <= n && !index(dqspecial, substr(s, j, 1))) j++
           if (j > i) { addw(mapped(substr(s, i, j - i))); i = j; continue }
-          if (c == "\\") { addw(mapped(substr(s, i + 1, 1))); i += 2; continue }
+          if (c == "\\") { addw(lit(mapped(substr(s, i + 1, 1)))); i += 2; continue }
           if (c == "\"") { dq[L] = 0; i++; continue }
           if (c == "$" && substr(s, i + 1, 1) == "(") { push(""); i += 2; continue }
           if (c == "`") { push("`"); i++; continue }
@@ -98,7 +108,7 @@ code_view() {
         if (L > 0 && term[L] == "`" && c == "`") { pop(); i++; continue }
         if (L > 0 && term[L] == "" && c == ")" && pd[L] == 0) { pop(); i++; continue }
 
-        if (c == "\\") { addw(mapped(substr(s, i + 1, 1))); i += 2; continue }
+        if (c == "\\") { addw(lit(mapped(substr(s, i + 1, 1)))); i += 2; continue }
         if (c == "#" && !iw[L]) {
           while (i <= n && substr(s, i, 1) != "\n") i++
           continue
@@ -108,7 +118,7 @@ code_view() {
           if (!j) exit 2
           body = substr(s, i + 1, j - 1)
           if ((sa = shellarg())) rawcode(body, sa == 1)
-          addw(stx mapped(body)); i += j + 1; continue
+          addw(stx lit(mapped(body))); i += j + 1; continue
         }
         if (c == "\"") {
           if ((sa = shellarg())) {
@@ -153,7 +163,7 @@ code_view() {
           resetcmd(); emit("\n"); i++
           for (h = 1; h <= nh; h++) {
             found = 0
-            if (hsh[h]) emit(soh "S\n")
+            if (hsh[h]) emit(soh "X\n")
             while (i <= n) {
               e = index(substr(s, i), "\n")
               line = e ? substr(s, i, e - 1) : substr(s, i)
@@ -183,7 +193,9 @@ code_view() {
             }
             if (isshell(word)) exit 2
           }
-          # $( ) e ( ) sem aspas também rodam em outro processo.
+          # $( ) e ( ) sem aspas também rodam em outro processo. Abertos no
+          # meio de uma palavra (W=$(pwd)), deixam o valor desconhecido.
+          if (iw[L] && (c == "(" || (c == "`" && !bt[L]))) addw(eot)
           resetcmd()
           if (c == "(") { pd[L]++; emit(sub_open()) }
           else if (c == ")") { pd[L]--; emit(sub_close()) }
@@ -219,6 +231,43 @@ resolve() {
   local target="${1/#\~/$HOME}"
   [[ $target = /* ]] || target="$2/$target"
   printf '%s' "$target"
+}
+
+# Expande $NOME e ${NOME} (e ~ no início) com as variáveis conhecidas e
+# deixa o resultado em REPLY. Sai com 1, e o motivo em unknown, se o texto
+# depender de algo que não dá para resolver.
+expand() {
+  local t=$1 out= name val
+  if [[ $t == *"$eot"* ]]; then unknown='$(...)'; return 1; fi
+  [[ $t == '~' || $t == '~/'* ]] && t=${vars[HOME]}${t:1}
+  while [[ $t == *'$'* ]]; do
+    out+=${t%%'$'*} t=${t#*'$'}
+    if [[ $t =~ ^\{([A-Za-z_][A-Za-z0-9_]*)\}(.*)$ || $t =~ ^([A-Za-z_][A-Za-z0-9_]*)(.*)$ ]]; then
+      name=${BASH_REMATCH[1]} t=${BASH_REMATCH[2]}
+      case $name in
+        PWD) [[ -z $curdir_unk ]] || { unknown=$curdir_unk; return 1; }; val=$curdir ;;
+        OLDPWD) [[ -z $prevdir_unk ]] || { unknown=$prevdir_unk; return 1; }; val=$prevdir ;;
+        *)
+          if [[ ! -v vars[$name] || ${vars[$name]} == "$eot"* ]]; then
+            unknown="variável $name"; return 1
+          fi
+          val=${vars[$name]} ;;
+      esac
+      out+=$val
+    else
+      unknown="\$${t:0:2}"; return 1
+    fi
+  done
+  REPLY=${out}${t}
+  REPLY=${REPLY//$etx/\$}
+}
+
+# Guarda uma atribuição NOME=valor; valor que não dá para resolver fica
+# marcado como desconhecido.
+assign() {
+  local name=${1%%=*} unknown
+  [[ $name =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] || return 0
+  if expand "${1#*=}"; then vars[$name]=$REPLY; else vars[$name]=$eot; fi
 }
 
 # Diretório de trabalho a partir de um --git-dir.
@@ -262,18 +311,32 @@ check_push() {
 
 set -f
 curdir=$cwd prevdir=$cwd
-saved=() saved_prev=()
+# Diretório desconhecido: guarda o motivo (vazio = conhecido).
+curdir_unk= prevdir_unk=
+declare -A vars=([HOME]=$HOME) exported=([HOME]=1)
+saved=() saved_prev=() saved_unk=() saved_vars=()
 while IFS= read -r segment; do
   read -ra words <<<"$segment"
   (( ${#words[@]} )) || continue
   # Marcadores de código em outro processo: salva e restaura o diretório.
   case ${words[0]} in
-    "${soh}S") saved+=("$curdir"); saved_prev+=("$prevdir"); continue ;;
+    "${soh}S"|"${soh}X")
+      saved+=("$curdir") saved_prev+=("$prevdir") saved_unk+=("$curdir_unk$soh$prevdir_unk")
+      saved_vars+=("$(declare -p vars exported)")
+      # Shell filho: só as variáveis exportadas chegam a ele.
+      if [[ ${words[0]} == "${soh}X" ]]; then
+        for name in "${!vars[@]}"; do
+          [[ -n ${exported[$name]-} ]] || unset 'vars[$name]'
+        done
+      fi
+      continue ;;
     "${soh}R")
       # ")" sem par (ex.: padrão de case) não tem diretório salvo.
       if (( ${#saved[@]} )); then
         curdir=${saved[-1]} prevdir=${saved_prev[-1]}
-        unset 'saved[-1]' 'saved_prev[-1]'
+        curdir_unk=${saved_unk[-1]%%"$soh"*} prevdir_unk=${saved_unk[-1]#*"$soh"}
+        eval "${saved_vars[-1]}"
+        unset 'saved[-1]' 'saved_prev[-1]' 'saved_unk[-1]' 'saved_vars[-1]'
       fi
       continue ;;
   esac
@@ -297,33 +360,74 @@ while IFS= read -r segment; do
     while (( j < ${#words[@]} )) && [[ ${words[j]##*/} != git ]]; do j=$((j + 1)); done
     (( j < ${#words[@]} )) && k=$j
   fi
-  (( k < ${#words[@]} )) || continue
+  # Só atribuições, sem comando: valem para os comandos seguintes.
+  if (( k >= ${#words[@]} )); then
+    for word in "${words[@]}"; do
+      [[ $word == [A-Za-z_]*=* ]] && assign "$word"
+    done
+    continue
+  fi
+  case ${words[k]} in
+    export|declare|local|readonly|typeset)
+      flag=0
+      [[ ${words[k]} == export ]] && flag=1
+      for word in "${words[@]:k+1}"; do
+        [[ $word == -*x* ]] && flag=1
+        [[ $word == [A-Za-z_]*=* ]] && assign "$word"
+        (( flag )) && [[ $word == [A-Za-z_]* ]] && exported[${word%%=*}]=1
+      done
+      continue ;;
+    unset)
+      for word in "${words[@]:k+1}"; do unset 'vars[$word]' 'exported[$word]'; done
+      continue ;;
+  esac
 
   if [[ ${words[k]} == cd ]]; then
-    next=${words[k + 1]-$HOME}
-    if [[ $next == - ]]; then
+    if [[ ${words[k + 1]-} == - ]]; then
       next=$prevdir prevdir=$curdir curdir=$next
+      next=$prevdir_unk prevdir_unk=$curdir_unk curdir_unk=$next
+    elif ! expand "${words[k + 1]-~}"; then
+      prevdir=$curdir prevdir_unk=$curdir_unk curdir_unk=$unknown
     else
-      prevdir=$curdir curdir=$(resolve "$next" "$curdir")
+      prevdir=$curdir prevdir_unk=$curdir_unk
+      # Caminho absoluto volta a ser conhecido; relativo a um diretório
+      # desconhecido continua desconhecido.
+      [[ $REPLY == /* ]] && curdir_unk=
+      curdir=$(resolve "$REPLY" "$curdir")
     fi
     continue
   fi
   [[ ${words[k]##*/} == git ]] || continue
 
   # Opções globais do git antes do subcomando.
-  gitdir=$curdir
+  gitdir=$curdir gitdir_unk=$curdir_unk
   k=$((k + 1))
   while (( k < ${#words[@]} )); do
     case ${words[k]} in
-      -C) gitdir=$(resolve "${words[k + 1]}" "$gitdir"); k=$((k + 2)) ;;
-      -C?*) gitdir=$(resolve "${words[k]#-C}" "$gitdir"); k=$((k + 1)) ;;
-      --git-dir) gitdir=$(from_git_dir "${words[k + 1]}" "$gitdir"); k=$((k + 2)) ;;
-      --git-dir=*) gitdir=$(from_git_dir "${words[k]#--git-dir=}" "$gitdir"); k=$((k + 1)) ;;
+      -C|--git-dir|-C?*|--git-dir=*)
+        opt=${words[k]}
+        case $opt in
+          -C|--git-dir) arg=${words[k + 1]-}; k=$((k + 2)) ;;
+          -C?*) arg=${opt#-C} opt=-C; k=$((k + 1)) ;;
+          *) arg=${opt#--git-dir=} opt=--git-dir; k=$((k + 1)) ;;
+        esac
+        if ! expand "$arg"; then
+          gitdir_unk=$unknown
+        else
+          [[ $REPLY == /* ]] && gitdir_unk=
+          if [[ $opt == -C ]]; then gitdir=$(resolve "$REPLY" "$gitdir")
+          else gitdir=$(from_git_dir "$REPLY" "$gitdir"); fi
+        fi ;;
       -c|--work-tree|--namespace) k=$((k + 2)) ;;
       -*) k=$((k + 1)) ;;
       *) break ;;
     esac
   done
+
+  case ${words[k]} in commit|push) ;; *) continue ;; esac
+  if [[ -n $gitdir_unk ]]; then
+    deny "Não foi possível resolver o diretório do git ${words[k]} ($gitdir_unk). Na dúvida, o comando foi bloqueado. Use o caminho literal em cd/git -C."
+  fi
   [ -d "$gitdir" ] || gitdir=$cwd
 
   case ${words[k]} in
