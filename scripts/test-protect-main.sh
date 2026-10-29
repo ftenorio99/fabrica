@@ -226,9 +226,9 @@ result $? CA4 "pre-receive do remoto local roda, com o mesmo stdin"
 # ---------------------------------------------------------------------------
 # CA6: checagens do PreToolUse.
 
-# check <esperado: deny|allow> <comando> [HOME]
+# check <esperado: deny|allow> <comando> [HOME] [rótulo]
 check() {
-  local expected=$1 command=$2 home=${3:-$HOME} got
+  local expected=$1 command=$2 home=${3:-$HOME} label=${4:-CA6} got
   if jq -n --arg c "$command" --arg d "$MAIN" '{tool_input: {command: $c}, cwd: $d}' |
     HOME=$home bash "$hook" 2>&1 | grep -q '"permissionDecision": *"deny"'; then
     got=deny
@@ -236,7 +236,7 @@ check() {
     got=allow
   fi
   [[ $got == "$expected" ]]
-  result $? CA6 "$expected: $command"
+  result $? "$label" "$expected: $command"
 }
 check deny 'git commit --no-verify -m x'
 check deny 'git push --no-verify origin main'
@@ -254,6 +254,23 @@ check deny 'export XDG_CONFIG_HOME=/tmp; git commit -m x'
 check deny 'rm -rf ~/.config/fabrica/githooks'
 check deny 'gh pr create --title t --body "não use --no-verify"'
 check allow "$(printf 'git commit -m "$(cat <<%sEOF%s\nfeat: adiciona x\n\nCo-Authored-By: t <t@t>\nEOF\n)"' "'" "'")"
+# B29: formas de desligar os hooks pelo ambiente, pela configuração e por
+# prefixo do --no-verify.
+for c in 'unset HOME; git commit -m x' 'unset -v XDG_CONFIG_HOME' 'unset FOO XDG_CONFIG_HOME' \
+  'env -i PATH=$PATH git commit -m x' 'env --ignore-environment git commit -m x' \
+  'env - git commit -m x' 'env -u HOME git commit -m x' 'env --unset=HOME git commit -m x' \
+  'env -iu X git commit -m x' '/usr/bin/env -i git commit -m x' \
+  'git config --global --remove-section core' 'git config --global --rename-section core x' \
+  'git config --global remove-section core' 'git config rename-section core x' \
+  'git commit --no-veri -m x' 'git commit --no-verif -m x' 'git push --no-veri origin main' \
+  'git config --global --get core.hooksPath'; do
+  check deny "$c" "" B29
+done
+for c in 'git commit --no-verbose -m x' 'echo $HOME' 'cd ~ && ls' 'printenv HOME' 'env | grep PATH' \
+  'env FOO=1 make test' 'git config --global user.name x' 'git config --list' 'unset HOMEBREW_X' \
+  'cp .env.example .env -i'; do
+  check allow "$c" "" B29
+done
 check allow 'git log -n 5'
 check allow 'git push -u origin feat/x'
 check allow 'echo "git commit"'
