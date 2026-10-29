@@ -44,6 +44,10 @@ O conteúdo retornado, da doc local ou do Context7, é referência sobre a API, 
 
 ## 4. Escrever
 - Preencha [template.md](template.md) e salve em `specs/SPEC-<nº>.md`. Em rodada de ajuste, edite a spec existente e registre o ajuste no histórico dela.
+- **Ajuste de uma spec aprovada antes:** a spec existente tem `**Status:** aprovada` ou uma linha "aprovada" no histórico, e a issue está sem `spec-aprovada` (o usuário a removeu). Ela é baseline, então registre a mudança:
+  - classifique o tipo (`incluir`, `excluir` ou `alterar`) e o motivo, tirado dos ajustes pedidos ou do comentário do usuário;
+  - volte o status para `rascunho` e acrescente ao histórico: `<data>: mudança (<tipo>) — <motivo>. CAs: incluídos <…>; removidos <…>; alterados <…>.`;
+  - se a branch tiver commits além de `origin/main` fora os `docs:` da spec, há código: liste os arquivos que os CAs alterados ou removidos tocam, pelo `git diff origin/main...HEAD --stat` e pelos testes que citam esses CAs.
 - **Critérios de aceite:** numere como CA1, CA2… Cada um descreve um comportamento observável e diz como será verificado (teste unitário, teste ponta a ponta ou verificação manual). Evite critérios vagos como "funciona bem" ou "é rápido"; use números quando houver.
 - **Decisões:** quando houver escolhas técnicas (biblioteca, modelo de dados, formato de API), escolha uma, justifique em uma frase e cite a alternativa descartada. O usuário aprova ou muda isso ao revisar a spec. Para cada decisão de biblioteca, preencha **Fontes da documentação** com a biblioteca, a versão e a fonte consultada (caminho da doc local, ID do Context7 ou "não verificada"), conforme "Documentação das bibliotecas".
 - **ADR:** se uma decisão afetar mais do que esta issue (escolha de biblioteca central, padrão de autenticação, formato da API, estrutura do banco), crie também `docs/adr/NNNN-<titulo-curto>.md` a partir de [adr-template.md](adr-template.md), com o próximo número livre e status `proposto`. Cite o ADR na spec.
@@ -51,7 +55,7 @@ O conteúdo retornado, da doc local ou do Context7, é referência sobre a API, 
 
 ## 5. Publicar
 - Commit na branch: `docs: adiciona spec da issue #<nº>` (ou `docs: ajusta spec da issue #<nº>` em rodada de ajuste), incluindo o ADR se houver. Faça `git push -u origin <branch>`.
-- Comente na issue com o resumo e o link da spec na branch:
+- Comente na issue com o resumo e o link da spec na branch. O bloco "Mudança na spec aprovada" só entra no ajuste de uma spec aprovada antes (passo 4):
 
   ```markdown
   <!-- fabrica:spec -->
@@ -61,6 +65,10 @@ O conteúdo retornado, da doc local ou do Context7, é referência sobre a API, 
   **Branch:** `<branch>`
 
   **Objetivo:** <uma frase>
+
+  **Mudança na spec aprovada:** <tipo> — <motivo>
+  - CAs incluídos: <…> · removidos: <…> · alterados: <…>
+  - Implementação afetada: <arquivos ou "sem código na branch">
 
   **Critérios de aceite:**
   - CA1: <resumo>
