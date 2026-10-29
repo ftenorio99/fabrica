@@ -1,7 +1,7 @@
 # SPEC-34: Analisar impacto e registrar a decisão nas mudanças de requisitos do PRD e da spec
 
 **Issue:** #34 · **PRD:** — (a fábrica não tem `docs/prd.md`) · **Classe:** implementacao-complexa · **Tamanho:** G
-**Status:** rascunho · **Atualizada em:** 2026-10-29
+**Status:** aprovada · **Atualizada em:** 2026-10-29
 
 ## Contexto
 Hoje, para mudar um requisito, basta reabrir o `/fabrica:prd`: ele pergunta o que mudou, atualiza as seções e acrescenta uma linha livre ao histórico (`skills/prd/SKILL.md`, passo 1). Ninguém olha o impacto nas issues, a decisão fica sem o motivo e a mudança fica sem classificação. Na spec, mudar uma versão aprovada pede só que o usuário remova `spec-aprovada` e rode `/fabrica:spec <nº> <ajustes>`.
@@ -162,3 +162,4 @@ Verificações manuais, que vão para o PR:
 
 ## Histórico
 - 2026-10-29: criação.
+- 2026-10-29: aprovada.
