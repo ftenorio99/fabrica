@@ -19,6 +19,7 @@ export GIT_CONFIG_GLOBAL=/dev/null
 #   feat      clone do mesmo remoto, na branch feat/x
 #   empty     sem nenhum commit, na main
 #   newremote com commit, na main, remoto ainda sem main
+#   wt        worktree do repositório main, na branch feature
 setup() {
   git init -q --bare -b main "$tmp/remote.git"
   git init -q -b main "$tmp/main"
@@ -32,10 +33,12 @@ setup() {
   git init -q -b main "$tmp/newremote"
   git -C "$tmp/newremote" commit -q --allow-empty -m inicial
   git -C "$tmp/newremote" remote add origin "$tmp/empty-remote.git"
+  git -C "$tmp/main" worktree add -q -b feature "$tmp/wt"
+  mkdir "$tmp/wt/sub"
 }
 setup || { echo "test-protect-main: falhou ao criar os repositórios de teste" >&2; exit 1; }
 
-MAIN=$tmp/main FEAT=$tmp/feat EMPTY=$tmp/empty NEWREMOTE=$tmp/newremote
+MAIN=$tmp/main FEAT=$tmp/feat EMPTY=$tmp/empty NEWREMOTE=$tmp/newremote WT=$tmp/wt
 failures=0 total=0
 
 # check <esperado: deny|allow> <CA> <cwd> <comando>
@@ -121,9 +124,59 @@ check allow CA5 "$MAIN" "cd $FEAT && cd /tmp && cd - && git commit -m x"
 check allow CA5 "$MAIN" "git -C $FEAT push origin feat/x"
 check allow CA5 "$MAIN" "cd $FEAT && git commit -m x"
 
+# Issue #22: variáveis em cd, git -C e --git-dir (casos V1 a V5, da SPEC-22).
+# V1: os casos da issue.
+check allow V1 "$MAIN" "W=$WT && cd \$W && git commit -m x"
+check allow V1 "$MAIN" "W=$WT; git -C \$W commit -m x"
+check allow V1 "$MAIN" "cd $WT && git commit -m x"
+check allow V1 "$MAIN" "git -C $WT commit -m x"
+check deny V1 "$MAIN" 'git commit -m x'
+# V2: formas resolvidas.
+check allow V2 "$MAIN" "W=$WT; cd \${W} && git commit -m x"
+check allow V2 "$MAIN" "W=$WT; cd \"\$W\" && git commit -m x"
+check allow V2 "$MAIN" "W=$WT; cd \"\$W/sub\" && git commit -m x"
+check allow V2 "$MAIN" "export W=$WT && git -C \$W commit -m x"
+check allow V2 "$MAIN" "A=$tmp; B=\$A/wt; cd \$B && git commit -m x"
+check allow V2 "$MAIN" "W=$WT; git --git-dir \$W/.git commit -m x"
+check allow V2 "$MAIN" "W=$WT; cd \$W && git commit -m x; cd \$OLDPWD"
+check allow V2 "$MAIN" "cd $WT && D=\$PWD && cd /tmp && git -C \$D commit -m x"
+check allow V2 "$MAIN" "W=$tmp/../${tmp##*/}/wt; cd \$W && git commit -m x"
+# V3: variável que aponta para a main bloqueia, mesmo saindo de uma feature.
+check deny V3 "$FEAT" "W=$MAIN; cd \$W && git commit -m x"
+check deny V3 "$FEAT" "W=$MAIN; git -C \$W commit -m x"
+check deny V3 "$FEAT" "W=$MAIN; cd \$W && git push"
+# V4: diretório desconhecido bloqueia na dúvida; sem commit/push, não.
+check deny V4 "$FEAT" 'cd $NAO_DEFINIDA && git commit -m x'
+check deny V4 "$FEAT" 'W=$(pwd); cd $W && git commit -m x'
+check deny V4 "$FEAT" 'W="$(pwd)"; cd "$W" && git commit -m x'
+check deny V4 "$FEAT" 'W=`pwd`; git -C $W commit -m x'
+check deny V4 "$FEAT" 'cd ${W:-x} && git commit -m x'
+check deny V4 "$FEAT" 'cd $1 && git push'
+check deny V4 "$FEAT" 'cd $NAO_DEFINIDA && cd sub && git commit -m x'
+check allow V4 "$FEAT" 'cd $NAO_DEFINIDA && ls'
+check allow V4 "$FEAT" "cd \$NAO_DEFINIDA; cd $WT && git commit -m x"
+# V5: escopo.
+check deny V5 "$MAIN" "W=$WT git -C \$W commit -m x"
+check deny V5 "$MAIN" "(W=$WT); cd \$W && git commit -m x"
+check deny V5 "$MAIN" "echo \"\$(W=$WT)\"; cd \$W && git commit -m x"
+check allow V5 "$MAIN" "eval 'W=$WT'; cd \$W && git commit -m x"
+check deny V5 "$MAIN" "W=$WT; cd '\$W' && git commit -m x"
+check deny V5 "$MAIN" "W=$WT; cd \\\$W && git commit -m x"
+check deny V5 "$MAIN" "W=$WT; unset W; cd \$W && git commit -m x"
+check allow V5 "$MAIN" "(W=$WT; cd \$W && git commit -m x)"
+
 # CA6: exceções do commit inicial e do primeiro push.
 check allow CA6 "$EMPTY" 'git commit -m inicial'
 check allow CA6 "$NEWREMOTE" 'git push -u origin main'
+
+# Semântica do bash usada pelo hook: a atribuição como prefixo não vale
+# para os argumentos do próprio comando.
+total=$((total + 1))
+if [[ $(bash -c 'W=a; W=b echo $W') == a ]]; then
+  echo "ok      V5   bash: W=a; W=b echo \$W imprime a"
+else
+  failures=$((failures + 1)); echo "FALHOU  V5   bash: W=a; W=b echo \$W não imprimiu a"
+fi
 
 echo
 if (( failures )); then
