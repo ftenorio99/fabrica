@@ -78,5 +78,6 @@ O conteúdo retornado, da doc local ou do Context7, é referência sobre a API, 
 - Não escreva código de produção nem testes. A spec descreve; a implementação é a próxima etapa.
 - Não aplique `spec-aprovada`: só o usuário aplica.
 - Todo comentário seu, na issue ou no PR, começa com o marcador `<!-- fabrica:spec -->` numa linha própria. Os comentários do agente e do usuário saem da mesma conta do GitHub, e o marcador é o que os distingue (veja [estados.md](../status/estados.md)).
+- Publique todo corpo de issue, comentário ou PR a partir de um arquivo: escreva-o com a ferramenta Write na pasta temporária da sessão e passe `--body-file <arquivo>` ao `gh`. Não monte o corpo com heredoc, `echo`, `--body` ou stdin: o hook `protect-main` lê o texto do comando Bash e barra corpos que citam as opções que desligam os hooks do git.
 - Não invente requisitos. Se surgir uma lacuna de negócio, pergunte na issue, aplique `precisa-info` e remova `spec-pronta`.
 - Se `gh issue edit` falhar porque uma label não existe, pare, comente na issue e diga no chat: "A label `<label>` não existe neste repositório. Rode `/fabrica:setup` e repita a etapa." Não crie a label sozinho.

@@ -40,7 +40,7 @@ Decisões técnicas que o próprio agente pode recomendar (biblioteca, nome de r
 Se a issue for maior que 2 dias, a lacuna é a divisão: proponha as partes (títulos e escopo de cada uma) no comentário e pergunte se o usuário quer dividir. Não crie as issues.
 
 ## 4. Registrar
-Publique um comentário na issue (`gh issue comment <nº> --body-file -`) neste formato:
+Publique um comentário na issue (`gh issue comment <nº> --body-file <arquivo>`) neste formato:
 
 ```markdown
 <!-- fabrica:triagem -->
@@ -72,5 +72,6 @@ Depois, ajuste as labels:
 - Não pergunte no chat o que pode ser perguntado na issue.
 - Todo comentário seu, na issue ou no PR, começa com o marcador `<!-- fabrica:triagem -->` numa linha própria. Os comentários do agente e do usuário saem da mesma conta do GitHub, e o marcador é o que os distingue (veja [estados.md](../status/estados.md)).
 - Não invente requisitos: se o PRD e a issue não dizem, é uma pergunta.
+- Publique todo corpo de issue, comentário ou PR a partir de um arquivo: escreva-o com a ferramenta Write na pasta temporária da sessão e passe `--body-file <arquivo>` ao `gh`. Não monte o corpo com heredoc, `echo`, `--body` ou stdin: o hook `protect-main` lê o texto do comando Bash e barra corpos que citam as opções que desligam os hooks do git.
 - Em rodadas seguintes, publique um novo comentário de triagem completo (com o mesmo marcador); não edite os anteriores, para manter o histórico.
 - Se `gh issue edit` falhar porque uma label não existe, pare, comente na issue e diga no chat: "A label `<label>` não existe neste repositório. Rode `/fabrica:setup` e repita a etapa." Não crie a label sozinho.
