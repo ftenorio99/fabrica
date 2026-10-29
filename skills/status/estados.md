@@ -42,7 +42,7 @@ Issue aberta **sem `agente`**, com milestone e com o marcador `<!-- fabrica:back
 |---|---|---|
 | Backlog | usuário | Aplicar `agente` para puxar a issue para o fluxo. |
 
-**Marcador:** `<!-- fabrica:backlog item=<n> -->` na primeira linha do corpo identifica o item `<n>` do fatiamento. Ele vale mesmo antes do merge do PR `docs/backlog`, que anota o número da issue no PRD.
+**Marcador:** `<!-- fabrica:backlog item=<n> -->` no corpo identifica o item `<n>` do fatiamento. Fica na primeira linha das issues criadas pelo backlog e no fim do corpo das issues antigas vinculadas a um item. Ele vale mesmo antes do merge do PR `docs/backlog`, que anota o número da issue no PRD.
 
 **Termos:**
 - **Marco:** grupo de itens do fatiamento, com título `M<n> · <nome>`, que é também o título da milestone no GitHub. O prefixo `M<n>` dá a ordem.
