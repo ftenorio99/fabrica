@@ -1,7 +1,7 @@
 # SPEC-22: Hook protect-main bloqueia commit em worktree quando o caminho vem numa variável
 
 **Issue:** #22 · **PRD:** — (a fábrica não tem `docs/prd.md`) · **Classe:** implementacao-complexa · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-10-29
+**Status:** aprovada · **Atualizada em:** 2026-10-29
 
 ## Contexto
 O `hooks/protect-main.sh` resolve o diretório de `cd` e `git -C` com o texto literal. Em `W=/caminho/wt && cd $W && git commit`, o `$W` vira `<cwd>/$W`, que não existe. A linha `[ -d "$gitdir" ] || gitdir=$cwd` (`hooks/protect-main.sh:327`) então volta para o diretório da sessão. Com a sessão na `main`, o commit na worktree de outra branch é bloqueado por engano. Isso aconteceu no passo 5 do `/fabrica:backlog`, no kairo. O mesmo recuo para o `cwd` cria o erro oposto: numa sessão em branch de feature, `cd $W && git commit`, com `W` apontando para um clone na `main`, passa. A #18 decidiu "bloquear na dúvida", e esta spec aplica essa decisão às variáveis.
@@ -112,3 +112,4 @@ As mensagens de bloqueio que já existem não mudam.
 
 ## Histórico
 - 2026-10-29: criação.
+- 2026-10-29: aprovada pelo usuário.
