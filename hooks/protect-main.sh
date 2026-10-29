@@ -67,12 +67,15 @@ code_view() {
     # Código que roda em outro processo ($(...), crases, bash -c, heredoc e
     # here-string para shell) vai entre os marcadores \001S e \001R: um cd
     # dentro dele não muda o diretório dos comandos seguintes. eval roda no
-    # shell atual e vai sem marcadores.
+    # shell atual e vai sem marcadores. Um shell filho (bash -c, heredoc e
+    # here-string para shell) abre com \001X: ele só herda as variáveis
+    # exportadas.
     function sub_open() { return "\n" soh "S\n" }
+    function child_open() { return "\n" soh "X\n" }
     function sub_close() { return "\n" soh "R\n" }
     function rawcode(t, own) {
       gsub("[\"" sq "]", " ", t)
-      pend = pend (own ? sub_open() t sub_close() : "\n" t)
+      pend = pend (own ? child_open() t sub_close() : "\n" t)
     }
     function push(t) { L++; ob[L] = ""; cw[L] = ""; iw[L] = 0; nw[L] = 0; dq[L] = 0; pd[L] = 0; bt[L] = 0; term[L] = t }
     function pop() { flushword(); pend = pend sub_open() ob[L] sub_close(); L--; addw(eot) }
@@ -160,7 +163,7 @@ code_view() {
           resetcmd(); emit("\n"); i++
           for (h = 1; h <= nh; h++) {
             found = 0
-            if (hsh[h]) emit(soh "S\n")
+            if (hsh[h]) emit(soh "X\n")
             while (i <= n) {
               e = index(substr(s, i), "\n")
               line = e ? substr(s, i, e - 1) : substr(s, i)
@@ -310,16 +313,22 @@ set -f
 curdir=$cwd prevdir=$cwd
 # Diretório desconhecido: guarda o motivo (vazio = conhecido).
 curdir_unk= prevdir_unk=
-declare -A vars=([HOME]=$HOME)
+declare -A vars=([HOME]=$HOME) exported=([HOME]=1)
 saved=() saved_prev=() saved_unk=() saved_vars=()
 while IFS= read -r segment; do
   read -ra words <<<"$segment"
   (( ${#words[@]} )) || continue
   # Marcadores de código em outro processo: salva e restaura o diretório.
   case ${words[0]} in
-    "${soh}S")
+    "${soh}S"|"${soh}X")
       saved+=("$curdir") saved_prev+=("$prevdir") saved_unk+=("$curdir_unk$soh$prevdir_unk")
-      saved_vars+=("$(declare -p vars)")
+      saved_vars+=("$(declare -p vars exported)")
+      # Shell filho: só as variáveis exportadas chegam a ele.
+      if [[ ${words[0]} == "${soh}X" ]]; then
+        for name in "${!vars[@]}"; do
+          [[ -n ${exported[$name]-} ]] || unset 'vars[$name]'
+        done
+      fi
       continue ;;
     "${soh}R")
       # ")" sem par (ex.: padrão de case) não tem diretório salvo.
@@ -360,12 +369,16 @@ while IFS= read -r segment; do
   fi
   case ${words[k]} in
     export|declare|local|readonly|typeset)
+      flag=0
+      [[ ${words[k]} == export ]] && flag=1
       for word in "${words[@]:k+1}"; do
+        [[ $word == -*x* ]] && flag=1
         [[ $word == [A-Za-z_]*=* ]] && assign "$word"
+        (( flag )) && [[ $word == [A-Za-z_]* ]] && exported[${word%%=*}]=1
       done
       continue ;;
     unset)
-      for word in "${words[@]:k+1}"; do unset 'vars[$word]'; done
+      for word in "${words[@]:k+1}"; do unset 'vars[$word]' 'exported[$word]'; done
       continue ;;
   esac
 
