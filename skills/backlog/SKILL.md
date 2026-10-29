@@ -34,7 +34,9 @@ Itens de 1 a 2 dias de trabalho humano, agrupados por marco e em ordem de depend
 
 ## 1. Ler
 - Confirme que está num clone com remote no GitHub (`gh repo view --json nameWithOwner`). Se não estiver, pare e diga o que falta.
-- `git fetch origin`. Se existir PR aberto da branch `docs/backlog` (`gh pr list --head docs/backlog --state open`), leia o PRD dessa branch (`git show origin/docs/backlog:docs/prd.md`), que já tem a migração e as anotações ainda sem merge. Senão, leia da `main` (`git show origin/main:docs/prd.md`).
+- `git fetch origin`. Veja se existe PR aberto da branch `docs/backlog` (`gh pr list --head docs/backlog --state open`).
+  - **Sem PR aberto:** leia o PRD da `main` (`git show origin/main:docs/prd.md`).
+  - **Com PR aberto:** a branch tem a migração e as anotações ainda sem merge, mas pode estar atrás da `main`. Crie a worktree do passo 5 (`git worktree add <tmp> docs/backlog`, depois `git pull`), traga a `main` para ela (`git merge origin/main`) e leia o PRD dali. Assim, as mudanças do PRD mergeadas na `main` depois que o PR foi aberto entram no plano. Se o merge der conflito, rode `git merge --abort`, remova a worktree e pare: peça para mergear ou fechar o PR `docs/backlog` pendente antes de rodar de novo. Se o usuário cancelar no passo 4, remova a worktree sem push.
 - Sem `docs/prd.md` ou sem a seção de fatiamento, pare e indique `/fabrica:prd`.
 - Milestones: `gh api "repos/<repo>/milestones?state=all&per_page=100"`.
 - Issues, abertas e fechadas: `gh issue list --state all --limit 1000 --json number,title,body,state,labels,milestone`.
@@ -53,10 +55,12 @@ O plano tem:
 2. **Milestones a atualizar:** título ou descrição diferentes do PRD.
 3. **Issues a criar:** só os itens sem issue nos marcos da janela.
 4. **Pares e possíveis pares** a vincular (issue existente ↔ item).
-5. **Issues de backlog sem `agente` a atualizar:** título, F, dependências ou marco diferentes do PRD.
-6. **Divergências no fluxo:** issues com `agente` cujo título, marco ou dependências não batem com o PRD. Só listadas.
-7. **Itens removidos:** issues com marcador cujo número não existe mais no PRD, com proposta de fechamento. As com `agente` vão para a lista de divergências.
+5. **Issues de backlog abertas, sem `agente`, a atualizar:** título, F, dependências ou marco diferentes do PRD.
+6. **Divergências no fluxo:** issues abertas com `agente` cujo título, marco ou dependências não batem com o PRD. Só listadas.
+7. **Itens removidos:** issues abertas com marcador cujo número não existe mais no PRD, com proposta de fechamento. As com `agente` vão para a lista de divergências.
 8. **PRD:** a migração, quando houver, e as anotações ` · #<nº>` que faltam.
+
+Os grupos 5, 6 e 7 olham só issues abertas. Uma issue fechada conta para "item com issue" e para o avanço do marco, mas nunca é atualizada, listada como divergência ou proposta para fechamento. Sem isso, a mesma issue fechada voltaria ao plano em toda execução.
 
 ## 4. Confirmar
 - Plano vazio (nada nos itens 1 a 8): diga "Backlog em dia" e pare, sem criar nada.
@@ -87,7 +91,7 @@ Aplique nesta ordem. Se um comando falhar, pare, mostre o que já foi aplicado e
 5. **Fechamento:** só as issues confirmadas, com `gh issue close <nº> --reason "not planned" --comment "<!-- fabrica:backlog -->"` e uma linha dizendo que o item saiu do PRD.
 6. **PRD:**
    - **branch:** trabalhe numa worktree temporária, para não mexer na branch em que o clone está:
-     - com PR aberto de `docs/backlog`, use `git worktree add <tmp> docs/backlog` e depois `git pull`;
+     - com PR aberto de `docs/backlog`, use a worktree criada no passo 1, que já tem a `main` mesclada;
      - sem PR aberto, use `git worktree add -B docs/backlog <tmp> origin/main`. Se já houver uma branch `docs/backlog` remota com PR mergeado, faça o push com `--force-with-lease`, porque a branch recomeça da `main`.
    - **conteúdo:** grave a migração, se houver, e as anotações ` · #<nº>`. Não mude nenhuma outra linha do PRD.
    - **commit e PR:** commit `docs: registra issues do backlog no prd` e push. Sem PR aberto, crie um com `gh pr create --base main --head docs/backlog`, com o título igual ao commit e um corpo que liste as issues criadas e vinculadas.
