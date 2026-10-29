@@ -254,28 +254,28 @@ check deny 'export XDG_CONFIG_HOME=/tmp; git commit -m x'
 check deny 'rm -rf ~/.config/fabrica/githooks'
 check deny 'gh pr create --title t --body "não use --no-verify"'
 check allow "$(printf 'git commit -m "$(cat <<%sEOF%s\nfeat: adiciona x\n\nCo-Authored-By: t <t@t>\nEOF\n)"' "'" "'")"
-# B29: formas de desligar os hooks pelo ambiente, pela configuração e por
-# prefixo do --no-verify.
-for c in 'unset HOME; git commit -m x' 'unset -v XDG_CONFIG_HOME' 'unset FOO XDG_CONFIG_HOME' \
-  'env -i PATH=$PATH git commit -m x' 'env --ignore-environment git commit -m x' \
-  'env - git commit -m x' 'env -u HOME git commit -m x' 'env --unset=HOME git commit -m x' \
-  'env -iu X git commit -m x' '/usr/bin/env -i git commit -m x' \
-  'git config --global --remove-section core' 'git config --global --rename-section core x' \
-  'git config --global remove-section core' 'git config rename-section core x' \
-  'git commit --no-veri -m x' 'git commit --no-verif -m x' 'git push --no-veri origin main' \
-  'git config --global --get core.hooksPath' \
-  'unset "HOME"; git commit -m x' "unset 'XDG_CONFIG_HOME'" \
-  'env --u=HOME git commit -m x' 'env --uns HOME git commit -m x' 'env --ignore-e git commit -m x' \
-  'env -C /tmp -i git commit -m x' "env -S'-i sh -c env'" \
-  'env --chdir=/tmp -i git commit -m x' 'env -v --chdir=/tmp -u HOME git commit -m x' \
-  'env --default-signal=INT -i git commit -m x' \
-  'git config --global --rem core' 'git config --ren core yy' 'git config --global --remove-sec core'; do
+# B29: prefixos do --no-verify e a leitura do core.hooksPath.
+for c in 'git commit --no-veri -m x' 'git commit --no-verif -m x' 'git push --no-veri origin main' \
+  'git config --global --get core.hooksPath'; do
   check deny "$c" "" B29
 done
 for c in 'git commit --no-verbose -m x' 'echo $HOME' 'cd ~ && ls' 'printenv HOME' 'env | grep PATH' \
   'env FOO=1 make test' 'git config --global user.name x' 'git config --list' 'unset HOMEBREW_X' \
   'cp .env.example .env -i' 'git log --remotes' 'git add --renormalize .' 'env -C /tmp ls'; do
   check allow "$c" "" B29
+done
+# B31: o hook fica no núcleo do ADR 0002. unset, env e seções do git config,
+# trazidos pela #29, passam: são sabotagem, fora do modelo de ameaça.
+for c in 'git commit --no-verify -m x' 'git commit -nm x' 'git config --global core.hooksPath /tmp/x' \
+  'GIT_CONFIG_GLOBAL=/dev/null git commit -m x' 'HOME=/tmp git commit -m x' \
+  'rm -rf ~/.config/fabrica/githooks'; do
+  check deny "$c" "" B31
+done
+for c in 'env -u DATABASE_URL -u BETTER_AUTH_SECRET pnpm build' 'env -i PATH=$PATH make test' \
+  'unset HOME' 'git config --global --remove-section alias' 'npx tsc -p tsconfig.json --removeComments' \
+  'unset -v XDG_CONFIG_HOME' 'env - make test' 'env --unset=HOME make test' \
+  'git config rename-section alias x' 'git config --global --rem alias'; do
+  check allow "$c" "" B31
 done
 check allow 'git log -n 5'
 check allow 'git push -u origin feat/x'
