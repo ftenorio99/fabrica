@@ -28,8 +28,8 @@ fi
 
 [[ $cmd == *--no-verify* ]] && disable "--no-verify"
 # commit seguido de uma opção curta com n (-n, -nm, -an) no mesmo trecho,
-# até ; & | ou o fim da linha.
-grep -Eq 'commit[^;&|]*[[:space:]]-[[:alnum:]]*n' <<<"$cmd" && disable "commit -n"
+# até ; & | ou o fim da linha. Linhas continuadas com \ contam como uma só.
+grep -Eq 'commit[^;&|]*[[:space:]]-[[:alnum:]]*n' <<<"${cmd//$'\\\n'/ }" && disable "commit -n"
 [[ ${cmd,,} == *hookspath* ]] && disable "core.hooksPath"
 [[ $cmd == *GIT_CONFIG* ]] && disable "variável GIT_CONFIG*"
 [[ $cmd =~ (^|[^[:alnum:]_])(HOME|XDG_CONFIG_HOME)= ]] && disable "troca do ${BASH_REMATCH[2]}"

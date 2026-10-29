@@ -3,6 +3,9 @@
 # scripts/setup-githooks.sh. Recusam commit e push na main/master e depois
 # encadeiam o hook de mesmo nome do repositório, que o core.hooksPath global
 # faria o git ignorar.
+# Não há entrada para push-to-checkout nem proc-receive: só a existência
+# desses hooks já muda o comportamento do git (o push com updateInstead
+# deixaria de atualizar a worktree).
 # Uso (pelas entradas desta pasta): fabrica-hook <nome do hook> [argumentos]
 name=$1
 shift

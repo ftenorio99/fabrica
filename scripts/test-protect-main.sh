@@ -202,6 +202,27 @@ run "$CHAIN" 'git commit --allow-empty -m mensagem'
 [[ $? -ne 0 && $(head_of "$CHAIN") == "$before" ]]
 result $? CA4 "pre-commit do repositório que falha impede o commit"
 
+# Push para a branch em checkout com updateInstead continua atualizando a
+# worktree: não pode haver entrada push-to-checkout.
+git init -q "$tmp/dest"
+git -C "$tmp/dest" commit -q --allow-empty -m inicial
+git -C "$tmp/dest" switch -q -c feat/y
+git -C "$tmp/dest" config receive.denyCurrentBranch updateInstead
+git clone -q "$tmp/dest" "$tmp/src"
+echo conteudo >"$tmp/src/f"
+git -C "$tmp/src" add f
+git -C "$tmp/src" commit -q -m f
+run "$tmp/src" 'git push -q origin feat/y'
+[[ $? -eq 0 && -f $tmp/dest/f && -z $(git -C "$tmp/dest" status --porcelain) ]]
+result $? CA4 "push com updateInstead atualiza a worktree do destino"
+
+# pre-receive do repositório de destino roda, com o stdin do git.
+printf '#!/bin/sh\ncat >"%s/pre-receive-stdin"\n' "$tmp" >"$tmp/chain-remote.git/hooks/pre-receive"
+chmod +x "$tmp/chain-remote.git/hooks/pre-receive"
+run "$CHAIN" 'git switch -q -c feat/z && git commit --no-verify --allow-empty -m z && git push -q origin feat/z'
+grep -q " refs/heads/feat/z$" "$tmp/pre-receive-stdin" 2>/dev/null
+result $? CA4 "pre-receive do remoto local roda, com o mesmo stdin"
+
 # ---------------------------------------------------------------------------
 # CA6: checagens do PreToolUse.
 
@@ -222,6 +243,7 @@ check deny 'git push --no-verify origin main'
 check deny 'git commit -n -m x'
 check deny 'git commit -nm x'
 check deny 'git commit -an -m x'
+check deny $'git commit --allow-empty -m x \\\n  -n'
 check deny 'git -c core.hooksPath=/dev/null commit -m x'
 check deny 'git config --global --unset core.hooksPath'
 check deny 'git --config-env=core.hookspath=X commit -m x'
