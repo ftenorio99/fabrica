@@ -1,7 +1,7 @@
 # SPEC-27: Proteger a main com hooks pre-commit e pre-push do git em vez de analisar o comando
 
 **Issue:** #27 · **PRD:** — (a fábrica não tem `docs/prd.md`) · **Classe:** implementacao-complexa · **Tamanho:** G
-**Status:** rascunho · **Atualizada em:** 2026-10-29
+**Status:** aprovada · **Atualizada em:** 2026-10-29
 
 ## Contexto
 O `hooks/protect-main.sh` protege a `main` lendo o texto do comando Bash no PreToolUse do Claude Code. Para isso, ele tenta reproduzir o shell: aspas, `$(...)`, `bash -c`, `eval`, variáveis e subshells. As #18, #22 e #24 corrigiram formas que escapavam ou bloqueavam por engano, a #26 lista mais quatro, e o hook já tem 493 linhas. O git já tem pontos de verificação que rodam na hora exata do commit e do push, depois que o shell resolveu tudo. A triagem decidiu, com a resposta (a), que a proteção vale para todos os commits e pushes da máquina, inclusive os feitos à mão. No terminal, o usuário passa por cima com `--no-verify`.
@@ -137,3 +137,4 @@ O `hooks.json` deixa de usar o filtro `if: Bash(*git*)`, porque `HOME=` e `GIT_C
 
 ## Histórico
 - 2026-10-29: criação.
+- 2026-10-29: aprovada pelo usuário.

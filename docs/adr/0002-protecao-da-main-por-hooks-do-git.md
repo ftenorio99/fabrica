@@ -1,6 +1,6 @@
 # ADR 0002: Proteção da main por hooks do git, não pela análise do comando
 
-**Status:** proposto · **Data:** 2026-10-29 · **Origem:** issue #27
+**Status:** aceito · **Data:** 2026-10-29 · **Origem:** issue #27
 
 ## Contexto
 A regra de que a `main` nunca recebe commit ou push direto é protegida pelo `hooks/protect-main.sh`, um hook PreToolUse do Claude Code. Ele lê o texto do comando Bash e tenta prever se o `git commit` ou o `git push` vai cair na `main`.
