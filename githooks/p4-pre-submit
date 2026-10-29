@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Entrada do hook p4-pre-submit: regra da fábrica e hook do repositório.
+exec "${0%/*}/fabrica-hook" "${0##*/}" "$@"

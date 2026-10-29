@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Entrada do hook push-to-checkout: regra da fábrica e hook do repositório.
+exec "${0%/*}/fabrica-hook" "${0##*/}" "$@"
