@@ -1,7 +1,7 @@
 # SPEC-24: Hook protect-main libera git commit em bash -c com aspas escapadas antes do subcomando
 
 **Issue:** #24 · **PRD:** — (a fábrica não tem `docs/prd.md`) · **Classe:** implementacao-complexa · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-10-29
+**Status:** aprovada · **Atualizada em:** 2026-10-29
 
 ## Contexto
 O `hooks/protect-main.sh` trata como código o argumento de `bash -c`/`sh -c`, de `eval` e de here-string para shell. Para isso, a função `rawcode` do `code_view` troca as aspas por espaços (`gsub("[\"" sq "]", " ", t)`). Assim, `git -c user.name="t" commit` dentro desses textos vira `git -c user.name= t  commit`: o `-c` consome `user.name=`, o `t` passa a ser lido como subcomando e o `commit` nunca é reconhecido. A triagem confirmou cinco formas que fazem commit na `main` sem bloqueio:
@@ -103,3 +103,4 @@ Quando o `code_view` sai com 2, o hook usa o comando inteiro, sem separar o text
 
 ## Histórico
 - 2026-10-29: criação.
+- 2026-10-29: aprovada pelo usuário.
