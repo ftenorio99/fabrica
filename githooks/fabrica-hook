@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+# Hooks globais do git da fábrica, instalados com core.hooksPath por
+# scripts/setup-githooks.sh. Recusam commit e push na main/master e depois
+# encadeiam o hook de mesmo nome do repositório, que o core.hooksPath global
+# faria o git ignorar.
+# Não há entrada para push-to-checkout nem proc-receive: só a existência
+# desses hooks já muda o comportamento do git (o push com updateInstead
+# deixaria de atualizar a worktree).
+# Uso (pelas entradas desta pasta): fabrica-hook <nome do hook> [argumentos]
+name=$1
+shift
+
+protected() { [[ $1 == main || $1 == master ]]; }
+
+case $name in
+  pre-commit|pre-merge-commit)
+    branch=$(git symbolic-ref --short -q HEAD)
+    # Repositório sem nenhum commit: permite o commit inicial.
+    if protected "$branch" && git rev-parse -q --verify HEAD >/dev/null; then
+      echo "Commit direto na '$branch' bloqueado pelas práticas do usuário. Crie uma branch (ex.: git switch -c feat/<n>-descricao) e abra um PR." >&2
+      exit 1
+    fi
+    ;;
+  pre-push)
+    # O stdin traz "<ref local> <sha local> <ref remota> <sha remoto>" por
+    # linha; ele é guardado para repassar ao hook do repositório.
+    input=$(mktemp)
+    trap 'rm -f "$input"' EXIT
+    cat >"$input"
+    while read -r _ _ remote_ref remote_sha; do
+      case $remote_ref in
+        refs/heads/main|refs/heads/master)
+          # sha remoto só com zeros: a main ainda não existe no remoto, é o
+          # primeiro push.
+          if [[ ! $remote_sha =~ ^0+$ ]]; then
+            echo "Push para a main bloqueado pelas práticas do usuário. Faça push da sua branch e abra um PR (gh pr create)." >&2
+            exit 1
+          fi
+          ;;
+      esac
+    done <"$input"
+    ;;
+esac
+
+# --git-path hooks devolveria o próprio core.hooksPath; o hook do repositório
+# fica em <git-common-dir>/hooks. No git init, o reference-transaction roda
+# antes de o repositório existir.
+common_dir=$(git rev-parse --git-common-dir 2>/dev/null) || exit 0
+hook="$common_dir/hooks/$name"
+[[ -x $hook ]] || exit 0
+if [[ -n ${input-} ]]; then
+  "$hook" "$@" <"$input"
+else
+  "$hook" "$@"
+fi

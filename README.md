@@ -33,6 +33,14 @@ O fluxo usa seis labels (`agente`, `precisa-info`, `spec-pronta`, `spec-aprovada
 - **Repositório que já existe:** rode `/fabrica:setup` no clone, ou `/fabrica:setup <dono>/<repo>` de qualquer diretório. Rodar de novo é seguro.
 - Se uma etapa avisar que uma label não existe, rode `/fabrica:setup` e repita a etapa.
 
+## Proteção da main
+Commit e push na `main`/`master` são recusados pelo próprio git, por hooks globais instalados uma vez por máquina ([ADR 0002](docs/adr/0002-protecao-da-main-por-hooks-do-git.md)):
+- **Instalação:** o `/fabrica:setup` pede confirmação e roda `scripts/setup-githooks.sh`, que copia `githooks/` para `~/.config/fabrica/githooks/` e define o `core.hooksPath` no `~/.gitconfig`. Vale para todos os repositórios da máquina, inclusive commits feitos à mão.
+- **Regras:** o `pre-commit` e o `pre-merge-commit` recusam commit na `main`/`master`, salvo o commit inicial de um repositório novo; o `pre-push` recusa enviar para a `main`/`master` que já existe no remoto, o que libera o primeiro push.
+- **Hooks de cada repositório:** o `core.hooksPath` global faz o git ignorar o `.git/hooks`, então cada hook da fábrica encadeia o de mesmo nome do repositório. Repositórios com `core.hooksPath` local (husky, lefthook) não passam pelos hooks da fábrica.
+- **Atualização:** ao abrir uma sessão, o plugin atualiza os arquivos instalados quando a versão muda e avisa se os hooks não estiverem instalados.
+- **Passar por cima:** no seu terminal, `git commit --no-verify` e `git push --no-verify`. O PreToolUse `hooks/protect-main.sh` impede o Claude de fazer isso, de mexer no `core.hooksPath`, no `HOME` e nas variáveis `GIT_CONFIG*`, e bloqueia `commit`/`push` enquanto os hooks não estiverem instalados.
+
 ## Instalação
 No Claude Code:
 ```
@@ -44,10 +52,11 @@ Para desenvolver a própria fábrica sem instalar: `claude --plugin-dir ~/projet
 ## Conteúdo
 | Caminho | O que é |
 |---|---|
-| `skills/` | Uma skill por etapa: `prd`, `backlog`, `triagem`, `spec`, `implementar`, `revisar`; `status`, o quadro do fluxo em todos os repositórios; e `setup`, que cria as labels num repositório |
+| `skills/` | Uma skill por etapa: `prd`, `backlog`, `triagem`, `spec`, `implementar`, `revisar`; `status`, o quadro do fluxo em todos os repositórios; e `setup`, que cria as labels num repositório e instala os hooks do git |
 | `agents/` | Subagentes usados pelas skills |
-| `hooks/` | `protect-main.sh`: bloqueia commit e push direto na `main` |
-| `scripts/` | `setup-labels.sh`: cria ou corrige as labels da fábrica num repositório |
+| `githooks/` | Hooks globais do git que recusam commit e push na `main` (`fabrica-hook` com as regras e uma entrada por nome de hook) |
+| `hooks/` | Hooks do Claude Code: `protect-main.sh` impede o Claude de desligar os hooks do git; o `SessionStart` os confere e atualiza |
+| `scripts/` | `setup-labels.sh`: cria ou corrige as labels da fábrica num repositório; `setup-githooks.sh`: instala os hooks do git; `test-protect-main.sh`: testes da proteção da main |
 | `templates/` | `CLAUDE.md` base dos projetos, template de issue e de spec |
 
 ## Fases

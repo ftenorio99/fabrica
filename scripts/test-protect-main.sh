@@ -1,239 +1,279 @@
 #!/usr/bin/env bash
-# Testa hooks/protect-main.sh com repositórios locais temporários, sem rede.
-# Uso: scripts/test-protect-main.sh [caminho do hook]
+# Testa a proteção da main com um HOME temporário e repositórios locais, sem
+# rede: instala os hooks do git com scripts/setup-githooks.sh, faz commits e
+# pushes de verdade e confere as checagens do PreToolUse.
+# Uso: scripts/test-protect-main.sh [caminho do hook PreToolUse]
 set -uo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+setup_script="$script_dir/setup-githooks.sh"
+source_dir="$(realpath "$script_dir/../githooks")"
 hook="$(realpath "${1:-$script_dir/../hooks/protect-main.sh}")"
 [[ -f "$hook" ]] || { echo "test-protect-main: hook não encontrado em $hook" >&2; exit 1; }
 
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
-export GIT_AUTHOR_NAME=teste GIT_AUTHOR_EMAIL=teste@exemplo.com
-export GIT_COMMITTER_NAME=teste GIT_COMMITTER_EMAIL=teste@exemplo.com
-export GIT_CONFIG_GLOBAL=/dev/null
+# Isola a configuração global do git no HOME de teste.
+unset GIT_CONFIG_GLOBAL XDG_CONFIG_HOME GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE
+export HOME="$tmp/home" GIT_CONFIG_NOSYSTEM=1
+mkdir -p "$HOME"
+git config --global user.name teste
+git config --global user.email teste@exemplo.com
+git config --global init.defaultBranch main
+dest="$HOME/.config/fabrica/githooks"
+version="$(sed -n 's/^ *"version": *"\([^"]*\)".*/\1/p' "$script_dir/../.claude-plugin/plugin.json")"
 
-# Repositórios de teste:
-#   main      com commit, main em checkout, remoto com main
-#   feat      clone do mesmo remoto, na branch feat/x
-#   empty     sem nenhum commit, na main
-#   newremote com commit, na main, remoto ainda sem main
-#   wt        worktree do repositório main, na branch feature
-setup() {
-  git init -q --bare -b main "$tmp/remote.git"
-  git init -q -b main "$tmp/main"
-  git -C "$tmp/main" commit -q --allow-empty -m inicial
-  git -C "$tmp/main" remote add origin "$tmp/remote.git"
-  git -C "$tmp/main" push -q origin main
-  git clone -q "$tmp/remote.git" "$tmp/feat"
-  git -C "$tmp/feat" switch -q -c feat/x
-  git init -q -b main "$tmp/empty"
-  git init -q --bare "$tmp/empty-remote.git"
-  git init -q -b main "$tmp/newremote"
-  git -C "$tmp/newremote" commit -q --allow-empty -m inicial
-  git -C "$tmp/newremote" remote add origin "$tmp/empty-remote.git"
-  git -C "$tmp/main" worktree add -q -b feature "$tmp/wt"
-  mkdir "$tmp/wt/sub"
-}
-setup || { echo "test-protect-main: falhou ao criar os repositórios de teste" >&2; exit 1; }
-
-MAIN=$tmp/main FEAT=$tmp/feat EMPTY=$tmp/empty NEWREMOTE=$tmp/newremote WT=$tmp/wt
 failures=0 total=0
 
-# check <esperado: deny|allow> <CA> <cwd> <comando>
-check() {
-  local expected=$1 ca=$2 dir=$3 command=$4 got output label
-  output=$(jq -n --arg c "$command" --arg d "$dir" '{tool_input: {command: $c}, cwd: $d}' | HOME=$tmp bash "$hook" 2>&1)
-  if grep -q '"permissionDecision": *"deny"' <<<"$output"; then got=deny; else got=allow; fi
+# result <ok: 0|1> <CA> <descrição>
+result() {
   total=$((total + 1))
-  label="${command//$'\n'/⏎}"
+  local label="${3//$'\n'/⏎}"
   label="${label//$tmp/<tmp>}"
-  if [[ $got == "$expected" ]]; then
-    printf 'ok      %-4s %-5s %-9s %s\n' "$ca" "$expected" "${dir##*/}" "$label"
+  if (( $1 == 0 )); then
+    printf 'ok      %-4s %s\n' "$2" "$label"
   else
     failures=$((failures + 1))
-    printf 'FALHOU  %-4s %-5s %-9s %s (veio %s)\n' "$ca" "$expected" "${dir##*/}" "$label" "$got"
+    printf 'FALHOU  %-4s %s\n' "$2" "$label"
   fi
 }
 
-# CA1: os dois casos da issue.
-check allow CA1 "$FEAT" $'git commit -m "chore: algo sobre a main\n\ncorpo" && git push origin feat/x'
-check allow CA1 "$MAIN" 'gh issue create --body "exemplo: git commit -m x"'
-check allow CA1 "$FEAT" 'git push -u origin feat/x'
-check allow CA1 "$MAIN" $'gh issue create --title t --body "$(cat <<\'EOF\'\nO hook bloqueia `git commit` na main (e o push.\ngit commit -m x\nEOF\n)"'
+# ---------------------------------------------------------------------------
+# CA5: scripts/setup-githooks.sh
 
-# CA2: texto citado não bloqueia.
-check allow CA2 "$MAIN" "echo 'git push origin main'"
-check allow CA2 "$MAIN" $'gh issue comment 1 --body-file - <<\'EOF\'\ngit commit -m x\ngit push origin main\nEOF'
-check allow CA2 "$MAIN" $'cat <<-EOF\n\tgit commit -m x\n\tEOF'
-check allow CA2 "$MAIN" 'ls # git commit -m x'
-check allow CA2 "$FEAT" "gh pr create --title t --body 'O hook trata pipe para shell (x | bash ) e bloqueia git push origin main'"
-check allow CA2 "$FEAT" $'gh pr create --body-file - <<\'EOF\'\nO hook trata echo x | bash\ne bloqueia git push origin main\nEOF'
+[[ $(bash "$setup_script" --check) == ausente ]]
+result $? CA5 "--check sem instalação: ausente"
 
-# CA3: commit e push na main continuam bloqueados.
-check deny CA3 "$MAIN" 'git commit -m x'
-check deny CA3 "$FEAT" 'git push origin main'
-check deny CA3 "$FEAT" 'git push origin HEAD:main'
-check deny CA3 "$MAIN" 'git push'
-check deny CA3 "$FEAT" 'git status; git push origin main'
-check deny CA3 "$FEAT" $'git status\ngit push origin main'
-check deny CA3 "$FEAT" 'FOO=1 git push origin main'
-check deny CA3 "$FEAT" "git push origin 'main'"
-check deny CA3 "$FEAT" 'git push origin "HEAD:main"'
-check deny CA3 "$MAIN" 'if git commit -m x; then echo ok; fi'
-check deny CA3 "$FEAT" 'while git push origin main; do break; done'
-check deny CA3 "$FEAT" $'git push \\\n  origin main'
+bash "$setup_script" >/dev/null
+[[ $(git config --global core.hooksPath) == "$dest" ]]
+result $? CA5 "instalação define o core.hooksPath global"
 
-# CA4: bloqueio na dúvida.
-check deny CA4 "$FEAT" 'bash -c "git push origin main"'
-check deny CA4 "$FEAT" "sh -c 'git push origin main'"
-check deny CA4 "$FEAT" 'eval "git push origin main"'
-check deny CA4 "$MAIN" 'echo "$(git commit -m x)"'
-check deny CA4 "$MAIN" 'echo "`git commit -m x`"'
-check deny CA4 "$FEAT" $'bash <<EOF\ngit push origin main\nEOF'
-check deny CA4 "$FEAT" 'echo "git push origin main" | bash'
-check deny CA4 "$FEAT" 'echo "git push origin main'
-check deny CA4 "$FEAT" 'bash <<< "git push origin main"'
-check deny CA4 "$MAIN" 'sudo -u eu git commit -m x'
-check deny CA4 "$MAIN" 'env -i git commit -m x'
-check deny CA4 "$FEAT" $'cat <<EOF | bash\ngit push origin main\nEOF'
+ok=0
+for f in "$source_dir"/*; do
+  [[ -x "$dest/${f##*/}" ]] && cmp -s "$f" "$dest/${f##*/}" || ok=1
+done
+[[ $(cat "$dest/VERSION") == "$version" ]] || ok=1
+result $ok CA5 "copia todos os hooks, executáveis, e o VERSION $version"
 
-# CA5: diretório certo.
-check deny CA5 "$FEAT" "cd $MAIN && git commit -m x"
-check deny CA5 "$FEAT" "git -C $MAIN commit -m x"
-check deny CA5 "$FEAT" "git status; cd $MAIN && git commit -m x"
-check deny CA5 "$FEAT" "cd \"$MAIN\" && git commit -m x"
-check deny CA5 "$FEAT" "git -C '$MAIN' commit -m x"
-check deny CA5 "$FEAT" "git --git-dir $MAIN/.git commit -m x"
-check deny CA5 "$MAIN" 'git -c "user.name=x" commit -m x'
-check deny CA5 "$MAIN" "echo \"\$(git commit -m x)\"; cd $FEAT"
-check deny CA5 "$MAIN" "bash -c 'git commit -m x'; cd $FEAT"
-check deny CA5 "$MAIN" "eval 'git commit -m x' && cd $FEAT && ls"
-check deny CA5 "$MAIN" 'D="$(cd /tmp && pwd)" && git commit -m x'
-check deny CA5 "$MAIN" "D=\"\$(cd $FEAT && pwd)\"; git push"
-check deny CA5 "$MAIN" "bash -c 'cd /tmp'; git commit -m x"
-check deny CA5 "$MAIN" $'bash <<EOF\ncd /tmp\nEOF\ngit commit -m x'
-check deny CA5 "$MAIN" 'D=$(cd /tmp && pwd) && git commit -m x'
-check deny CA5 "$MAIN" '(cd /tmp && ls); git commit -m x'
-check allow CA5 "$MAIN" "(cd $FEAT && git commit -m x)"
-check allow CA5 "$MAIN" "eval 'cd $FEAT' && git commit -m x"
-check deny CA5 "$MAIN" 'D=`cd /tmp && pwd`; git commit -m x'
-check deny CA5 "$MAIN" 'cd /tmp && cd - ; git commit -m x'
-check allow CA5 "$MAIN" "cd $FEAT && cd /tmp && cd - && git commit -m x"
-check allow CA5 "$MAIN" "git -C $FEAT push origin feat/x"
-check allow CA5 "$MAIN" "cd $FEAT && git commit -m x"
+snapshot() { cat "$HOME/.gitconfig"; ls -l --time-style=+ "$dest"; }
+before=$(snapshot)
+bash "$setup_script" >/dev/null
+[[ $(snapshot) == "$before" ]]
+result $? CA5 "rodar de novo não muda nada"
 
-# Issue #22: variáveis em cd, git -C e --git-dir (casos V1 a V5, da SPEC-22).
-# V1: os casos da issue.
-check allow V1 "$MAIN" "W=$WT && cd \$W && git commit -m x"
-check allow V1 "$MAIN" "W=$WT; git -C \$W commit -m x"
-check allow V1 "$MAIN" "cd $WT && git commit -m x"
-check allow V1 "$MAIN" "git -C $WT commit -m x"
-check deny V1 "$MAIN" 'git commit -m x'
-# V2: formas resolvidas.
-check allow V2 "$MAIN" "W=$WT; cd \${W} && git commit -m x"
-check allow V2 "$MAIN" "W=$WT; cd \"\$W\" && git commit -m x"
-check allow V2 "$MAIN" "W=$WT; cd \"\$W/sub\" && git commit -m x"
-check allow V2 "$MAIN" "export W=$WT && git -C \$W commit -m x"
-check allow V2 "$MAIN" "A=$tmp; B=\$A/wt; cd \$B && git commit -m x"
-check allow V2 "$MAIN" "W=$WT; git --git-dir \$W/.git commit -m x"
-check allow V2 "$MAIN" "W=$WT; cd \$W && git commit -m x; cd \$OLDPWD"
-check allow V2 "$MAIN" "cd $WT && D=\$PWD && cd /tmp && git -C \$D commit -m x"
-check allow V2 "$MAIN" "W=$tmp/../${tmp##*/}/wt; cd \$W && git commit -m x"
-# O hook roda com HOME=$tmp.
-check allow V2 "$MAIN" 'W=~/wt; cd $W && git commit -m x'
-check allow V2 "$MAIN" 'cd $HOME/wt && git commit -m x'
-check allow V2 "$MAIN" 'git -C ${HOME}/wt commit -m x'
-check deny V2 "$FEAT" 'W=~/main; cd $W && git commit -m x'
-# V3: variável que aponta para a main bloqueia, mesmo saindo de uma feature.
-check deny V3 "$FEAT" "W=$MAIN; cd \$W && git commit -m x"
-check deny V3 "$FEAT" "W=$MAIN; git -C \$W commit -m x"
-check deny V3 "$FEAT" "W=$MAIN; cd \$W && git push"
-# V4: diretório desconhecido bloqueia na dúvida; sem commit/push, não.
-check deny V4 "$FEAT" 'cd $NAO_DEFINIDA && git commit -m x'
-check deny V4 "$FEAT" 'W=$(pwd); cd $W && git commit -m x'
-check deny V4 "$FEAT" 'W="$(pwd)"; cd "$W" && git commit -m x'
-check deny V4 "$FEAT" 'W=`pwd`; git -C $W commit -m x'
-check deny V4 "$FEAT" 'cd ${W:-x} && git commit -m x'
-check deny V4 "$FEAT" 'cd $1 && git push'
-check deny V4 "$FEAT" 'cd $NAO_DEFINIDA && cd sub && git commit -m x'
-check allow V4 "$FEAT" 'cd $NAO_DEFINIDA && ls'
-check allow V4 "$FEAT" "cd \$NAO_DEFINIDA; cd $WT && git commit -m x"
-# V5: escopo.
-check deny V5 "$MAIN" "W=$WT git -C \$W commit -m x"
-check deny V5 "$MAIN" "(W=$WT); cd \$W && git commit -m x"
-check deny V5 "$MAIN" "echo \"\$(W=$WT)\"; cd \$W && git commit -m x"
-check allow V5 "$MAIN" "eval 'W=$WT'; cd \$W && git commit -m x"
-check deny V5 "$MAIN" "W=$WT; cd '\$W' && git commit -m x"
-check deny V5 "$MAIN" "W=$WT; cd \\\$W && git commit -m x"
-check deny V5 "$MAIN" "W=$WT; unset W; cd \$W && git commit -m x"
-check allow V5 "$MAIN" "(W=$WT; cd \$W && git commit -m x)"
-# Shell filho só herda variáveis exportadas.
-check deny V5 "$MAIN" "W=$WT; bash -c 'git -C \"\$W\" commit -m x'"
-check deny V5 "$MAIN" $'W='"$WT"$'; bash <<\'EOF\'\ngit -C "$W" commit -m x\nEOF'
-check allow V5 "$MAIN" "export W=$WT; bash -c 'git -C \"\$W\" commit -m x'"
-check allow V5 "$MAIN" "W=$WT; export W; bash -c 'cd \$W && git commit -m x'"
-check allow V5 "$MAIN" "W=$WT; (git -C \$W commit -m x)"
+[[ $(bash "$setup_script" --check) == ok ]]
+result $? CA5 "--check instalado: ok"
 
-# Issue #24: aspas dentro do código de bash -c, eval e here-string (Q1 a Q5,
-# da SPEC-24).
-# Q1: valor citado antes do subcomando não esconde o commit.
-check deny Q1 "$MAIN" 'sh -c "git -c user.name=\"t\" commit -m y"'
-check deny Q1 "$MAIN" "bash -c 'git -c user.name=\"t\" commit -m y'"
-check deny Q1 "$MAIN" "eval 'git -c user.name=\"t\" commit -m y'"
-check deny Q1 "$MAIN" 'eval "git -c user.name=\"t\" commit -m y"'
-check deny Q1 "$MAIN" "bash <<< 'git -c user.name=\"t\" commit -m y'"
-check deny Q1 "$FEAT" "bash -c \"git -C \\\"$MAIN\\\" commit -m y\""
-# Espaço escapado no início não pode se passar pelo marcador do texto extraído.
-check deny Q1 "$MAIN" "\\ CEcd $WT; git commit -m y"
-check deny Q1 "$MAIN" $'\\ CEcd '"$WT"$'\ngit commit -m y'
-# Q2: as mesmas formas numa worktree de feature liberam.
-check allow Q2 "$MAIN" "bash -c \"git -C \\\"$WT\\\" commit -m y\""
-check allow Q2 "$MAIN" "bash -c 'git -C \"$WT\" commit -m y'"
-check allow Q2 "$MAIN" "eval 'git -C \"$WT\" commit -m y'"
-check allow Q2 "$MAIN" "bash <<< 'git -C \"$WT\" commit -m y'"
-# Q3: aninhamento; acima de 4 níveis vale o modo de dúvida.
-check deny Q3 "$MAIN" "bash -c \"bash -c 'git -c a=\\\"b\\\" commit -m y'\""
-nested() {
-  local c=$1 i t
-  for (( i = 0; i < $2; i++ )); do
-    t=${c//\\/\\\\} t=${t//\"/\\\"}
-    c="bash -c \"$t\""
-  done
-  printf '%s' "$c"
+echo 0.0.0 >"$dest/VERSION"
+rm "$dest/pre-push"
+[[ $(bash "$setup_script" --check) == "atualizado $version" && -x "$dest/pre-push" && $(cat "$dest/VERSION") == "$version" ]]
+result $? CA5 "--check com versão antiga: atualizado $version e copia de novo"
+
+git config --global core.hooksPath /outra/ferramenta
+bash "$setup_script" >/dev/null 2>&1
+[[ $? -ne 0 && $(git config --global core.hooksPath) == /outra/ferramenta ]]
+result $? CA5 "com outro core.hooksPath global: erro e nada muda"
+
+[[ $(bash "$setup_script" --check) == ausente && $(git config --global core.hooksPath) == /outra/ferramenta ]]
+result $? CA5 "--check com outro core.hooksPath: ausente, sem alterar"
+
+bash "$setup_script" --force >/dev/null
+[[ $(git config --global core.hooksPath) == "$dest" ]]
+result $? CA5 "--force troca o core.hooksPath"
+
+# ---------------------------------------------------------------------------
+# Repositórios de teste, com os hooks instalados:
+#   main      com commit, main em checkout, remoto com main; branch feat
+#   wt        worktree do repositório main, na branch feature
+#   master    com commit, master em checkout
+#   empty     sem nenhum commit, remoto sem nenhuma branch
+#   chain     na branch feat/x, com hooks próprios em .git/hooks
+setup() {
+  git init -q --bare "$tmp/remote.git"
+  git init -q "$tmp/main"
+  git -C "$tmp/main" remote add origin "$tmp/remote.git"
+  git init -q -b master "$tmp/master"
+  git -C "$tmp/master" commit -q --no-verify --allow-empty -m inicial
+  git init -q "$tmp/empty"
+  git init -q --bare "$tmp/empty-remote.git"
+  git -C "$tmp/empty" remote add origin "$tmp/empty-remote.git"
+  git init -q -b feat/x "$tmp/chain"
 }
-check deny Q3 "$MAIN" "$(nested 'git -c a="b" commit -m y' 3)"
-check deny Q3 "$MAIN" "$(nested 'git -c a="b" commit -m y' 6)"
-check allow Q3 "$MAIN" "$(nested "git -C \"$WT\" commit -m y" 3)"
-# Q4: texto continua sendo texto no shell filho; \$( chega ao filho como código.
-check allow Q4 "$MAIN" "bash -c 'echo \"git commit -m x\"'"
-check allow Q4 "$MAIN" 'bash -c "echo \"git push origin main\""'
-check deny Q4 "$MAIN" 'bash -c "echo \$(git commit -m x)"'
-# Q5: modo de dúvida.
-check deny Q5 "$MAIN" 'git -c user.name="t" commit -m y; echo "x'
-check deny Q5 "$MAIN" 'echo x | bash; git -c k="v" commit -m y'
+setup || { echo "test-protect-main: falhou ao criar os repositórios de teste" >&2; exit 1; }
+MAIN=$tmp/main WT=$tmp/wt EMPTY=$tmp/empty CHAIN=$tmp/chain
 
-# CA6: exceções do commit inicial e do primeiro push.
-check allow CA6 "$EMPTY" 'git commit -m inicial'
-check allow CA6 "$NEWREMOTE" 'git push -u origin main'
+# run <dir> <comando>: roda o comando num bash, como o Claude faria. A saída
+# de erro fica em $tmp/err.
+run() { (cd "$1" && bash -c "$2") >/dev/null 2>"$tmp/err"; }
+head_of() { git -C "$1" rev-parse -q --verify "${2:-HEAD}"; }
 
-# Semântica do bash usada pelo hook: a atribuição como prefixo não vale
-# para os argumentos do próprio comando.
-total=$((total + 1))
-if [[ $(bash -c 'W=a; W=b echo $W') == a ]]; then
-  echo "ok      V5   bash: W=a; W=b echo \$W imprime a"
-else
-  failures=$((failures + 1)); echo "FALHOU  V5   bash: W=a; W=b echo \$W não imprimiu a"
-fi
+# CA3: commit inicial e primeiro push passam.
+run "$MAIN" 'git commit --allow-empty -m inicial'
+result $? CA3 "commit inicial num repositório novo na main"
+run "$MAIN" 'git push -q -u origin main'
+result $? CA3 "primeiro push da main, ainda ausente no remoto"
+git -C "$MAIN" branch -q feat
+git -C "$MAIN" worktree add -q -b feature "$WT"
 
-# Escapes entre aspas duplas, como o hook desfaz: \\ e \$ sim, \a não.
-total=$((total + 1))
-if [[ $(bash -c "printf '%s' \"a\\\\b\\\$c\\d\"") == 'a\b$c\d' ]]; then
-  echo "ok      Q4   bash: escapes de aspas duplas"
-else
-  failures=$((failures + 1)); echo "FALHOU  Q4   bash: escapes de aspas duplas"
-fi
+# CA1: commit na main falha em todas as formas, e a main não muda.
+# deny_commit <dir> <comando>
+deny_commit() {
+  local before after
+  before=$(head_of "$1")
+  run "$1" "$2"
+  local rc=$?
+  after=$(head_of "$1")
+  [[ $rc -ne 0 && $before == "$after" ]] && grep -q "Commit direto na '" "$tmp/err"
+  result $? CA1 "falha: $2"
+}
+deny_commit "$MAIN" 'git commit --allow-empty -m x'
+deny_commit "$MAIN" 'bash -c "git -c user.name=\"b\" commit --allow-empty -m x"'
+deny_commit "$MAIN" 'eval git commit --allow-empty -m x'
+deny_commit "$MAIN" "cd /; W=$MAIN; git -C \$W commit --allow-empty -m x"
+deny_commit "$MAIN" "timeout 5 bash -c 'git commit --allow-empty -m x'"
+deny_commit "$MAIN" 'bash -c "$(echo git) commit --allow-empty -m x"'
+deny_commit "$MAIN" "bash -c 'git -c user.name='\\''b'\\'' commit --allow-empty -m x'"
+deny_commit "$MAIN" 'git commit --amend --allow-empty -m y'
+deny_commit "$tmp/master" 'git commit --allow-empty -m x'
+
+git -C "$WT" commit -q --allow-empty -m "na feature"
+deny_commit "$MAIN" 'git merge --no-ff -m m feature'
+git -C "$MAIN" merge --abort 2>/dev/null
+
+# CA3: fora da main, o commit passa.
+before=$(head_of "$WT")
+run "$WT" 'git commit --allow-empty -m "na worktree"'
+[[ $? -eq 0 && $(head_of "$WT") != "$before" ]]
+result $? CA3 "commit numa worktree de feature, com o clone principal na main"
+run "$MAIN" 'git switch -q feat && git commit --allow-empty -m "na feat" && git switch -q main'
+result $? CA3 "commit numa branch de feature"
+
+# CA2: push para a main que já existe no remoto falha.
+git -C "$MAIN" commit -q --no-verify --allow-empty -m "local na main"
+remote_main=$(git -C "$tmp/remote.git" rev-parse main)
+# deny_push <comando>
+deny_push() {
+  run "$MAIN" "$1"
+  local rc=$?
+  [[ $rc -ne 0 && $(git -C "$tmp/remote.git" rev-parse -q --verify main) == "$remote_main" ]] \
+    && grep -q "Push para a main bloqueado" "$tmp/err"
+  result $? CA2 "falha: $1"
+}
+deny_push 'git push origin main'
+deny_push 'git push origin HEAD:main'
+deny_push 'git push'
+deny_push 'git push origin :main'
+deny_push 'git push origin feat:refs/heads/main'
+run "$MAIN" 'git push -q origin feat'
+[[ $? -eq 0 && $(git -C "$tmp/remote.git" rev-parse feat) == $(head_of "$MAIN" feat) ]]
+result $? CA2 "passa: git push origin feat, com a main em checkout"
+
+run "$EMPTY" 'git commit --allow-empty -m inicial && git push -q origin main'
+result $? CA3 "commit inicial e primeiro push num repositório sem remoto"
+
+# CA4: os hooks do próprio repositório continuam rodando, encadeados.
+cat >"$CHAIN/.git/hooks/pre-commit" <<EOF
+#!/bin/sh
+touch "$tmp/pre-commit-rodou"
+EOF
+cat >"$CHAIN/.git/hooks/commit-msg" <<EOF
+#!/bin/sh
+grep -q mensagem "\$1" && touch "$tmp/commit-msg-rodou"
+EOF
+cat >"$CHAIN/.git/hooks/pre-push" <<EOF
+#!/bin/sh
+cat >"$tmp/pre-push-stdin"
+EOF
+chmod +x "$CHAIN/.git/hooks/"*
+run "$CHAIN" 'git commit --allow-empty -m mensagem'
+[[ $? -eq 0 && -f $tmp/pre-commit-rodou ]]
+result $? CA4 "pre-commit do repositório roda"
+[[ -f $tmp/commit-msg-rodou ]]
+result $? CA4 "commit-msg do repositório roda, com o argumento"
+git init -q --bare "$tmp/chain-remote.git"
+git -C "$CHAIN" remote add origin "$tmp/chain-remote.git"
+run "$CHAIN" 'git push -q origin feat/x'
+[[ $? -eq 0 ]] && grep -q "^refs/heads/feat/x [0-9a-f]* refs/heads/feat/x 0*$" "$tmp/pre-push-stdin"
+result $? CA4 "pre-push do repositório roda, com o mesmo stdin"
+printf '#!/bin/sh\nexit 1\n' >"$CHAIN/.git/hooks/pre-commit"
+before=$(head_of "$CHAIN")
+run "$CHAIN" 'git commit --allow-empty -m mensagem'
+[[ $? -ne 0 && $(head_of "$CHAIN") == "$before" ]]
+result $? CA4 "pre-commit do repositório que falha impede o commit"
+
+# Push para a branch em checkout com updateInstead continua atualizando a
+# worktree: não pode haver entrada push-to-checkout.
+git init -q "$tmp/dest"
+git -C "$tmp/dest" commit -q --allow-empty -m inicial
+git -C "$tmp/dest" switch -q -c feat/y
+git -C "$tmp/dest" config receive.denyCurrentBranch updateInstead
+git clone -q "$tmp/dest" "$tmp/src"
+echo conteudo >"$tmp/src/f"
+git -C "$tmp/src" add f
+git -C "$tmp/src" commit -q -m f
+run "$tmp/src" 'git push -q origin feat/y'
+[[ $? -eq 0 && -f $tmp/dest/f && -z $(git -C "$tmp/dest" status --porcelain) ]]
+result $? CA4 "push com updateInstead atualiza a worktree do destino"
+
+# pre-receive do repositório de destino roda, com o stdin do git.
+printf '#!/bin/sh\ncat >"%s/pre-receive-stdin"\n' "$tmp" >"$tmp/chain-remote.git/hooks/pre-receive"
+chmod +x "$tmp/chain-remote.git/hooks/pre-receive"
+run "$CHAIN" 'git switch -q -c feat/z && git commit --no-verify --allow-empty -m z && git push -q origin feat/z'
+grep -q " refs/heads/feat/z$" "$tmp/pre-receive-stdin" 2>/dev/null
+result $? CA4 "pre-receive do remoto local roda, com o mesmo stdin"
+
+# ---------------------------------------------------------------------------
+# CA6: checagens do PreToolUse.
+
+# check <esperado: deny|allow> <comando> [HOME]
+check() {
+  local expected=$1 command=$2 home=${3:-$HOME} got
+  if jq -n --arg c "$command" --arg d "$MAIN" '{tool_input: {command: $c}, cwd: $d}' |
+    HOME=$home bash "$hook" 2>&1 | grep -q '"permissionDecision": *"deny"'; then
+    got=deny
+  else
+    got=allow
+  fi
+  [[ $got == "$expected" ]]
+  result $? CA6 "$expected: $command"
+}
+check deny 'git commit --no-verify -m x'
+check deny 'git push --no-verify origin main'
+check deny 'git commit -n -m x'
+check deny 'git commit -nm x'
+check deny 'git commit -an -m x'
+check deny $'git commit --allow-empty -m x \\\n  -n'
+check deny 'git -c core.hooksPath=/dev/null commit -m x'
+check deny 'git config --global --unset core.hooksPath'
+check deny 'git --config-env=core.hookspath=X commit -m x'
+check deny 'GIT_CONFIG_GLOBAL=/dev/null git commit -m x'
+check deny 'GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=core.hooksPath GIT_CONFIG_VALUE_0=/x git commit -m x'
+check deny 'HOME=/tmp git commit -m x'
+check deny 'export XDG_CONFIG_HOME=/tmp; git commit -m x'
+check deny 'rm -rf ~/.config/fabrica/githooks'
+check deny 'gh pr create --title t --body "não use --no-verify"'
+check allow "$(printf 'git commit -m "$(cat <<%sEOF%s\nfeat: adiciona x\n\nCo-Authored-By: t <t@t>\nEOF\n)"' "'" "'")"
+check allow 'git log -n 5'
+check allow 'git push -u origin feat/x'
+check allow 'echo "git commit"'
+check allow 'git commit -m x && git log -n 1'
+check allow 'ls'
+check deny 'git commit -m x' "$tmp/sem-hooks"
+check deny 'git push origin feat/x' "$tmp/sem-hooks"
+check allow 'ls -la' "$tmp/sem-hooks"
+mkdir -p "$tmp/sem-hooks"
+jq -n --arg c 'git commit -m x' '{tool_input: {command: $c}}' | HOME=$tmp/sem-hooks bash "$hook" |
+  grep -q 'não estão instalados. Rode /fabrica:setup'
+result $? CA6 "sem hooks: mensagem de instalação"
+
+# Tempo: comando de 40 KB.
+big="git commit -m \"$(head -c 40000 /dev/zero | tr '\0' a)\""
+start=$(date +%s%N)
+jq -n --arg c "$big" '{tool_input: {command: $c}}' | bash "$hook" >/dev/null
+ms=$(( ($(date +%s%N) - start) / 1000000 ))
+(( ms < 50 ))
+result $? CA6 "comando de 40 KB em ${ms} ms (limite 50 ms)"
 
 echo
 if (( failures )); then
