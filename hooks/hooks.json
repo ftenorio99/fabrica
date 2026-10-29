@@ -1,6 +1,17 @@
 {
-  "description": "Bloqueia commit e push direto na main/master.",
+  "description": "Confere os hooks do git que bloqueiam commit e push na main/master e impede o Claude de desligá-los.",
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ \"$(bash \"${CLAUDE_PLUGIN_ROOT}/scripts/setup-githooks.sh\" --check 2>/dev/null)\" != ausente ] || echo 'Os hooks do git da fábrica não estão instalados nesta máquina. Rode /fabrica:setup.'",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Bash",
@@ -8,7 +19,6 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/protect-main.sh",
-            "if": "Bash(*git*)",
             "timeout": 15
           }
         ]
