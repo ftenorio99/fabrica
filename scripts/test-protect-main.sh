@@ -44,7 +44,7 @@ failures=0 total=0
 # check <esperado: deny|allow> <CA> <cwd> <comando>
 check() {
   local expected=$1 ca=$2 dir=$3 command=$4 got output label
-  output=$(jq -n --arg c "$command" --arg d "$dir" '{tool_input: {command: $c}, cwd: $d}' | bash "$hook" 2>&1)
+  output=$(jq -n --arg c "$command" --arg d "$dir" '{tool_input: {command: $c}, cwd: $d}' | HOME=$tmp bash "$hook" 2>&1)
   if grep -q '"permissionDecision": *"deny"' <<<"$output"; then got=deny; else got=allow; fi
   total=$((total + 1))
   label="${command//$'\n'/⏎}"
@@ -141,6 +141,11 @@ check allow V2 "$MAIN" "W=$WT; git --git-dir \$W/.git commit -m x"
 check allow V2 "$MAIN" "W=$WT; cd \$W && git commit -m x; cd \$OLDPWD"
 check allow V2 "$MAIN" "cd $WT && D=\$PWD && cd /tmp && git -C \$D commit -m x"
 check allow V2 "$MAIN" "W=$tmp/../${tmp##*/}/wt; cd \$W && git commit -m x"
+# O hook roda com HOME=$tmp.
+check allow V2 "$MAIN" 'W=~/wt; cd $W && git commit -m x'
+check allow V2 "$MAIN" 'cd $HOME/wt && git commit -m x'
+check allow V2 "$MAIN" 'git -C ${HOME}/wt commit -m x'
+check deny V2 "$FEAT" 'W=~/main; cd $W && git commit -m x'
 # V3: variável que aponta para a main bloqueia, mesmo saindo de uma feature.
 check deny V3 "$FEAT" "W=$MAIN; cd \$W && git commit -m x"
 check deny V3 "$FEAT" "W=$MAIN; git -C \$W commit -m x"
@@ -164,6 +169,12 @@ check deny V5 "$MAIN" "W=$WT; cd '\$W' && git commit -m x"
 check deny V5 "$MAIN" "W=$WT; cd \\\$W && git commit -m x"
 check deny V5 "$MAIN" "W=$WT; unset W; cd \$W && git commit -m x"
 check allow V5 "$MAIN" "(W=$WT; cd \$W && git commit -m x)"
+# Shell filho só herda variáveis exportadas.
+check deny V5 "$MAIN" "W=$WT; bash -c 'git -C \"\$W\" commit -m x'"
+check deny V5 "$MAIN" $'W='"$WT"$'; bash <<\'EOF\'\ngit -C "$W" commit -m x\nEOF'
+check allow V5 "$MAIN" "export W=$WT; bash -c 'git -C \"\$W\" commit -m x'"
+check allow V5 "$MAIN" "W=$WT; export W; bash -c 'cd \$W && git commit -m x'"
+check allow V5 "$MAIN" "W=$WT; (git -C \$W commit -m x)"
 
 # CA6: exceções do commit inicial e do primeiro push.
 check allow CA6 "$EMPTY" 'git commit -m inicial'
