@@ -16,9 +16,10 @@ Ideia inicial do usuário: $ARGUMENTS
 - Proponha em vez de só perguntar: para cada decisão, ofereça 2 a 4 opções concretas com a sua recomendação primeiro. Use o AskUserQuestion, com no máximo 4 perguntas por rodada.
 - Não pergunte o que dá para descobrir sozinho: leia antes o `CLAUDE.md`, o `README.md` e o que já existir em `docs/`.
 - Se o usuário não souber responder algo, registre em "Perguntas em aberto" e siga em frente.
+- Nunca altere labels nem issues, nem no modo atualização. Aplicar a mudança nas issues é do `/fabrica:backlog` e do usuário.
 
 ## 1. Contexto
-- Se `docs/prd.md` já existir, leia-o, mostre um resumo de três linhas e pergunte o que mudou. Atualize as seções afetadas, sem reescrever o resto, e registre a mudança no histórico no fim do arquivo.
+- Se `docs/prd.md` já existir, o PRD é a baseline do produto: siga a seção [Mudanças de requisitos](#mudanças-de-requisitos) em vez dos passos 2 a 4.
 - Se o projeto tiver critérios definidos para o produto (no `CLAUDE.md` ou num documento citado pelo usuário), use-os para avaliar as respostas e avise quando uma escolha os contrariar.
 
 ## 2. Entrevista
@@ -52,3 +53,56 @@ Entre as rodadas, resuma em uma ou duas linhas o que você entendeu, para o usu�
 - Sem pedir confirmação, rode `bash <diretório base desta skill>/../../scripts/setup-labels.sh` no diretório do projeto, para as labels da fábrica existirem antes da primeira issue.
 - Se ainda não houver remote no GitHub (repositório não criado), não trate como falha: avise que o setup roda com `/fabrica:setup` depois do `gh repo create`.
 - Mostre o resultado em uma linha (repositório e labels criadas ou corrigidas).
+
+## Mudanças de requisitos
+O PRD que já existe é a baseline: toda mudança passa por análise de impacto e por uma decisão sua, registrada com o motivo, antes de ser escrita.
+
+1. **Coletar.** Leia o PRD, mostre um resumo de três linhas e pergunte o que mudou. Para cada mudança, registre:
+   - **tipo:** `incluir`, `excluir` ou `alterar`;
+   - **F afetados:** um F novo recebe o próximo número livre;
+   - **itens do fatiamento afetados:** inclua os que dependem (`depende de`) de um item alterado ou removido;
+   - **motivo.**
+2. **Analisar o impacto, antes de escrever qualquer coisa.**
+   - **Consultas, agrupadas, sem uma chamada por F:**
+     - `gh issue list --state all --limit 1000 --json number,title,body,state,labels,milestone`;
+     - `gh pr list --state all --limit 200 --json number,state,headRefName`.
+
+     Liste também os comentários `<!-- fabrica:spec -->` das issues afetadas, que trazem a branch.
+   - **Ligação item → issue:** pela anotação ` · #<nº>` do fatiamento ou pelo marcador `<!-- fabrica:backlog item=<n> -->` no corpo.
+   - **Relatório no chat:** uma linha por item afetado, com F, item, issue, marco, estado e ação, conforme a tabela:
+
+     | Situação da issue do item | Ação indicada |
+     |---|---|
+     | Sem issue (só no fatiamento) | Ajustar o PRD. |
+     | Issue de backlog (aberta, sem `agente`) | O `/fabrica:backlog` atualiza a issue depois do merge do PRD. |
+     | No fluxo, sem PR, sem `spec-aprovada` | Rever a spec com `/fabrica:spec <nº> <ajuste>`. |
+     | No fluxo, com `spec-aprovada` e sem PR | O usuário remove `spec-aprovada` e roda `/fabrica:spec <nº> <ajuste>`. |
+     | PR aberto | O usuário decide: parar (fechar o PR ou pedir ajuste) ou seguir e tratar a mudança numa issue nova. |
+     | Fechada | Abrir uma issue nova de `feat` ou `fix`; nunca alterar a anterior. |
+   - **Rodapé do relatório:**
+     - as milestones afetadas;
+     - o esforço relativo de cada mudança, em `P`, `M` ou `G`, com a escala da triagem;
+     - **não rastreadas:** as issues abertas com `agente` que não estão ligadas a nenhum item, com número e título, e o aviso "confira se alguma é afetada".
+
+     Sem remote no GitHub ou sem issues, diga isso e mostre só o impacto no PRD.
+3. **Decidir.** Pergunte com o AskUserQuestion, uma pergunta por mudança e no máximo 4 por rodada, com as opções `aceitar`, `rejeitar` e `adiar`. Para rejeitar ou adiar, peça o motivo.
+4. **Escrever.**
+   - **PRD:** altere o `docs/prd.md` só com as mudanças aceitas, mexendo apenas nas seções afetadas e seguindo as regras do fatiamento do passo 3.
+   - **Histórico:** registre todas as mudanças, inclusive as rejeitadas e as adiadas, na tabela `### Mudanças` dentro de `## Histórico`:
+     ```markdown
+     ### Mudanças
+     | Data | Tipo | F | Motivo | Decisão | Issues |
+     |---|---|---|---|---|---|
+     | 2026-11-02 | alterar | F2, F11 | <motivo> | aceita | #10, #11 |
+     | 2026-11-02 | incluir | F21 | <motivo> | adiada: <motivo do adiamento> | — |
+     ```
+     - **F:** separados por vírgula.
+     - **Decisão:** começa com `aceita`, `rejeitada` ou `adiada`, e as duas últimas trazem o motivo depois de `:`.
+     - **Issues:** as que o relatório apontou, ou `—`.
+     - **PRD sem a subseção:** crie-a na primeira mudança e deixe as linhas antigas do histórico como estão.
+   - **Revisão:** mostre o diff do PRD e siga o passo 4 (revisão e oferta do PR `docs/prd`).
+5. **Encerrar.** Liste os próximos passos que vêm da coluna "Ação" das mudanças aceitas:
+   - `/fabrica:backlog` depois do merge do PRD;
+   - o comando ou a decisão de cada issue no fluxo.
+
+   Não altere labels nem issues.
