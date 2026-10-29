@@ -7,8 +7,9 @@ Este repositório é a fábrica de software pessoal, empacotada como plugin do C
 - `.claude-plugin/marketplace.json`: permite instalar o plugin com `/plugin marketplace add ftenorio99/fabrica`.
 - `skills/<nome>/SKILL.md`: uma skill por etapa do fluxo. No uso, são chamadas como `/fabrica:<nome>`.
 - `agents/`: subagentes usados pelas skills (ex.: revisor).
-- `hooks/`: hooks que valem onde o plugin estiver instalado (ex.: `protect-main.sh`).
-- `scripts/`: scripts chamados pelas skills (ex.: `setup-labels.sh`).
+- `githooks/`: hooks globais do git que recusam commit e push na `main`, instalados por `scripts/setup-githooks.sh` (ADR 0002).
+- `hooks/`: hooks do Claude Code que valem onde o plugin estiver instalado (ex.: `protect-main.sh`, que impede o Claude de desligar os hooks do git).
+- `scripts/`: scripts chamados pelas skills (ex.: `setup-labels.sh`, `setup-githooks.sh`). Os testes da proteção da main rodam com `bash scripts/test-protect-main.sh`.
 - `templates/`: arquivos copiados para os projetos (`CLAUDE.md`, issue, spec).
 
 ## Escrevendo skills
