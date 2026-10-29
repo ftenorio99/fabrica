@@ -1,7 +1,7 @@
 # SPEC-20: Criar backlog no GitHub a partir do PRD com milestones por marco e planejamento em ondas
 
 **Issue:** #20 · **PRD:** — (a fábrica não tem `docs/prd.md`) · **Classe:** implementacao-complexa · **Tamanho:** G
-**Status:** rascunho · **Atualizada em:** 2026-10-29
+**Status:** aprovada · **Atualizada em:** 2026-10-29
 
 ## Contexto
 O fluxo vai do PRD (`/fabrica:prd`) direto para a triagem. O fatiamento fica como uma lista no `docs/prd.md`, e cada issue é criada à mão: no `kairo`, os itens 1 e 2 viraram as issues #2 e #6 assim, sem registro no PRD. Quando não há nada no fluxo, o `/fabrica:status` manda "criar a próxima issue a partir do fatiamento", mas nenhuma skill faz isso. Falta a etapa de backlog.
@@ -167,3 +167,4 @@ Cada verificação é registrada no PR com o comando e o resultado.
 
 ## Histórico
 - 2026-10-29: criação.
+- 2026-10-29: aprovada pelo usuário.
