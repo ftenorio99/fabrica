@@ -267,6 +267,8 @@ for c in 'unset HOME; git commit -m x' 'unset -v XDG_CONFIG_HOME' 'unset FOO XDG
   'unset "HOME"; git commit -m x' "unset 'XDG_CONFIG_HOME'" \
   'env --u=HOME git commit -m x' 'env --uns HOME git commit -m x' 'env --ignore-e git commit -m x' \
   'env -C /tmp -i git commit -m x' "env -S'-i sh -c env'" \
+  'env --chdir=/tmp -i git commit -m x' 'env -v --chdir=/tmp -u HOME git commit -m x' \
+  'env --default-signal=INT -i git commit -m x' \
   'git config --global --rem core' 'git config --ren core yy' 'git config --global --remove-sec core'; do
   check deny "$c" "" B29
 done

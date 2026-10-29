@@ -40,8 +40,9 @@ unset_re='(^|[^[:alnum:]_.-])unset([[:blank:]]+[^;&|[:space:]]+)*[[:blank:]]+["'
 [[ $flat =~ $unset_re ]] && disable "unset do ${BASH_REMATCH[3]}"
 # env com opções que limpam ou tiram variáveis: -i, -, -u e -S (opções
 # dentro de uma string), combinadas (-iu) ou abreviadas (--u, --ignore-e).
-# Palavras sem = entre o env e a opção contam como argumentos (-C dir).
-env_re='(^|[^[:alnum:]_.-])env([[:blank:]]+[^=;&|[:space:]]+)*[[:blank:]]+(-|--ignore-e[^;&|[:space:]]*|--u[^;&|[:space:]]*|--sp[^;&|[:space:]]*|-[[:alnum:]]*[iuS][^;&|[:space:]]*)([[:blank:]]|$)'
+# Opções (--chdir=dir) e palavras sem = entre o env e a opção contam como
+# argumentos (-C dir); uma atribuição (FOO=1) encerra as opções.
+env_re='(^|[^[:alnum:]_.-])env([[:blank:]]+(-[^;&|[:space:]]*|[^=;&|[:space:]]+))*[[:blank:]]+(-|--ignore-e[^;&|[:space:]]*|--u[^;&|[:space:]]*|--sp[^;&|[:space:]]*|-[[:alnum:]]*[iuS][^;&|[:space:]]*)([[:blank:]]|$)'
 [[ $flat =~ $env_re ]] && disable "env sem o ambiente"
 # Subcomandos remove-section/rename-section e as opções antigas, inclusive
 # abreviadas (--rem, --ren).
