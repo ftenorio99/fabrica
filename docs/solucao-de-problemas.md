@@ -55,7 +55,7 @@ Problemas que já apareceram no uso real e como resolver cada um.
 
 ## "Commit direto na 'main' bloqueado" ou "Push para a main bloqueado"
 - **Sintoma:** o git recusa um commit ou um push.
-- **Causa:** os hooks globais recusam commit na `main`/`master` e push para a `main`/`master` remota. Isso vale para qualquer repositório da máquina, inclusive comandos feitos à mão.
+- **Causa:** os hooks globais recusam commit na `main`/`master` e push para a `main`/`master` remota. Isso vale para os repositórios da máquina, inclusive comandos feitos à mão, exceto os que têm `core.hooksPath` local (veja [`main` protegida](principios.md#main-protegida)).
 - **O que fazer:**
   - **Commit:** crie uma branch e abra um PR. Se o commit já foi feito na `main` local, mova-o:
     ```

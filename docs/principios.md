@@ -8,7 +8,11 @@ A fábrica tem três gestos seus: puxar uma issue (aplicar `agente`), aprovar a 
 ## `main` protegida
 A `main` é sempre estável e nunca recebe commit ou push direto. Toda mudança nasce numa branch e entra por PR com squash.
 
-Quem garante isso é o próprio git. Hooks globais, instalados uma vez por máquina pelo `/fabrica:setup`, recusam commit e push na `main` em qualquer repositório, inclusive os feitos à mão. As únicas exceções são o commit inicial e o primeiro push de um repositório novo.
+Quem garante isso é o próprio git. Hooks globais, instalados uma vez por máquina pelo `/fabrica:setup`, recusam commit e push na `main` nos repositórios da máquina, inclusive os feitos à mão. As únicas exceções são o commit inicial e o primeiro push de um repositório novo.
+
+Duas ressalvas:
+- **Hooks do próprio repositório:** o `core.hooksPath` global faz o git ignorar o `.git/hooks` de cada repositório. Por isso os hooks da fábrica chamam, em seguida, o hook de mesmo nome do repositório.
+- **Repositórios com `core.hooksPath` local** (husky, lefthook): não passam pelos hooks da fábrica.
 
 Dentro do Claude Code, um hook do plugin impede o Claude de desligar essa proteção com `--no-verify` ou mexendo no `core.hooksPath`. A proteção cobre erros e comandos inocentes, não sabotagem; essa fronteira está no [ADR 0002](adr/0002-protecao-da-main-por-hooks-do-git.md).
 

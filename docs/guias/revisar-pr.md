@@ -13,7 +13,7 @@ O `/fabrica:status` já resume esses pontos para cada PR que espera você.
 
 ## Decidir
 - **Aprovar:** faça o merge com squash (`gh pr merge <nº> --squash --delete-branch`), ou peça ao Claude, que confirma antes de fazer. A issue fecha sozinha pelo `Fixes #<nº>`.
-- **Pedir mudanças:** comente no PR ou faça uma review com "Request changes". Depois rode `/fabrica:revisar <nº>` no clone: a issue aparece como "Ajustes do PR pedidos".
+- **Pedir mudanças:** comente no PR. Os agentes usam a sua conta, então o PR é seu, e o GitHub não deixa o autor pedir mudanças com uma review. O `/fabrica:status` passa a mostrar a issue como "Ajustes do PR pedidos". Peça ao Claude, no clone, para corrigir na branch o que você comentou e depois rode `/fabrica:revisar <nº>`. A revisão confere a branch contra a spec, mas não lê os comentários do PR.
 - **Mudança de escopo:** se o que você quer muda a spec, não peça no PR. Remova `spec-aprovada`, rode `/fabrica:spec <nº> <ajuste>` e aprove de novo.
 - **Sugestões:** as não aplicadas podem virar ajustes neste PR ou uma issue nova.
 
