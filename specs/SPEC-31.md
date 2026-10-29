@@ -1,7 +1,7 @@
 # SPEC-31: Reduz os falsos positivos do protect-main ao núcleo do ADR 0002
 
 **Issue:** #31 · **PRD:** — (a fábrica não tem `docs/prd.md`) · **Classe:** implementacao-simples · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-10-29
+**Status:** aprovada · **Atualizada em:** 2026-10-29
 
 ## Contexto
 Desde a #27 (ADR 0002), quem recusa commit e push na `main` são os hooks globais do git. O `hooks/protect-main.sh` é um PreToolUse que só impede o Claude de desligar esses hooks, com checagens de texto sobre o comando inteiro. A #29 acrescentou checagens contra `unset`, `env` e remoção de seção do `git config`.
@@ -95,3 +95,4 @@ As skills que publicam são `triagem`, `spec`, `implementar`, `revisar` e `backl
 
 ## Histórico
 - 2026-10-29: criação.
+- 2026-10-29: aprovada.
