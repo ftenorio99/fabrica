@@ -14,6 +14,7 @@ Os termos (item com issue, marco atual, perto de fechar, janela) e o marcador es
 - Nunca altere uma issue que tenha `agente`: ela já está no fluxo. Divergências com o PRD só são listadas para o usuário decidir.
 - Nunca apague milestone e nunca feche issue sem a confirmação do passo 4.
 - Nunca aplique `agente`.
+- Publique todo corpo de issue, comentário ou PR a partir de um arquivo: escreva-o com a ferramenta Write na pasta temporária da sessão e passe `--body-file <arquivo>` ao `gh`. Não monte o corpo com heredoc, `echo`, `--body` ou stdin: o hook `protect-main` lê o texto do comando Bash e barra corpos que citam as opções que desligam os hooks do git.
 - Nada é criado ou alterado antes da confirmação do usuário.
 - Não commite na `main`: a anotação do PRD vai pela branch `docs/backlog` e por PR.
 - Em qualquer saída depois de criar a worktree do passo 1 (plano vazio, PRD inválido, cancelamento, erro ou fim do passo 5), remova-a com `git worktree remove --force <tmp>`. O git não deixa a mesma branch em duas worktrees, e uma worktree esquecida quebra a próxima execução.
