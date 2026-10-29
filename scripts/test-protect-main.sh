@@ -176,6 +176,41 @@ check allow V5 "$MAIN" "export W=$WT; bash -c 'git -C \"\$W\" commit -m x'"
 check allow V5 "$MAIN" "W=$WT; export W; bash -c 'cd \$W && git commit -m x'"
 check allow V5 "$MAIN" "W=$WT; (git -C \$W commit -m x)"
 
+# Issue #24: aspas dentro do código de bash -c, eval e here-string (Q1 a Q5,
+# da SPEC-24).
+# Q1: valor citado antes do subcomando não esconde o commit.
+check deny Q1 "$MAIN" 'sh -c "git -c user.name=\"t\" commit -m y"'
+check deny Q1 "$MAIN" "bash -c 'git -c user.name=\"t\" commit -m y'"
+check deny Q1 "$MAIN" "eval 'git -c user.name=\"t\" commit -m y'"
+check deny Q1 "$MAIN" 'eval "git -c user.name=\"t\" commit -m y"'
+check deny Q1 "$MAIN" "bash <<< 'git -c user.name=\"t\" commit -m y'"
+check deny Q1 "$FEAT" "bash -c \"git -C \\\"$MAIN\\\" commit -m y\""
+# Q2: as mesmas formas numa worktree de feature liberam.
+check allow Q2 "$MAIN" "bash -c \"git -C \\\"$WT\\\" commit -m y\""
+check allow Q2 "$MAIN" "bash -c 'git -C \"$WT\" commit -m y'"
+check allow Q2 "$MAIN" "eval 'git -C \"$WT\" commit -m y'"
+check allow Q2 "$MAIN" "bash <<< 'git -C \"$WT\" commit -m y'"
+# Q3: aninhamento; acima de 4 níveis vale o modo de dúvida.
+check deny Q3 "$MAIN" "bash -c \"bash -c 'git -c a=\\\"b\\\" commit -m y'\""
+nested() {
+  local c=$1 i t
+  for (( i = 0; i < $2; i++ )); do
+    t=${c//\\/\\\\} t=${t//\"/\\\"}
+    c="bash -c \"$t\""
+  done
+  printf '%s' "$c"
+}
+check deny Q3 "$MAIN" "$(nested 'git -c a="b" commit -m y' 3)"
+check deny Q3 "$MAIN" "$(nested 'git -c a="b" commit -m y' 6)"
+check allow Q3 "$MAIN" "$(nested "git -C \"$WT\" commit -m y" 3)"
+# Q4: texto continua sendo texto no shell filho; \$( chega ao filho como código.
+check allow Q4 "$MAIN" "bash -c 'echo \"git commit -m x\"'"
+check allow Q4 "$MAIN" 'bash -c "echo \"git push origin main\""'
+check deny Q4 "$MAIN" 'bash -c "echo \$(git commit -m x)"'
+# Q5: modo de dúvida.
+check deny Q5 "$MAIN" 'git -c user.name="t" commit -m y; echo "x'
+check deny Q5 "$MAIN" 'echo x | bash; git -c k="v" commit -m y'
+
 # CA6: exceções do commit inicial e do primeiro push.
 check allow CA6 "$EMPTY" 'git commit -m inicial'
 check allow CA6 "$NEWREMOTE" 'git push -u origin main'
@@ -187,6 +222,14 @@ if [[ $(bash -c 'W=a; W=b echo $W') == a ]]; then
   echo "ok      V5   bash: W=a; W=b echo \$W imprime a"
 else
   failures=$((failures + 1)); echo "FALHOU  V5   bash: W=a; W=b echo \$W não imprimiu a"
+fi
+
+# Escapes entre aspas duplas, como o hook desfaz: \\ e \$ sim, \a não.
+total=$((total + 1))
+if [[ $(bash -c "printf '%s' \"a\\\\b\\\$c\\d\"") == 'a\b$c\d' ]]; then
+  echo "ok      Q4   bash: escapes de aspas duplas"
+else
+  failures=$((failures + 1)); echo "FALHOU  Q4   bash: escapes de aspas duplas"
 fi
 
 echo
