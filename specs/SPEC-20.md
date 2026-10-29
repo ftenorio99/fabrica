@@ -33,7 +33,7 @@ Itens de 1 a 2 dias de trabalho humano, agrupados por marco e em ordem de depend
 ### Termos
 - **Item com issue:** item que tem uma issue com o marcador `<!-- fabrica:backlog item=<n> -->` no corpo, ou cujo número está anotado no PRD. O marcador vale mesmo antes do merge do PR que anota o PRD.
 - **Marco atual:** o primeiro marco, na ordem `M<n>`, que tem issue aberta ou item sem issue.
-- **Perto de fechar:** o marco atual não tem item sem issue e tem no máximo 2 issues abertas. O número 2 vem do limite de 3 em andamento.
+- **Perto de fechar:** o marco atual não tem item sem issue, tem pelo menos 1 issue fechada e tem no máximo 2 issues abertas. O número 2 vem do limite de 3 em andamento. A issue fechada evita que um marco de 1 ou 2 itens avance a janela assim que suas issues são criadas.
 - **Janela:** o marco atual e o seguinte. Quando o marco atual está perto de fechar, a janela avança um marco, para o seguinte e o depois dele.
 
 ### `/fabrica:backlog` (skill nova)
@@ -106,7 +106,7 @@ A linha `Depende de` só aparece quando houver dependência, com as issues separ
 |---|---|---|
 | CA1 | Num repositório de teste com PRD de 3 marcos e 7 itens e sem milestones, `/fabrica:backlog` mostra o plano e, depois da confirmação, cria as 3 milestones com a lista de itens na descrição e as issues só do M1 e do M2, sem `agente`. Cancelar no passo 4 não cria nada. | manual |
 | CA2 | Rodar de novo logo depois, com o PR do PRD ainda sem merge e sem mudanças no PRD, resulta em "backlog em dia" e nenhuma milestone ou issue nova. | manual |
-| CA3 | Depois de fechar as issues do M1 até sobrarem 2 abertas, rodar de novo cria as issues do M3 e nenhuma outra. | manual |
+| CA3 | Depois de fechar issues do M1 até ele ter pelo menos 1 fechada e no máximo 2 abertas, rodar de novo cria as issues do M3 e nenhuma outra. | manual |
 | CA4 | Cada issue criada tem a milestone do seu marco, o marcador `item=<n>`, a F, o número do item, o link para o PRD e `Depende de #x` exatamente quando o item declara dependência, com o número certo. | manual |
 | CA5 | O PR `docs/backlog` anota `· #<nº>` em cada item que ganhou issue e não muda nenhuma outra linha do PRD, salvo o agrupamento quando há migração. | manual |
 | CA6 | Depois de mudar no PRD o título de um item com issue de backlog sem `agente`, o título de um item com issue em `agente` e remover um terceiro item, rodar de novo atualiza só a primeira issue, lista a segunda como divergência e propõe fechar a terceira sem fechá-la antes da confirmação. | manual |
@@ -142,7 +142,7 @@ A linha `Depende de` só aparece quando houver dependência, com as issues separ
 - **Título da milestone com prefixo `M<n> · `:** dá a ordem dos marcos sem ler o PRD, o que o `/fabrica:status` precisa para olhar vários repositórios, e permite renomear o marco. Alternativa descartada: ordenar por data de vencimento, que exigiria datas, e o escopo exclui datas.
 - **Dependência explícita (`depende de`):** o `Depende de #x` da issue vem de um dado, não de um palpite. Alternativa descartada: tratar o item anterior como dependência, o que travaria itens independentes.
 - **Label `enhancement` em toda issue de backlog:** o tipo real (`feat`, `fix`, `chore`…) é decidido na triagem. Alternativa descartada: inferir o tipo pelo título antes da triagem.
-- **Janela de dois marcos que avança com "perto de fechar" (no máximo 2 abertas):** cumpre o CA3 sem esperar o marco fechar inteiro e mantém cada execução limitada a dois marcos. Alternativa descartada: um percentual do marco, que se comporta mal em marcos de 2 ou 3 itens.
+- **Janela de dois marcos que avança com "perto de fechar" (pelo menos 1 fechada e no máximo 2 abertas):** cumpre o CA3 e o CA2 sem esperar o marco fechar inteiro e mantém cada execução limitada a dois marcos. Alternativa descartada: um percentual do marco, que se comporta mal em marcos de 2 ou 3 itens.
 - **Anotação do PRD num PR `docs/backlog` separado:** segue a regra de nunca commitar na `main` e mantém as issues criadas independentes do merge. Alternativa descartada: anotar só nas issues, o que perderia a rastreabilidade no próprio PRD pedida pela issue.
 - **Confirmação no chat, não na issue:** o backlog roda antes de existir uma issue para conversar, e o plano é um passo único. Alternativa descartada: abrir uma issue de planejamento, o que é burocracia sem ganho.
 
@@ -168,3 +168,4 @@ Cada verificação é registrada no PR com o comando e o resultado.
 ## Histórico
 - 2026-10-29: criação.
 - 2026-10-29: aprovada pelo usuário.
+- 2026-10-29: "perto de fechar" passa a exigir pelo menos 1 issue fechada no marco atual. Sem isso, um marco de até 2 itens avançava a janela logo na segunda execução, violando o CA2. Opção (a) da escalação, escolhida pelo usuário na issue.
