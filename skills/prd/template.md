@@ -39,11 +39,15 @@
 ## Perguntas em aberto
 - <O que ainda não foi decidido e quem decide.>
 
-## Fatiamento inicial
-Candidatas a issue, em ordem de dependência, cada uma com 1 a 2 dias de trabalho humano.
+## Fatiamento
+Itens de 1 a 2 dias de trabalho humano, agrupados por marco e em ordem de dependência dentro de cada marco. O número do item é fixo: não renumere; item novo recebe o próximo número livre.
 
-1. <título da issue> (F1)
-2. <...>
+### M1 · <nome do marco> (<F1, F2>)
+- **1.** <título da issue> (<F1, ou base>)
+- **2.** <título da issue> (<F1>) · depende de 1
+
+### M2 · <nome do marco> (<F3>)
+- **3.** <...>
 
 ## Histórico
 - <AAAA-MM-DD>: criação.

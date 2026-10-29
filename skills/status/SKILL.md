@@ -1,6 +1,6 @@
 ---
 name: status
-description: Mostra o quadro do fluxo da fábrica em todos os repositórios do usuário (ou em um só) - o que espera aprovação ou revisão do usuário, o que espera agente e com qual comando, e alertas como limite de trabalho em andamento, CI vermelho e itens parados. Só lê, não altera nada. Use quando o usuário perguntar o que falta, o que fazer agora ou como estão as issues.
+description: Mostra o quadro do fluxo da fábrica em todos os repositórios do usuário (ou em um só) - o que espera aprovação ou revisão do usuário, o que espera agente e com qual comando, o avanço por marco, a próxima issue de backlog a puxar e alertas como limite de trabalho em andamento, CI vermelho e itens parados. Só lê, não altera nada. Use quando o usuário perguntar o que falta, o que fazer agora ou como estão as issues.
 argument-hint: "[repositório]"
 ---
 
@@ -20,6 +20,10 @@ Esta skill é o orquestrador em modo leitura: lê o estado de cada issue no GitH
 - Para cada issue, `gh issue view <nº> -R <repo> --json comments,labels` e localize os comentários mais recentes com `<!-- fabrica:triagem -->` e `<!-- fabrica:spec -->`. A branch da issue está no comentário de spec (`**Branch:**`).
 - Com a branch, procure o PR: `gh pr list -R <repo> --head <branch> --state all --json number,state,isDraft,url,reviewDecision,statusCheckRollup,updatedAt,body`.
 - PRs abertos fora do fluxo (sem issue com `agente`): `gh search prs --owner <dono> --state open --json repository,number,title,url,updatedAt`.
+- Backlog: `gh search issues --owner <dono> --state open --json repository,number,title,body,url --limit 100 -- "fabrica:backlog in:body" -label:agente`. Fique só com as que têm o marcador `<!-- fabrica:backlog item=<n> -->`. Com filtro, use `--repo`.
+- Repositórios com PRD: `gh repo list <dono> --no-archived --json nameWithOwner --limit 100` (com filtro, só o repositório) e, para cada um, `gh api repos/<repo>/contents/docs/prd.md --silent` (sucesso = tem PRD).
+- Milestones de cada repositório com PRD: `gh api "repos/<repo>/milestones?state=all&per_page=100"`, que traz `title`, `open_issues` e `closed_issues`. Considere só as de título `M<n> · <nome>`, na ordem de `<n>`.
+- Para as issues citadas no `Depende de` das issues de backlog do marco atual, confira se estão fechadas (`gh issue view <nº> -R <repo> --json state`).
 
 Rode as consultas independentes em paralelo.
 
@@ -30,7 +34,13 @@ Rode as consultas independentes em paralelo.
   - limite de trabalho em andamento: 3 ou mais issues abertas com `spec-aprovada` no mesmo repositório;
   - CI falhando em PR aberto;
   - item parado: sem atualização há mais de 3 dias;
-  - inconsistências listadas em estados.md.
+  - inconsistências listadas em estados.md;
+  - backlog acabando: o marco atual está perto de fechar e o marco depois do próximo existe no GitHub sem nenhuma issue. Sugira "rode `/fabrica:backlog` em `<repo>`".
+- **Marcos:** para cada repositório com milestones `M<n>`, ache o marco atual e o próximo e conte `fechadas/total` de cada um, conforme a seção "Backlog" de [estados.md](estados.md). Para saber se há item sem issue, leia o fatiamento do PRD: `gh api repos/<repo>/contents/docs/prd.md -q .content | base64 -d`.
+- **Próxima issue:** em cada repositório sem nenhuma issue aberta com `agente`, aplique a ordem de sugestão de [estados.md](estados.md):
+  - com uma issue de backlog liberada, sugira "aplicar `agente` na #N";
+  - se todas as issues de backlog do marco atual dependerem de issues abertas, diga que o marco está bloqueado por dependência e cite a issue que bloqueia;
+  - num repositório com `docs/prd.md` e sem milestones `M<n>`, sugira `/fabrica:backlog`.
 
 ## 3. PRs para revisar
 Para cada PR no estado "PR para revisar", leia o corpo e `gh pr diff <nº> -R <repo> --name-only` e liste os pontos de atenção, sem fazer a revisão completa:
@@ -46,6 +56,18 @@ No chat, neste formato, omitindo seções vazias:
 | Item | Estado | O que fazer |
 |---|---|---|
 | [kairo#6](url) Título curto | Spec para aprovar | Revisar `specs/SPEC-6.md` e aplicar `spec-aprovada` |
+
+## Marcos
+| Repositório | Marco atual | Próximo marco |
+|---|---|---|
+| kairo | M2 · Tarefas: 1/4 | M3 · Agenda: sem issues |
+
+## Backlog
+Uma linha por repositório sem nada no fluxo: a próxima issue a puxar, ou o bloqueio.
+
+| Item | Marco | O que fazer |
+|---|---|---|
+| [kairo#12](url) Título curto | M2 · Tarefas | Aplicar `agente` (dependências fechadas) |
 
 ## Esperando agente
 | Item | Estado | Comando | Onde |
@@ -63,4 +85,4 @@ No chat, neste formato, omitindo seções vazias:
 - [repo#nº](url) PR aberto sem issue da fábrica
 ```
 
-Termine com uma linha de recomendação: o que fazer primeiro, priorizando o que destrava agentes (aprovar spec, responder perguntas) antes do que só fecha ciclos (merge). Sem nenhum item, diga que não há nada no fluxo e sugira criar a próxima issue a partir do fatiamento do PRD.
+Termine com uma linha de recomendação: o que fazer primeiro, priorizando o que destrava agentes (aprovar spec, responder perguntas) antes do que só fecha ciclos (merge). Sem nada no fluxo nem no backlog em nenhum repositório, diga isso e indique `/fabrica:prd` para um projeto novo e `/fabrica:backlog` para um PRD que ainda não tem backlog.
