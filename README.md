@@ -13,7 +13,7 @@ Para saber o que falta em cada issue e quem age, rode `/fabrica:status` em qualq
 ## Backlog
 O `/fabrica:backlog` transforma o fatiamento do `docs/prd.md` em milestones e issues no GitHub. O planejamento é em ondas:
 - **Marcos:** o fatiamento agrupa os itens em marcos `### M<n> · <nome> (<F>)`, sem sprints nem datas. Cada item tem número fixo e `depende de` explícito. Todas as milestones são criadas de uma vez, com a lista dos itens na descrição.
-- **Janela:** só o marco atual e o seguinte ganham issues. Quando o atual estiver perto de fechar (no máximo 2 issues abertas), o `/fabrica:status` avisa para rodar `/fabrica:backlog` de novo, e o marco seguinte ganha as suas.
+- **Janela:** só o marco atual e o seguinte ganham issues. Quando o atual estiver perto de fechar (pelo menos 1 issue fechada e no máximo 2 abertas), o `/fabrica:status` avisa para rodar `/fabrica:backlog` de novo, e o marco seguinte ganha as suas.
 - **Issue enxuta:** título, funcionalidade, número do item, marco, link para o PRD e `Depende de #x`. O detalhe vem na triagem e na spec. O número de cada issue é anotado no PRD num PR `docs/backlog`.
 - **Puxar:** backlog é issue aberta sem `agente`. Aplicar `agente` puxa a issue para o fluxo; o `/fabrica:status` sugere qual, pela ordem do marco e pelas dependências fechadas.
 - **PRD alterado:** rodar de novo atualiza as issues de backlog e só lista as que já estão no fluxo. Nada é criado, alterado ou fechado sem a sua confirmação, e rodar de novo sem mudanças não cria nada.

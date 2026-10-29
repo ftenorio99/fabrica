@@ -48,7 +48,7 @@ Issue aberta **sem `agente`**, com milestone e com o marcador `<!-- fabrica:back
 - **Marco:** grupo de itens do fatiamento, com título `M<n> · <nome>`, que é também o título da milestone no GitHub. O prefixo `M<n>` dá a ordem.
 - **Item com issue:** item que tem uma issue com o marcador, ou cujo número está anotado no PRD (` · #<nº>`).
 - **Marco atual:** o primeiro marco, na ordem `M<n>`, que tem issue aberta ou item sem issue.
-- **Perto de fechar:** o marco atual não tem item sem issue e tem no máximo 2 issues abertas.
+- **Perto de fechar:** o marco atual não tem item sem issue, tem pelo menos 1 issue fechada e tem no máximo 2 issues abertas. A issue fechada evita que um marco pequeno, recém-criado, já avance a janela.
 - **Janela:** o marco atual e o seguinte. Quando o atual está perto de fechar, a janela avança um marco: o seguinte e o depois dele. Só os itens da janela ganham issue.
 
 **Ordem de sugestão:** sem issue com `agente` aberta no repositório, a próxima a puxar é a issue de backlog do marco atual com o menor número de item cujas issues do `Depende de` estão todas fechadas.
