@@ -1,7 +1,7 @@
 # SPEC-29: Formas de desligar os hooks do git que o protect-main não bloqueia
 
 **Issue:** #29 · **PRD:** — (a fábrica não tem `docs/prd.md`) · **Classe:** implementacao-simples · **Tamanho:** P
-**Status:** rascunho · **Atualizada em:** 2026-10-29
+**Status:** aprovada · **Atualizada em:** 2026-10-29
 
 ## Contexto
 Desde a #27 (PR #28, ADR 0002), commit e push na `main` são recusados por hooks globais do git (`core.hooksPath` → `~/.config/fabrica/githooks/`). O `hooks/protect-main.sh` é um PreToolUse que só impede o Claude de desligar esses hooks, com checagens de texto sobre o comando inteiro. A revisão do PR #28 achou cinco formas de desligá-los que passam por essas checagens. Três delas foram confirmadas com commits reais na `main`.
@@ -83,3 +83,4 @@ Com `--no-ver` e prefixos menores, o git recusa a opção por ambiguidade com `-
 
 ## Histórico
 - 2026-10-29: criação.
+- 2026-10-29: aprovada pelo usuário.
