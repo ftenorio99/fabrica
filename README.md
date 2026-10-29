@@ -10,6 +10,11 @@ prd → backlog (milestones e issues) → [aplico agente] → triagem → spec (
 
 Para saber o que falta em cada issue e quem age, rode `/fabrica:status` em qualquer diretório. As regras de estado ficam em `skills/status/estados.md`.
 
+**Mudanças de requisitos:** o PRD e a spec aprovada são baselines.
+- **PRD:** o `/fabrica:prd` classifica cada mudança e mostra o impacto nas issues pelo GitHub antes de escrever. Ele só escreve o que você aceitar e registra cada mudança, aceita, rejeitada ou adiada, na tabela "Mudanças" do histórico.
+- **Spec:** ajustar uma spec aprovada antes registra o tipo, o motivo e os CAs alterados.
+- **Alerta:** o `/fabrica:status` avisa quando um F acumula 3 ou mais mudanças aceitas.
+
 ## Backlog
 O `/fabrica:backlog` transforma o fatiamento do `docs/prd.md` em milestones e issues no GitHub. O planejamento é em ondas:
 - **Marcos:** o fatiamento agrupa os itens em marcos `### M<n> · <nome> (<F>)`, sem sprints nem datas. Cada item tem número fixo e `depende de` explícito. Todas as milestones são criadas de uma vez, com a lista dos itens na descrição.
