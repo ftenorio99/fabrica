@@ -36,11 +36,17 @@ Entre as rodadas, resuma em uma ou duas linhas o que você entendeu, para o usu�
 - Preencha o template em [template.md](template.md) e salve em `docs/prd.md`. Crie a pasta `docs/` se não existir.
 - Escreva para quem vai implementar: frases curtas, sem jargão de marketing e sem prometer o que não foi decidido.
 - Cada funcionalidade do escopo deve ter um identificador estável (F1, F2…), usado depois nas specs e nas issues.
-- Em "Fatiamento inicial", quebre as funcionalidades obrigatórias em candidatas a issue de 1 a 2 dias de trabalho humano cada, em ordem de dependência. Não crie as issues no GitHub; essa é a próxima etapa do fluxo.
+- Em "Fatiamento", quebre as funcionalidades obrigatórias em itens de 1 a 2 dias de trabalho humano cada e agrupe-os em marcos do produto (ex.: "Base", "Tarefas (F2, F11, F12)", "Agenda (F3, F4)"), sem sprints nem datas:
+  - o marco tem título `### M<n> · <nome> (<F>)`, em ordem de entrega;
+  - o item tem número fixo (`**<n>.**`), título, F entre parênteses (`base` quando não há F) e `depende de <números>` quando depende de outro item. A ordem da lista não cria dependência;
+  - numa atualização, item novo recebe o próximo número livre, e o número de item removido não é reaproveitado. Não apague as anotações ` · #<nº>` dos itens que já têm issue.
+
+  Não crie as issues no GitHub; isso é do `/fabrica:backlog`.
 
 ## 4. Revisão
 - Mostre ao usuário o PRD inteiro e pergunte o que ajustar. Repita até ele aprovar.
 - Ao final, não faça commit. Diga que o PRD está pronto e ofereça abrir um PR na branch `docs/prd` com o commit `docs: adiciona prd do produto` (ou `docs: atualiza prd` quando for uma atualização).
+- Indique o próximo passo: depois do merge do PR do PRD, rodar `/fabrica:backlog` para criar as milestones e as issues do backlog.
 
 ## 5. Labels
 - Sem pedir confirmação, rode `bash <diretório base desta skill>/../../scripts/setup-labels.sh` no diretório do projeto, para as labels da fábrica existirem antes da primeira issue.
