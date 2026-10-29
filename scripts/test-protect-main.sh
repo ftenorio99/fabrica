@@ -185,6 +185,9 @@ check deny Q1 "$MAIN" "eval 'git -c user.name=\"t\" commit -m y'"
 check deny Q1 "$MAIN" 'eval "git -c user.name=\"t\" commit -m y"'
 check deny Q1 "$MAIN" "bash <<< 'git -c user.name=\"t\" commit -m y'"
 check deny Q1 "$FEAT" "bash -c \"git -C \\\"$MAIN\\\" commit -m y\""
+# Espaço escapado no início não pode se passar pelo marcador do texto extraído.
+check deny Q1 "$MAIN" "\\ CEcd $WT; git commit -m y"
+check deny Q1 "$MAIN" $'\\ CEcd '"$WT"$'\ngit commit -m y'
 # Q2: as mesmas formas numa worktree de feature liberam.
 check allow Q2 "$MAIN" "bash -c \"git -C \\\"$WT\\\" commit -m y\""
 check allow Q2 "$MAIN" "bash -c 'git -C \"$WT\" commit -m y'"
