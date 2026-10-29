@@ -20,7 +20,7 @@ cwd=$(jq -r '.cwd // ""' <<<"$input")
 # Filtro rápido: sem essas palavras, não há o que analisar.
 grep -Eq 'commit|push' <<<"$cmd" || exit 0
 
-soh=$'\001' stx=$'\002' etx=$'\003' eot=$'\004'
+soh=$'\001' stx=$'\002' etx=$'\003' eot=$'\004' ack=$'\006'
 
 # Devolve só o código do comando. O texto entre aspas continua como uma
 # única palavra, com espaços e separadores trocados por \001 (e \002 marca
@@ -30,9 +30,12 @@ soh=$'\001' stx=$'\002' etx=$'\003' eot=$'\004'
 # em que aparece. Um $ que não expande (entre aspas simples ou escapado)
 # vira \003, e uma substituição de comando no meio de uma palavra deixa
 # \004 nela, para o laço saber que o valor não é conhecido.
-# O argumento de bash/sh -c, de eval e de here-string para shell e o corpo
-# de heredoc para shell também vão como código. Sai com 2 se não conseguir
-# separar (aspas, $( ou heredoc sem fechamento) ou se houver pipe para shell.
+# O argumento de bash/sh -c, de eval e de here-string para shell vai numa
+# linha \001C<k><texto> (k: S para shell filho, E para eval), com as quebras
+# de linha trocadas por \006 e, se veio entre aspas duplas, já sem os
+# escapes; expand_code lê esse texto de novo com as mesmas regras. O corpo
+# de heredoc para shell vai como código. Sai com 2 se não conseguir separar
+# (aspas, $( ou heredoc sem fechamento) ou se houver pipe para shell.
 code_view() {
   awk -v sq="'" '
     function emit(t) { ob[L] = ob[L] t }
@@ -74,8 +77,23 @@ code_view() {
     function child_open() { return "\n" soh "X\n" }
     function sub_close() { return "\n" soh "R\n" }
     function rawcode(t, own) {
-      gsub("[\"" sq "]", " ", t)
-      pend = pend (own ? child_open() t sub_close() : "\n" t)
+      gsub(/\n/, ack, t)
+      pend = pend "\n" soh "C" (own ? "S" : "E") t "\n"
+    }
+    # Desfaz os escapes de aspas duplas, como o shell: \" \\ \` \$ e a
+    # barra antes de quebra de linha. As outras barras ficam.
+    function unescape(t,   out, i, c, d) {
+      out = ""
+      for (i = 1; i <= length(t); i++) {
+        c = substr(t, i, 1)
+        if (c == "\\" && i < length(t)) {
+          d = substr(t, i + 1, 1)
+          if (d == "\n") { i++; continue }
+          if (index("\"\\`$", d)) { out = out d; i++; continue }
+        }
+        out = out c
+      }
+      return out
     }
     function push(t) { L++; ob[L] = ""; cw[L] = ""; iw[L] = 0; nw[L] = 0; dq[L] = 0; pd[L] = 0; bt[L] = 0; term[L] = t }
     function pop() { flushword(); pend = pend sub_open() ob[L] sub_close(); L--; addw(eot) }
@@ -83,7 +101,9 @@ code_view() {
     function lit(t) { gsub(/\$/, etx, t); return t }
     { s = s (NR > 1 ? "\n" : "") $0 }
     END {
-      soh = sprintf("%c", 1); stx = sprintf("%c", 2); etx = sprintf("%c", 3); eot = sprintf("%c", 4)
+      soh = sprintf("%c", 1); stx = sprintf("%c", 2); etx = sprintf("%c", 3); eot = sprintf("%c", 4); ack = sprintf("%c", 6)
+      # Os marcadores não podem aparecer no próprio comando.
+      if (s ~ /[\001-\006]/) exit 2
       dqspecial = "\\\"$`"; special = "\\#" sq "\"<\n;&|()` \t"
       n = length(s); i = 1; L = 0; nh = 0; pend = ""
       while (i <= n) {
@@ -128,7 +148,7 @@ code_view() {
               else { body = body substr(s, j, 1); j++ }
             }
             if (j > n) exit 2
-            rawcode(body, sa == 1); addw(stx); i = j + 1; continue
+            rawcode(unescape(body), sa == 1); addw(stx); i = j + 1; continue
           }
           dq[L] = 1; addw(stx); i++; continue
         }
@@ -212,13 +232,40 @@ code_view() {
       if (pend != "") emit("\n" pend)
       printf "%s", ob[0]
     }
-  ' <<<"$cmd"
+  ' <<<"$1"
+}
+
+# Troca cada linha \001C pelo código do texto, lido de novo pelo code_view.
+# Shell filho vai entre \001X e \001R; eval vai sem marcadores. Sai com 2
+# acima de 4 níveis de leitura ou se o texto não puder ser separado.
+expand_code() {
+  local code=$1 level=$2 line out= text sub
+  while IFS= read -r line; do
+    if [[ $line != "${soh}C"* ]]; then out+=$line$'\n'; continue; fi
+    (( level < 4 )) || return 2
+    text=${line:3} text=${text//$ack/$'\n'}
+    sub=$(code_view "$text") || return 2
+    if [[ $sub == *"${soh}C"* ]]; then
+      sub=$(expand_code "$sub" $((level + 1))) || return 2
+    fi
+    if [[ ${line:2:1} == S ]]; then
+      out+=$'\n'"${soh}X"$'\n'"$sub"$'\n'"${soh}R"$'\n'
+    else
+      out+=$'\n'"$sub"$'\n'
+    fi
+  done <<<"$code"
+  printf '%s' "$out"
 }
 
 fallback=0
-code=$(code_view) || fallback=1
+code=$(code_view "$cmd") || fallback=1
+if (( ! fallback )) && [[ $code == *"${soh}C"* ]]; then
+  code=$(expand_code "$code" 1) || fallback=1
+fi
+# Modo de dúvida: as aspas e as barras de escape somem e o texto todo é
+# analisado como código.
 if (( fallback )); then
-  code=$(tr '\047"' '  ' <<<"$cmd")
+  code=$(tr -d '\047"\\' <<<"$cmd")
 fi
 
 deny() {
@@ -424,6 +471,13 @@ while IFS= read -r segment; do
     esac
   done
 
+  # No modo de dúvida, o subcomando é o primeiro commit ou push depois do
+  # git, porque as opções globais podem ter sido separadas errado.
+  if (( fallback )); then
+    for (( j = k; j < ${#words[@]}; j++ )); do
+      [[ ${words[j]} == commit || ${words[j]} == push ]] && { k=$j; break; }
+    done
+  fi
   case ${words[k]} in commit|push) ;; *) continue ;; esac
   if [[ -n $gitdir_unk ]]; then
     deny "Não foi possível resolver o diretório do git ${words[k]} ($gitdir_unk). Na dúvida, o comando foi bloqueado. Use o caminho literal em cd/git -C."
