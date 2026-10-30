@@ -8,6 +8,7 @@ Um agente parou e aplicou a label `escalonado`. O `/fabrica:status` mostra a iss
 | A implementação encontrou um desvio relevante da spec: mudança de comportamento, de critério ou de escopo | Comentário `<!-- fabrica:implementar -->` na issue, com as opções e uma recomendação |
 | `make lint` ou `make test` falharam depois de duas rodadas de correção | Comentário `<!-- fabrica:implementar -->` com o comando, o erro e o que já foi tentado |
 | A revisão terminou com achados bloqueantes depois de duas rodadas de correção | PR em rascunho com os achados pendentes |
+| Um pedido seu no PR mudaria um critério de aceite ou entraria no "Fora de escopo" da spec | Comentário `<!-- fabrica:revisar -->` no PR, com o que foi feito em cada pedido |
 
 ## O que fazer
 1. **Leia o último comentário do agente,** na issue ou no PR.
