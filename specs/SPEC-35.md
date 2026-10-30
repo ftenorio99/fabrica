@@ -1,7 +1,7 @@
 # SPEC-35: Registrar lições aprendidas na hora em que acontecem
 
 **Issue:** #35 · **PRD:** — (a fábrica não tem `docs/prd.md`) · **Classe:** implementacao-simples · **Tamanho:** G
-**Status:** rascunho · **Atualizada em:** 2026-10-30
+**Status:** aprovada · **Atualizada em:** 2026-10-30
 
 ## Contexto
 Para fazer uma retrospectiva, como no fechamento de um marco, hoje é preciso lembrar o que deu errado semanas atrás e garimpar issues e PRs. A issue faz cada lição ser registrada no momento em que aparece, junto da evidência, num formato que uma busca reúne em todos os repositórios. A retrospectiva em si e um eventual `/fabrica:retro` ficam para depois de uma rodada feita à mão.
@@ -130,3 +130,4 @@ O repositório não tem `make test`, porque a mudança é texto de skill e manua
 
 ## Histórico
 - 2026-10-30: criação.
+- 2026-10-30: aprovada.
