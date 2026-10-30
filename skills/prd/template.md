@@ -51,3 +51,7 @@ Itens de 1 a 2 dias de trabalho humano, agrupados por marco e em ordem de depend
 
 ## Histórico
 - <AAAA-MM-DD>: criação.
+
+### Mudanças
+| Data | Tipo | F | Motivo | Decisão | Issues |
+|---|---|---|---|---|---|

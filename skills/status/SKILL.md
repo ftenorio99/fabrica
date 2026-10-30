@@ -36,6 +36,7 @@ Rode as consultas independentes em paralelo.
   - item parado: sem atualização há mais de 3 dias;
   - inconsistências listadas em estados.md;
   - backlog acabando: o marco atual está perto de fechar e o marco depois do próximo existe no GitHub sem nenhuma issue. Sugira "rode `/fabrica:backlog` em `<repo>`".
+  - requisito instável: na tabela `### Mudanças` do histórico do `docs/prd.md` (o mesmo PRD lido para os marcos), um F com 3 ou mais linhas cuja coluna Decisão começa com `aceita`. Uma linha com vários F conta para cada um, e um PRD sem a tabela não gera alerta. Texto: "`<repo>`: F<n> mudou <k> vezes; vale revisitar esse requisito com `/fabrica:prd`."
 - **Marcos:** para cada repositório com milestones `M<n>`, ache o marco atual e o próximo e conte `fechadas/total` de cada um, conforme a seção "Backlog" de [estados.md](estados.md). Para saber se há item sem issue, leia o fatiamento do PRD: `gh api repos/<repo>/contents/docs/prd.md -q .content | base64 -d`.
 - **Próxima issue:** em cada repositório sem nenhuma issue aberta com `agente`, aplique a ordem de sugestão de [estados.md](estados.md):
   - com uma issue de backlog liberada, sugira "aplicar `agente` na #N";

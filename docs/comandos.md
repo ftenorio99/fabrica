@@ -4,9 +4,10 @@ Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de 
 
 ## `/fabrica:prd [ideia do produto em uma frase]`
 - **Quando:** no início de um projeto, ou quando o escopo do produto mudar.
-- **O que faz:** conduz uma entrevista em rodadas (problema, objetivo, escopo, restrições, riscos) e escreve o PRD, com funcionalidades numeradas (F1, F2…) e um fatiamento em marcos `M<n>`. Se o PRD já existir, atualiza só o que mudou e registra no histórico.
-- **Lê:** `CLAUDE.md`, `README.md` e o que existir em `docs/`.
-- **Cria:** `docs/prd.md`, sem commit; oferece um PR na branch `docs/prd`. Ao final, cria as labels do repositório.
+- **O que faz:** conduz uma entrevista em rodadas (problema, objetivo, escopo, restrições, riscos) e escreve o PRD, com funcionalidades numeradas (F1, F2…) e um fatiamento em marcos `M<n>`.
+- **PRD que já existe:** é a baseline do produto. Antes de escrever, o `/fabrica:prd` classifica cada mudança (incluir, excluir ou alterar) e mostra o impacto nas issues do GitHub, com a ação indicada para cada uma. Você aceita, rejeita ou adia cada mudança, e só as aceitas entram no PRD. Todas, com o motivo, ficam registradas na tabela "Mudanças" do histórico.
+- **Lê:** `CLAUDE.md`, `README.md` e o que existir em `docs/`. Ao atualizar, lê também as issues e os PRs do repositório.
+- **Cria:** `docs/prd.md`, sem commit; oferece um PR na branch `docs/prd`. Ao criar o PRD, cria também as labels do repositório. Ao atualizar, não mexe em labels nem em issues.
 - **Labels:** não aplica labels em issues. Próximo passo, depois do merge: `/fabrica:backlog`.
 - Detalhes: [`skills/prd/SKILL.md`](../skills/prd/SKILL.md).
 
@@ -39,6 +40,7 @@ Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de 
 - **O que faz:** escreve a spec com critérios de aceite verificáveis (CA1, CA2…) e o desenho técnico.
 - **Lê:** a issue e a triagem, `CLAUDE.md`, PRD, ADRs, specs, o código que será tocado e a documentação das bibliotecas (doc local ou Context7).
 - **Cria:** a branch `<tipo>/<nº>-<descrição>`, `specs/SPEC-<nº>.md` (e um ADR, se a decisão vale para além da issue) e um comentário com o resumo.
+- **Spec já aprovada:** para mudá-la, remova `spec-aprovada` antes. O ajuste registra no histórico da spec o tipo, o motivo e os CAs incluídos, removidos e alterados, e o comentário na issue aponta o código da branch que esses CAs tocam.
 - **Labels:** aplica `spec-pronta`. Se surgir uma lacuna de negócio, aplica `precisa-info` e remove `spec-pronta`. Nunca aplica `spec-aprovada`, que é sua.
 - Detalhes: [`skills/spec/SKILL.md`](../skills/spec/SKILL.md).
 
@@ -60,7 +62,7 @@ Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de 
 
 ## `/fabrica:status [repositório]`
 - **Quando:** a qualquer momento, para saber o que falta e quem age.
-- **O que faz:** mostra o que espera você, o que espera agente (com o comando e o diretório), o avanço dos marcos, a próxima issue a puxar e os alertas.
+- **O que faz:** mostra o que espera você, o que espera agente (com o comando e o diretório), o avanço dos marcos, a próxima issue a puxar e os alertas. Um dos alertas é o de requisito instável: um F com 3 ou mais mudanças aceitas no histórico do PRD.
 - **Lê:** as issues com `agente`, os comentários dos agentes, os PRs, o backlog, as milestones e o PRD dos seus repositórios.
 - **Cria:** nada. Só lê.
 - Detalhes: [`skills/status/SKILL.md`](../skills/status/SKILL.md).
