@@ -1,7 +1,7 @@
 # SPEC-38: Tratar no fluxo os ajustes pedidos pelo usuário no PR
 
 **Issue:** #38 · **PRD:** — (a fábrica não tem `docs/prd.md`) · **Classe:** implementacao-simples · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-10-30
+**Status:** aprovada · **Atualizada em:** 2026-10-30
 
 ## Contexto
 Quando o usuário revisa um PR da fábrica e quer mudanças, o ciclo não fecha:
@@ -92,3 +92,4 @@ O repositório não tem `make test`: a mudança é texto de skill e manual. A ev
 
 ## Histórico
 - 2026-10-30: criação.
+- 2026-10-30: aprovada.
