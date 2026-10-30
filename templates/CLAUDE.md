@@ -30,5 +30,10 @@ Documentos: `docs/prd.md` (produto), `specs/` (uma spec por issue), `docs/adr/` 
 - Nunca commitar credenciais, tokens ou `.env`. Versione um `.env.example` sem valores reais.
 - Antes de cada commit, revise o que está em stage (`git diff --staged`).
 
+## Versões e dependências
+- Projeto novo nasce na **LTS mais recente** do runtime (ex.: Node) e na versão estável atual de cada dependência principal. Confira na hora, pela fonte oficial (ex.: `https://nodejs.org/dist/index.json`) ou pelo Context7; nunca use a versão de memória do modelo.
+- Fixe a versão do runtime num lugar só, lido pelo CI e pelo Docker (ex.: `.nvmrc`), e repita a faixa em `engines` do `package.json`.
+- Quando sair uma LTS nova, a atualização entra por um PR `chore` com lint, testes e build verdes.
+
 ## Projeto
 <!-- Stack, comandos (make test, make lint, make e2e), arquitetura e convenções deste projeto. -->
