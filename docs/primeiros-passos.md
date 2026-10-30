@@ -23,7 +23,7 @@ No Claude Code:
 
 ## Configurar a máquina e o repositório
 Rode `/fabrica:setup` no clone de um projeto. Ele faz duas coisas:
-- **Labels:** cria ou corrige as seis labels do fluxo no repositório. É seguro rodar de novo.
+- **Labels:** cria ou corrige as sete labels do fluxo no repositório. É seguro rodar de novo.
 - **Hooks do git:** na primeira vez em cada máquina, pede confirmação e instala os hooks globais que recusam commit e push na `main`. Veja [Princípios](principios.md#main-protegida).
 
 Num projeto novo, o `/fabrica:prd` já cria as labels ao terminar. Se o repositório ainda não existir no GitHub, rode `/fabrica:setup` depois do `gh repo create`.
