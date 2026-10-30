@@ -57,7 +57,7 @@ Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de 
 - **O que faz:** um subagente revisor confere a branch contra a spec, critério por critério. Os achados bloqueantes e importantes são corrigidos em até duas rodadas, e as sugestões vão listadas no PR para você decidir. Antes disso, trata os seus comentários no PR feitos depois da última resposta dela: corrige o que cabe na spec e escala o que mudaria um critério de aceite. Nunca faz merge.
 - **Lê:** a spec, os ADRs que ela cita, o `CLAUDE.md`, o diff da branch contra a `main` e os seus comentários no PR.
 - **Cria:** o PR com a evidência de cada critério, ou atualiza a descrição de um PR que já existe, e um comentário no PR com o que foi feito em cada pedido seu.
-- **Labels:** aplica `pronto-revisao` e remove `escalonado`. Se sobrar pendência, ou se um pedido seu mudar a spec, aplica `escalonado`; com pendência da revisão, o PR fica como rascunho.
+- **Labels:** aplica `pronto-revisao` e remove `escalonado`. Se sobrar pendência, ou se um pedido seu mudar a spec, aplica `escalonado` em vez de `pronto-revisao`; com pendência da revisão, o PR fica como rascunho.
 - Detalhes: [`skills/revisar/SKILL.md`](../skills/revisar/SKILL.md).
 
 ## `/fabrica:status [repositório]`

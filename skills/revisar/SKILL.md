@@ -89,7 +89,7 @@ Se já existir PR da branch (`gh pr view`), atualize a descrição em vez de abr
 
 ## 6. CI, labels e resposta no PR
 - Espere o CI: `gh pr checks --watch`. Se falhar por causa da mudança, corrija como no passo 4 (conta como rodada). Se falhar por motivo externo (instabilidade, credencial), registre no PR e siga.
-- Com CI verde e sem achados bloqueantes: `gh issue edit <nº> --add-label pronto-revisao --remove-label escalonado`. Se o passo 2 escalou uma mudança de escopo, aplique só `pronto-revisao` e mantenha `escalonado`.
+- Com CI verde e sem achados bloqueantes: `gh issue edit <nº> --add-label pronto-revisao --remove-label escalonado`. Se o passo 2 escalou uma mudança de escopo, remova `pronto-revisao` se estiver aplicada (`gh issue edit <nº> --remove-label pronto-revisao`) e mantenha `escalonado`: o PR espera a mudança da spec, não a revisão do usuário.
 - **Resposta no PR:** comente no PR (`gh pr comment <nº do PR> --body-file <arquivo>`) com o marcador `<!-- fabrica:revisar -->`. Esse comentário vira a nova âncora do passo 2, então publique-o sempre que aplicar `pronto-revisao` e sempre que tratar pedidos, mesmo com rascunho ou escalado:
   - **sem pedidos:** uma linha, "PR pronto para a sua revisão", com o resumo da revisão automática;
   - **com pedidos:** uma linha por pedido, com o trecho e o que foi feito (commit, escalado ou não procede, com o motivo).
