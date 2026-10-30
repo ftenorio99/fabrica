@@ -19,6 +19,7 @@ Esta skill é o orquestrador em modo leitura: lê o estado de cada issue no GitH
 - Issues: `gh search issues --owner <dono> --label agente --state open --json repository,number,title,labels,updatedAt,url --limit 100`. Com filtro, use `--repo <dono>/<repositório>`.
 - Para cada issue, `gh issue view <nº> -R <repo> --json comments,labels` e localize os comentários mais recentes com `<!-- fabrica:triagem -->` e `<!-- fabrica:spec -->`. A branch da issue está no comentário de spec (`**Branch:**`).
 - Com a branch, procure o PR: `gh pr list -R <repo> --head <branch> --state all --json number,state,isDraft,url,reviewDecision,statusCheckRollup,updatedAt,body`.
+- Para cada PR aberto de issue do fluxo, `gh pr view <nº> -R <repo> --json comments,reviews`, para achar pedidos novos no PR (linha 11 de [estados.md](estados.md)).
 - PRs abertos fora do fluxo (sem issue com `agente`): `gh search prs --owner <dono> --state open --json repository,number,title,url,updatedAt`.
 - Backlog: `gh search issues --owner <dono> --state open --json repository,number,title,body,url --limit 100 -- "fabrica:backlog in:body" -label:agente`. Fique só com as que têm o marcador `<!-- fabrica:backlog item=<n> -->`. Com filtro, use `--repo`.
 - Repositórios com PRD: `gh repo list <dono> --no-archived --json nameWithOwner --limit 100` (com filtro, só o repositório) e, para cada um, `gh api repos/<repo>/contents/docs/prd.md --silent` (sucesso = tem PRD).
