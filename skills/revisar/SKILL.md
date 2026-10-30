@@ -19,7 +19,7 @@ A revisão automática é a primeira passada antes da revisão humana. Ela confe
 Se já existir PR da branch (`gh pr view`), trate os pedidos do usuário antes da revisão. Sem PR, ou sem pedido novo, siga para o passo 3.
 
 **Termos:**
-- **Comentário do usuário no PR:** comentário da conversa, review com corpo ou comentário em linha que não começa com um marcador `<!-- fabrica:<etapa> -->`.
+- **Comentário do usuário no PR:** comentário da conversa, review com corpo ou comentário em linha que não começa com um marcador `<!-- fabrica:<etapa> -->` nem com `<!-- fabrica:licao`.
 - **Âncora:** o último comentário com `<!-- fabrica:revisar -->` na conversa do PR.
 - **Pedido novo:** comentário do usuário no PR posterior à âncora, pela data de criação do comentário ou de envio da review (`submittedAt`). Sem âncora, todo comentário do usuário no PR conta.
 
@@ -33,7 +33,7 @@ Se já existir PR da branch (`gh pr view`), trate os pedidos do usuário antes d
 
 **Tratar:**
 - **Ajuste:** corrija na branch, rode `make lint` e `make test`, faça commit (`fix: ...` ou o tipo adequado) e push. Essas correções não contam como rodada de revisão.
-- **Mudança de escopo:** não altere o código para ela nem edite a spec. Aplique `escalonado` na issue (`gh issue edit <nº> --add-label escalonado`). Na resposta, indique o caminho: o usuário remove `spec-aprovada`, roda `/fabrica:spec <nº> <ajuste>`, aprova de novo e retoma com `/fabrica:implementar <nº>`. Os ajustes do mesmo lote continuam sendo corrigidos.
+- **Mudança de escopo:** não altere o código para ela nem edite a spec. Aplique `escalonado` na issue (`gh issue edit <nº> --add-label escalonado`) e registre uma lição com o gatilho `escalonado`, citando o pedido e o CA afetado ([../licao/formato.md](../licao/formato.md)). Na resposta, indique o caminho: o usuário remove `spec-aprovada`, roda `/fabrica:spec <nº> <ajuste>`, aprova de novo e retoma com `/fabrica:implementar <nº>`. Os ajustes do mesmo lote continuam sendo corrigidos.
 - **Não procede:** se discordar de um pedido, não o aplique e registre o motivo na resposta.
 
 Guarde, para cada pedido, um trecho dele e o que foi feito: o commit da correção, "mudança de escopo, escalado" ou "não procede", com o motivo. Isso vai para a resposta do passo 6.
@@ -52,7 +52,8 @@ O revisor devolve, para cada critério de aceite, se está atendido e com qual e
 - Corrija todos os achados `bloqueante` e `importante` que procedem. Se discordar de um achado, registre o motivo; ele vai para o PR.
 - Depois de corrigir, rode `make lint` e `make test`, faça commit (`fix: ...` ou o tipo adequado) e push, e faça uma nova rodada de revisão.
 - No máximo **duas rodadas de correção**. Se ainda restarem achados bloqueantes, abra o PR mesmo assim como rascunho (`--draft`), liste os achados pendentes, aplique `escalonado` na issue e não aplique `pronto-revisao`.
-- Sugestões não são aplicadas: elas vão listadas no PR para o usuário decidir.
+- Para cada achado `bloqueante` ou `importante` que ficou sem corrigir, por discordância ou por pendência depois das duas rodadas, registre uma lição com o gatilho `achado-pendente`, um bloco por achado ([../licao/formato.md](../licao/formato.md)). No escalonamento por achados pendentes, essa é a única lição: não registre também `escalonado`.
+- Sugestões não são aplicadas nem geram lição: elas vão listadas no PR para o usuário decidir.
 
 ## 5. Abrir o PR
 Se já existir PR da branch (`gh pr view`), atualize a descrição em vez de abrir outro. Senão, `gh pr create`:
@@ -88,7 +89,7 @@ Se já existir PR da branch (`gh pr view`), atualize a descrição em vez de abr
   ```
 
 ## 6. CI, labels e resposta no PR
-- Espere o CI: `gh pr checks --watch`. Se falhar por causa da mudança, corrija como no passo 4 (conta como rodada). Se falhar por motivo externo (instabilidade, credencial), registre no PR e siga.
+- Espere o CI: `gh pr checks --watch`. Se falhar por causa da mudança, corrija como no passo 4 (conta como rodada). Se precisou de duas ou mais correções por CI vermelho, registre uma lição com o gatilho `rodadas`, com os checks que falharam e o que os resolveu ([../licao/formato.md](../licao/formato.md)). Se falhar por motivo externo (instabilidade, credencial), registre no PR e siga.
 - Com CI verde e sem achados bloqueantes: `gh issue edit <nº> --add-label pronto-revisao --remove-label escalonado`. Se o passo 2 escalou uma mudança de escopo, remova `pronto-revisao` se estiver aplicada (`gh issue edit <nº> --remove-label pronto-revisao`) e mantenha `escalonado`: o PR espera a mudança da spec, não a revisão do usuário.
 - **Resposta no PR:** comente no PR (`gh pr comment <nº do PR> --body-file <arquivo>`) com o marcador `<!-- fabrica:revisar -->`. Esse comentário vira a nova âncora do passo 2, então publique-o sempre que aplicar `pronto-revisao` e sempre que tratar pedidos, mesmo com rascunho ou escalado:
   - **sem pedidos:** uma linha, "PR pronto para a sua revisão", com o resumo da revisão automática;
@@ -98,7 +99,7 @@ Se já existir PR da branch (`gh pr view`), atualize a descrição em vez de abr
 ## Regras
 - Nunca faça merge, nem aprove o próprio PR.
 - Não mude a spec para fazer a implementação passar, nem por um pedido feito no PR. Se a spec estiver errada, comente na issue.
-- Todo comentário seu, na issue ou no PR, começa com o marcador `<!-- fabrica:revisar -->` numa linha própria. Os comentários do agente e do usuário saem da mesma conta do GitHub, e o marcador é o que os distingue (veja [estados.md](../status/estados.md)).
+- Todo comentário seu, na issue ou no PR, começa com o marcador `<!-- fabrica:revisar -->` numa linha própria, exceto o comentário de lição, que segue [../licao/formato.md](../licao/formato.md). Os comentários do agente e do usuário saem da mesma conta do GitHub, e o marcador é o que os distingue (veja [estados.md](../status/estados.md)).
 - Publique todo corpo de issue, comentário ou PR a partir de um arquivo: escreva-o com a ferramenta Write na pasta temporária da sessão e passe `--body-file <arquivo>` ao `gh`. Não monte o corpo com heredoc, `echo`, `--body` ou stdin: o hook `protect-main` lê o texto do comando Bash e barra corpos que citam as opções que desligam os hooks do git.
 - O status de cada CA no PR precisa ter evidência; "implementado" sem evidência não conta.
-- Se `gh issue edit` falhar porque uma label não existe, pare, comente na issue e diga no chat: "A label `<label>` não existe neste repositório. Rode `/fabrica:setup` e repita a etapa." Não crie a label sozinho.
+- Se `gh issue edit` falhar porque uma label não existe, pare, comente na issue e diga no chat: "A label `<label>` não existe neste repositório. Rode `/fabrica:setup` e repita a etapa." Não crie a label sozinho. A exceção é a `licao`: sem ela, a etapa avisa e segue, como diz [../licao/formato.md](../licao/formato.md).

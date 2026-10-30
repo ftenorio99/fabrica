@@ -22,7 +22,7 @@ A spec é o contrato entre o usuário e quem implementa: ela é aprovada **antes
 - A spec e, depois, a implementação vivem na mesma branch e chegam juntas no PR da issue.
 
 ## 3. Ler
-- A issue, os comentários (inclusive respostas às perguntas da triagem) e o comentário de triagem mais recente.
+- A issue, os comentários (inclusive respostas às perguntas da triagem) e o comentário de triagem mais recente. Ignore os comentários de lição (`<!-- fabrica:licao`), que não são resposta (veja [estados.md](../status/estados.md)).
 - `CLAUDE.md`, as seções do `docs/prd.md` ligadas à issue, ADRs em `docs/adr/` e specs relacionadas em `specs/`.
 - O código existente que será tocado: a spec deve citar arquivos e módulos reais, não imaginários.
 

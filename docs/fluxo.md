@@ -48,6 +48,13 @@ Não existe arquivo de estado. O estado de cada issue é lido de três lugares n
 
 A tabela completa de estados, com quem age e o próximo passo de cada um, fica em [`skills/status/estados.md`](../skills/status/estados.md). O `/fabrica:status` aplica essa tabela e mostra o quadro.
 
+## Lições aprendidas
+O que dá errado no caminho fica registrado na hora, num comentário de lição na issue, com a label `licao`:
+- **Pelos agentes:** a triagem, a implementação e a revisão registram uma lição quando param para perguntar, escalam, precisam de várias rodadas de correção, desviam do desenho da spec ou deixam um achado sério sem corrigir.
+- **Por você:** com [`/fabrica:licao`](comandos.md#fabricalicao-donoreponúmero-texto-da-lição), numa issue ou num PR.
+
+A lição não muda o estado da issue. O `/fabrica:status` conta as lições desde o último marco fechado, e a busca pela label `licao` reúne todas para a retrospectiva. O formato e os gatilhos estão em [`skills/licao/formato.md`](../skills/licao/formato.md).
+
 ## Planejamento em ondas
 O backlog não cria todas as issues de uma vez:
 - **Milestones:** todas existem desde o início.

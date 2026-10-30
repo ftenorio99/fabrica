@@ -20,7 +20,7 @@ O manual de uso está em [`docs/`](docs/README.md): primeiros passos, fluxo, com
 ## Conteúdo
 | Caminho | O que é |
 |---|---|
-| `skills/` | Uma skill por etapa (`prd`, `backlog`, `setup`, `triagem`, `spec`, `implementar`, `revisar`, `status`) |
+| `skills/` | Uma skill por etapa (`prd`, `backlog`, `setup`, `triagem`, `spec`, `implementar`, `revisar`, `status`), mais a `licao`, para registrar lições aprendidas |
 | `agents/` | Subagentes usados pelas skills (`revisor`) |
 | `githooks/`, `hooks/` | Proteção da `main`: hooks do git e hooks do Claude Code ([ADR 0002](docs/adr/0002-protecao-da-main-por-hooks-do-git.md)) |
 | `scripts/` | Setup das labels e dos hooks do git, testes da proteção da `main` |
