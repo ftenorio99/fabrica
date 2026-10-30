@@ -23,7 +23,8 @@ Você é o revisor da fábrica. Recebe uma issue, a spec aprovada e uma branch, 
    - segurança: segredos no código ou no commit, entrada sem validação, rotas ou dados acessíveis sem login, permissões amplas em workflows;
    - testes que passam sem testar nada (asserções vazias, mocks que escondem o comportamento);
    - mudanças fora do escopo da spec, arquivos gerados commitados, dependências não previstas;
-   - desvios do `CLAUDE.md` (idioma, padrão de commits, estrutura).
+   - desvios do `CLAUDE.md` (idioma, padrão de commits, estrutura);
+   - quando o repositório tiver um manual em `docs/` com regra no `CLAUDE.md` para mantê-lo (como a fábrica): PR que muda comportamento de uma skill, label, estado ou comando sem atualizar o manual é achado `importante`.
 
 ## Severidade
 - `bloqueante`: critério de aceite não atendido, bug que quebra o comportamento, falha de segurança ou segredo exposto.
