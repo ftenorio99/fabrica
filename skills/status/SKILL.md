@@ -41,7 +41,7 @@ Rode as consultas independentes em paralelo.
   - requisito instável: na tabela `### Mudanças` do histórico do `docs/prd.md` (o mesmo PRD lido para os marcos), um F com 3 ou mais linhas cuja coluna Decisão começa com `aceita`. Uma linha com vários F conta para cada um, e um PRD sem a tabela não gera alerta. Texto: "`<repo>`: F<n> mudou <k> vezes; vale revisitar esse requisito com `/fabrica:prd`."
 - **Marcos:** para cada repositório com milestones `M<n>`, ache o marco atual e o próximo e conte `fechadas/total` de cada um, conforme a seção "Backlog" de [estados.md](estados.md). Para saber se há item sem issue, leia o fatiamento do PRD: `gh api repos/<repo>/contents/docs/prd.md -q .content | base64 -d`.
 - **Lições:** para cada repositório com lição, calcule a data de corte:
-  - **Com marco fechado:** o último marco fechado é o `M<n>` de maior `<n>` sem issue aberta e com pelo menos uma fechada. Confira pelas issues, do maior `<n>` para o menor, com `gh issue list -R <repo> --milestone "<título>" --state all --json state,closedAt`, e não pelos contadores da milestone, que podem ficar desatualizados. A data de corte é o `closedAt` mais recente das issues desse marco.
+  - **Com marco fechado:** o último marco fechado é o `M<n>` de maior `<n>` sem issue aberta e com pelo menos uma fechada. Confira pelas issues, do maior `<n>` para o menor, com `gh issue list -R <repo> --milestone "<título>" --state all --json state,closedAt --limit 500`, e não pelos contadores da milestone, que podem ficar desatualizados. A data de corte é o `closedAt` mais recente das issues desse marco.
   - **Sem marco fechado:** 30 dias antes de hoje.
 
   Conte os blocos com data igual ou posterior à de corte. Um repositório sem bloco depois do corte fica fora da seção.
