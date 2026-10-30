@@ -1,6 +1,6 @@
 ---
 name: status
-description: Mostra o quadro do fluxo da fábrica em todos os repositórios do usuário (ou em um só) - o que espera aprovação ou revisão do usuário, o que espera agente e com qual comando, o avanço por marco, a próxima issue de backlog a puxar e alertas como limite de trabalho em andamento, CI vermelho e itens parados. Só lê, não altera nada. Use quando o usuário perguntar o que falta, o que fazer agora ou como estão as issues.
+description: Mostra o quadro do fluxo da fábrica em todos os repositórios do usuário (ou em um só) - o que espera aprovação ou revisão do usuário, o que espera agente e com qual comando, o avanço por marco, a próxima issue de backlog a puxar, as lições registradas desde o último marco e alertas como limite de trabalho em andamento, CI vermelho e itens parados. Só lê, não altera nada. Use quando o usuário perguntar o que falta, o que fazer agora ou como estão as issues.
 argument-hint: "[repositório]"
 ---
 
@@ -25,6 +25,7 @@ Esta skill é o orquestrador em modo leitura: lê o estado de cada issue no GitH
 - Repositórios com PRD: `gh repo list <dono> --no-archived --json nameWithOwner --limit 100` (com filtro, só o repositório) e, para cada um, `gh api repos/<repo>/contents/docs/prd.md --silent` (sucesso = tem PRD).
 - Milestones de cada repositório com PRD: `gh api "repos/<repo>/milestones?state=all&per_page=100"`, que traz `title`, `open_issues` e `closed_issues`. Considere só as de título `M<n> · <nome>`, na ordem de `<n>`.
 - Para as issues citadas no `Depende de` das issues de backlog do marco atual, confira se estão fechadas (`gh issue view <nº> -R <repo> --json state`).
+- Lições: `gh search issues --owner <dono> --label licao --include-prs --json repository,number,url --limit 100` (com filtro, use `--repo`) e, para cada resultado, `gh api repos/<repo>/issues/<nº>/comments --paginate`. Nos comentários que começam com `<!-- fabrica:licao`, anote a data de cada bloco `**Lição · <AAAA-MM-DD>**` ([formato](../licao/formato.md)). Para cada repositório com lição, use as milestones `M<n>` já coletadas, ou colete-as se o repositório não tiver PRD.
 
 Rode as consultas independentes em paralelo.
 
@@ -39,6 +40,11 @@ Rode as consultas independentes em paralelo.
   - backlog acabando: o marco atual está perto de fechar e o marco depois do próximo existe no GitHub sem nenhuma issue. Sugira "rode `/fabrica:backlog` em `<repo>`".
   - requisito instável: na tabela `### Mudanças` do histórico do `docs/prd.md` (o mesmo PRD lido para os marcos), um F com 3 ou mais linhas cuja coluna Decisão começa com `aceita`. Uma linha com vários F conta para cada um, e um PRD sem a tabela não gera alerta. Texto: "`<repo>`: F<n> mudou <k> vezes; vale revisitar esse requisito com `/fabrica:prd`."
 - **Marcos:** para cada repositório com milestones `M<n>`, ache o marco atual e o próximo e conte `fechadas/total` de cada um, conforme a seção "Backlog" de [estados.md](estados.md). Para saber se há item sem issue, leia o fatiamento do PRD: `gh api repos/<repo>/contents/docs/prd.md -q .content | base64 -d`.
+- **Lições:** para cada repositório com lição, calcule a data de corte:
+  - **Com marco fechado:** o último marco fechado é o `M<n>` de maior `<n>` com `open_issues` 0 e `closed_issues` 1 ou mais. A data de corte é o fechamento mais recente das issues dele: `gh issue list -R <repo> --milestone "<título>" --state closed --json closedAt`.
+  - **Sem marco fechado:** 30 dias antes de hoje.
+
+  Conte os blocos com data igual ou posterior à de corte. Um repositório sem bloco depois do corte fica fora da seção.
 - **Próxima issue:** em cada repositório sem nenhuma issue aberta com `agente`, aplique a ordem de sugestão de [estados.md](estados.md):
   - com uma issue de backlog liberada, sugira "aplicar `agente` na #N";
   - se todas as issues de backlog do marco atual dependerem de issues abertas, diga que o marco está bloqueado por dependência e cite a issue que bloqueia;
@@ -82,6 +88,12 @@ Uma linha por repositório sem nada no fluxo: a próxima issue a puxar, ou o blo
 
 ## Alertas
 - <alerta>
+
+## Lições
+- kairo: 3 lições desde 2026-10-12 (fechamento do M1)
+- fabrica: 1 lição desde 2026-09-30 (últimos 30 dias)
+
+[Todas as lições](https://github.com/search?q=owner%3A<dono>+label%3Alicao&type=issues)
 
 ## Fora do fluxo
 - [repo#nº](url) PR aberto sem issue da fábrica
