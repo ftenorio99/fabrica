@@ -16,7 +16,7 @@ A triagem decide se a issue está pronta para virar spec. Ela não escreve spec 
 - Se a issue estiver fechada ou não tiver a label `agente`, pare e avise o usuário no chat.
 - `CLAUDE.md` e `docs/prd.md`: identifique as funcionalidades do PRD (F1, F2…) ligadas à issue.
 - Specs e ADRs existentes (`specs/`, `docs/adr/`) e o código que a issue provavelmente vai tocar. Leia o suficiente para estimar, não para implementar.
-- Se já houver um comentário de triagem anterior, esta é uma nova rodada: leia as respostas que vieram depois dele.
+- Se já houver um comentário de triagem anterior, esta é uma nova rodada: leia as respostas que vieram depois dele. Ignore os comentários de lição (`<!-- fabrica:licao`), que não são resposta (veja [estados.md](../status/estados.md)).
 
 ## 2. Classificar
 - **Tipo:** `feat`, `fix`, `chore`, `docs`, `refactor`, `test`, `build`, `ci` ou `perf`.
