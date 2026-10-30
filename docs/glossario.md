@@ -14,9 +14,11 @@
 
 **Janela** — O marco atual e o seguinte, os únicos que ganham issues. Ela avança quando o marco atual está perto de fechar. Veja [Planejamento em ondas](principios.md#planejamento-em-ondas).
 
+**Lição** — Fato do fluxo que vale lembrar na retrospectiva, registrado na hora num comentário `<!-- fabrica:licao -->` da issue ou do PR, que recebe a label `licao`. Os agentes registram nos gatilhos definidos, e você registra com `/fabrica:licao`. Veja [Lições aprendidas](fluxo.md#lições-aprendidas).
+
 **Limite de trabalho em andamento** — No máximo 3 issues abertas com `spec-aprovada` por repositório. Veja [Princípios](principios.md#limite-de-3-em-andamento).
 
-**Marcador** — Comentário HTML invisível, como `<!-- fabrica:triagem -->`, que abre cada comentário de agente. Os agentes usam a sua conta do GitHub, e o marcador é o que distingue o comentário deles do seu. Veja [Tudo no GitHub](principios.md#tudo-no-github).
+**Marcador** — Comentário HTML invisível, como `<!-- fabrica:triagem -->`, que abre cada comentário de agente. Os agentes usam a sua conta do GitHub, e o marcador é o que distingue o comentário deles do seu. O comentário de [lição](fluxo.md#lições-aprendidas) tem marcador próprio, `<!-- fabrica:licao -->`, e não conta como comentário de agente nem seu. Veja [Tudo no GitHub](principios.md#tudo-no-github).
 
 **Marco** — Grupo de itens do fatiamento, com título `M<n> · <nome>`, que vira uma milestone no GitHub. O marco atual é o primeiro que ainda tem issue aberta ou item sem issue. Veja [Fechar um marco](guias/fechar-marco.md).
 

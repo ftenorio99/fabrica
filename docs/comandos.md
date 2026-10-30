@@ -21,7 +21,7 @@ Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de 
 
 ## `/fabrica:setup [<dono>/<repo>]`
 - **Quando:** num repositório sem as labels da fábrica, quando uma etapa avisar que falta uma label, ou quando a sessão avisar que os hooks do git não estão instalados.
-- **O que faz:** cria ou corrige as seis labels do fluxo no repositório, sem mexer em outras. Na primeira vez em cada máquina, pede confirmação e instala os hooks do git que protegem a `main`.
+- **O que faz:** cria ou corrige as sete labels do fluxo no repositório, sem mexer em outras. Na primeira vez em cada máquina, pede confirmação e instala os hooks do git que protegem a `main`.
 - **Lê:** a tabela de labels do [`estados.md`](../skills/status/estados.md) e o `core.hooksPath` global.
 - **Cria:** as labels no repositório e, com a sua confirmação, os hooks em `~/.config/fabrica/githooks/`.
 - **Labels:** não aplica labels em issues.
@@ -32,7 +32,7 @@ Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de 
 - **O que faz:** classifica tipo, classe e tamanho, liga a issue ao PRD e às dependências e procura lacunas que só você pode responder.
 - **Lê:** a issue e os comentários, `CLAUDE.md`, `docs/prd.md`, specs e ADRs e o código que a issue deve tocar.
 - **Cria:** um comentário de triagem na issue. Não escreve spec, código nem branch.
-- **Labels:** aplica `precisa-info` quando há perguntas e a remove quando não há.
+- **Labels:** aplica `precisa-info` quando há perguntas e a remove quando não há. Junto com as perguntas, registra uma [lição](#fabricalicao-donoreponúmero-texto-da-lição) e aplica `licao`.
 - Detalhes: [`skills/triagem/SKILL.md`](../skills/triagem/SKILL.md).
 
 ## `/fabrica:spec <número da issue> [ajustes pedidos]`
@@ -50,6 +50,7 @@ Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de 
 - **Lê:** a spec aprovada, o `CLAUDE.md`, o código que será tocado e a documentação das bibliotecas.
 - **Cria:** commits na branch da issue.
 - **Labels:** remove `escalonado` ao retomar. Aplica `escalonado` quando para por falha ou por um desvio da spec que você precisa decidir.
+- **Lições:** registra uma na issue, com a label `licao`, quando escala, quando precisa de duas ou mais rodadas de correção e quando um desvio muda o desenho técnico ou vem de um erro da spec.
 - Detalhes: [`skills/implementar/SKILL.md`](../skills/implementar/SKILL.md).
 
 ## `/fabrica:revisar <número da issue>`
@@ -58,11 +59,20 @@ Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de 
 - **Lê:** a spec, os ADRs que ela cita, o `CLAUDE.md`, o diff da branch contra a `main` e os seus comentários no PR.
 - **Cria:** o PR com a evidência de cada critério, ou atualiza a descrição de um PR que já existe, e um comentário no PR com o que foi feito em cada pedido seu.
 - **Labels:** aplica `pronto-revisao` e remove `escalonado`. Se sobrar pendência, ou se um pedido seu mudar a spec, aplica `escalonado` em vez de `pronto-revisao`; com pendência da revisão, o PR fica como rascunho.
+- **Lições:** registra uma na issue, com a label `licao`, quando escala por um pedido seu, quando o CI precisa de duas ou mais correções e para cada achado bloqueante ou importante que fica sem corrigir. Sugestões não geram lição.
 - Detalhes: [`skills/revisar/SKILL.md`](../skills/revisar/SKILL.md).
 
 ## `/fabrica:status [repositório]`
 - **Quando:** a qualquer momento, para saber o que falta e quem age.
-- **O que faz:** mostra o que espera você, o que espera agente (com o comando e o diretório), o avanço dos marcos, a próxima issue a puxar e os alertas. Um dos alertas é o de requisito instável: um F com 3 ou mais mudanças aceitas no histórico do PRD.
-- **Lê:** as issues com `agente`, os comentários dos agentes, os PRs, o backlog, as milestones e o PRD dos seus repositórios.
+- **O que faz:** mostra o que espera você, o que espera agente (com o comando e o diretório), o avanço dos marcos, a próxima issue a puxar e os alertas. Um dos alertas é o de requisito instável: um F com 3 ou mais mudanças aceitas no histórico do PRD. A seção "Lições" conta, por repositório, as lições registradas desde o fechamento do último marco, ou nos últimos 30 dias num repositório sem marco fechado.
+- **Lê:** as issues com `agente`, os comentários dos agentes, os PRs, o backlog, as milestones, o PRD e as issues e PRs com `licao` dos seus repositórios.
 - **Cria:** nada. Só lê.
 - Detalhes: [`skills/status/SKILL.md`](../skills/status/SKILL.md).
+
+## `/fabrica:licao [<dono>/<repo>#]<número> <texto da lição>`
+- **Quando:** quando você quiser anotar algo que deu errado, ou que vale lembrar na retrospectiva, numa issue ou num PR.
+- **O que faz:** organiza o seu texto no formato de lição (o que aconteceu, causa provável, ação sugerida e origem), mostra o resultado e só publica depois que você confirma. Campos que o texto não preenche ficam "não informado". Sem número, pergunta o destino. Com `<dono>/<repo>#<nº>`, registra em outro repositório, como uma lição sobre a fábrica vista no kairo.
+- **Lê:** o seu texto e o título da issue ou PR de destino.
+- **Cria:** um comentário de lição no destino. Ele não muda o estado da issue.
+- **Labels:** aplica `licao` no destino.
+- Detalhes: [`skills/licao/SKILL.md`](../skills/licao/SKILL.md) e o formato comum em [`skills/licao/formato.md`](../skills/licao/formato.md).
