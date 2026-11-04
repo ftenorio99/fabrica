@@ -80,7 +80,7 @@ No chat, neste formato, omitindo as seções vazias:
 
 ## Notas
 - "Com o agente" inclui a espera até o comando ser rodado.
-- Tokens não são medidos ainda: o custo por etapa fica para uma issue própria.
+- Tokens não são medidos ainda: o custo por etapa fica para a [#58](https://github.com/ftenorio99/fabrica/issues/58).
 - A leitura vai até 100 issues por repositório, as de atualização mais recente. <"Nenhum repositório chegou ao limite." ou "Cortados no limite: <repos>.">
 ```
 
