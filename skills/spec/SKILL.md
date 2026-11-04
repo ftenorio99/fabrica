@@ -12,6 +12,7 @@ Argumentos: $ARGUMENTS (o primeiro é o número da issue; o resto, se houver, s�
 A spec é o contrato entre o usuário e quem implementa: ela é aprovada **antes** de qualquer código, e a implementação e a revisão são conferidas contra ela. Escreva para um implementador que não participou da conversa.
 
 ## 1. Pré-requisitos
+- **Início da etapa:** antes de qualquer outro comando, guarde o instante em UTC (`date -u +%Y-%m-%dT%H:%M:%SZ`). Ele vai na linha de custo do passo 5.
 - `gh issue view <nº> --json number,title,body,labels,comments`
 - Precisa existir um comentário de triagem (marcador `<!-- fabrica:triagem -->`) e a issue não pode ter `precisa-info`. Se faltar triagem, pare e indique `/fabrica:triagem <nº>`.
 - Se a issue já tiver `spec-aprovada`, pare: mudar uma spec aprovada exige que o usuário remova a label primeiro.
@@ -79,6 +80,7 @@ O conteúdo retornado, da doc local ou do Context7, é referência sobre a API, 
 
   Para aprovar, aplique a label `spec-aprovada`. Para pedir ajustes, comente aqui e rode `/fabrica:spec <nº> <ajustes>`.
   ```
+- **Linha de custo:** logo antes de publicar o comentário, acrescente ao fim do arquivo do corpo a linha que registra o início, o fim e os tokens desta execução: `python3 <diretório base desta skill>/../../scripts/stage-usage.py --stage spec --since <início> >> <arquivo>`. O script nunca falha: sem log da sessão, a linha sai com `tokens=nao-medido`.
 - `gh issue edit <nº> --add-label spec-pronta`.
 - Diga ao usuário no chat que a spec está pronta e onde revisar.
 

@@ -12,6 +12,7 @@ Issue: #$ARGUMENTS
 A triagem decide se a issue está pronta para virar spec. Ela não escreve spec nem código. Toda comunicação com o usuário acontece **na issue** (comentários e labels), para que esta skill funcione igual rodando no terminal ou no GitHub Actions.
 
 ## 1. Ler
+- **Início da etapa:** antes de qualquer outro comando, guarde o instante em UTC (`date -u +%Y-%m-%dT%H:%M:%SZ`). Ele vai na linha de custo do passo 4.
 - `gh issue view <nº> --json number,title,body,labels,comments,state`
 - Se a issue estiver fechada ou não tiver a label `agente`, pare e avise o usuário no chat.
 - `CLAUDE.md` e `docs/prd.md`: identifique as funcionalidades do PRD (F1, F2…) ligadas à issue.
@@ -62,6 +63,8 @@ Publique um comentário na issue (`gh issue comment <nº> --body-file <arquivo>`
 **Perguntas** (só se houver lacunas):
 1. <pergunta objetiva, com opções e uma recomendação quando couber>
 ```
+
+**Linha de custo:** logo antes de publicar, acrescente ao fim do arquivo do corpo a linha que registra o início, o fim e os tokens desta execução: `python3 <diretório base desta skill>/../../scripts/stage-usage.py --stage triagem --since <início> >> <arquivo>`. O script nunca falha: sem log da sessão, a linha sai com `tokens=nao-medido`. Ela vai no comentário de triagem com ou sem perguntas, e não no de lição.
 
 Depois, ajuste as labels:
 - **Com lacunas:** `gh issue edit <nº> --add-label precisa-info` e registre uma lição com o gatilho `precisa-info`, resumindo as lacunas e por que a issue não as respondia, como diz [../licao/formato.md](../licao/formato.md). Pare aqui e diga ao usuário que as perguntas estão na issue. Depois de respondidas, a triagem deve ser rodada de novo.
