@@ -1,7 +1,7 @@
 # SPEC-62: Linha de custo sai incompleta porque o log da sessão é gravado com atraso
 
 **Issue:** #62 · **PRD:** — (a fábrica não tem `docs/prd.md`) · **Classe:** implementacao-simples · **Tamanho:** P
-**Status:** rascunho · **Atualizada em:** 2026-11-04
+**Status:** aprovada · **Atualizada em:** 2026-11-04
 
 ## Contexto
 O `scripts/stage-usage.py` (SPEC-58) soma os tokens da etapa lendo o log da sessão do Claude Code no instante em que é chamado. A linha de custo sai incompleta por duas perdas:
@@ -85,3 +85,4 @@ Uma linha com `parcial=sim` conta tokens e trabalho, mas a issue deixa de ser me
 
 ## Histórico
 - 2026-11-04: criação.
+- 2026-11-04: aprovada.
