@@ -40,7 +40,7 @@ Os agentes comentam com a mesma conta do GitHub do usuário, então o autor não
 ## Etapa em andamento
 A label `em-andamento` não é um estado: a issue continua no estado da tabela acima, e a label só diz que uma execução automática, como o `/fabrica:avancar`, está rodando uma etapa nela ([ADR 0003](../../docs/adr/0003-sinal-de-etapa-em-andamento.md)).
 - **Recente:** o último evento `labeled em-andamento` da timeline da issue tem menos de 2 h. Outra execução automática não pega a issue, e o `/fabrica:status` mostra "Em andamento" no lugar do comando.
-- **Esquecida:** o último evento tem 2 h ou mais, por exemplo numa sessão que morreu no meio. Outra execução pode pegar a issue, e o `/fabrica:status` alerta.
+- **Esquecida:** o último evento tem 2 h ou mais, por exemplo numa sessão que morreu no meio. Outra execução pode pegar a issue, e o `/fabrica:status` alerta. Não é inconsistência: a issue segue no fluxo normalmente.
 - Os comandos manuais (`/fabrica:triagem` etc.) não aplicam nem conferem a label.
 
 ## Backlog
@@ -67,4 +67,3 @@ Sinalize como alerta, sem tentar corrigir:
 - `pronto-revisao` sem PR aberto.
 - `spec-pronta` e `spec-aprovada` ao mesmo tempo é normal (a spec skill não remove a primeira); não é inconsistência.
 - PR fechado sem merge com a issue ainda aberta.
-- `em-andamento` aplicada há 2 h ou mais (label esquecida).

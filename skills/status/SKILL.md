@@ -37,7 +37,7 @@ Rode as consultas independentes em paralelo.
   - limite de trabalho em andamento: 3 ou mais issues abertas com `spec-aprovada` no mesmo repositório;
   - CI falhando em PR aberto;
   - item parado: sem atualização há mais de 3 dias;
-  - `em-andamento` esquecida: aplicada há 2 h ou mais. Texto: "`<repo>#<nº>`: `em-andamento` aplicada há <tempo>; a execução pode ter parado no meio. Remova a label ou rode `/fabrica:avancar <nº>`.";
+  - `em-andamento` esquecida: aplicada há 2 h ou mais. Texto: "`<repo>#<nº>`: `em-andamento` aplicada há <tempo>; a execução pode ter parado no meio. Remova a label ou rode `/fabrica:avancar <nº>`." Ele sai só aqui, não entre as inconsistências;
   - inconsistências listadas em estados.md;
   - backlog acabando: o marco atual está perto de fechar e o marco depois do próximo existe no GitHub sem nenhuma issue. Sugira "rode `/fabrica:backlog` em `<repo>`".
   - requisito instável: na tabela `### Mudanças` do histórico do `docs/prd.md` (o mesmo PRD lido para os marcos), um F com 3 ou mais linhas cuja coluna Decisão começa com `aceita`. Uma linha com vários F conta para cada um, e um PRD sem a tabela não gera alerta. Texto: "`<repo>`: F<n> mudou <k> vezes; vale revisitar esse requisito com `/fabrica:prd`."

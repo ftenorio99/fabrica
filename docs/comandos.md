@@ -21,7 +21,7 @@ Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de 
 
 ## `/fabrica:setup [<dono>/<repo>]`
 - **Quando:** num repositório sem as labels da fábrica, quando uma etapa avisar que falta uma label, ou quando a sessão avisar que os hooks do git não estão instalados.
-- **O que faz:** cria ou corrige as sete labels do fluxo no repositório, sem mexer em outras. Na primeira vez em cada máquina, pede confirmação e instala os hooks do git que protegem a `main`.
+- **O que faz:** cria ou corrige as labels do fluxo no repositório, sem mexer em outras. Na primeira vez em cada máquina, pede confirmação e instala os hooks do git que protegem a `main`.
 - **Lê:** a tabela de labels do [`estados.md`](../skills/status/estados.md) e o `core.hooksPath` global.
 - **Cria:** as labels no repositório e, com a sua confirmação, os hooks em `~/.config/fabrica/githooks/`.
 - **Labels:** não aplica labels em issues.

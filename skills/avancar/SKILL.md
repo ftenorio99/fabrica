@@ -21,7 +21,7 @@ Esta skill executa as etapas em que o agente age e para nos portões do usuário
 - Aplique a tabela de estados de [estados.md](../status/estados.md) a cada issue.
 - **Entram** só as issues nos estados em que o agente age: 2, 4, 5, 6, 8, 10, 11 e 12.
 - **Ficam de fora:**
-  - a issue com `em-andamento` recente, que outra sessão está avançando;
+  - a issue com `em-andamento` recente, que outra sessão está avançando. Já a issue com `em-andamento` esquecida entra normalmente, com um alerta no relatório;
   - a issue com uma inconsistência de [estados.md](../status/estados.md#inconsistências), que vai para os alertas do relatório.
 - **Com número**, se a issue estiver num estado do usuário (1, 3, 7, 9 ou 13), num estado de fora ou com `em-andamento` recente, não execute nada: mostre o estado e o que o usuário faz, e pare.
 - **Ordem:** primeiro a mais perto do merge. Os estados 10, 11 e 12 vêm antes do 8, que vem antes do 6, 5, 4 e 2. No mesmo grupo, vai antes o menor número de issue.
@@ -42,8 +42,8 @@ Esta skill executa as etapas em que o agente age e para nos portões do usuário
 
 ## 4. Laço
 Para cada issue selecionada, na ordem:
-1. **Reler:** confira de novo as labels (`gh issue view <nº> --json labels`). Se outra sessão aplicou `em-andamento` nesse meio-tempo, pule a issue e anote no relatório.
-2. **Marcar:** `gh issue edit <nº> --add-label em-andamento`.
+1. **Reler:** confira de novo as labels (`gh issue view <nº> --json labels`). Se `em-andamento` estiver na issue, compare o horário do último evento `labeled em-andamento` da timeline com o que foi coletado no passo 1. Se a label não estava lá no passo 1, ou o evento é mais novo, outra sessão a aplicou nesse meio-tempo: pule a issue e anote no relatório.
+2. **Marcar:** `gh issue edit <nº> --add-label em-andamento`. Se a label já estiver na issue, esquecida, remova-a antes (`--remove-label em-andamento`) e aplique de novo, para a timeline ganhar um evento `labeled` com o horário de agora.
 3. **Executar** a etapa do estado atual, como no passo 3.
 4. **Desmarcar:** `gh issue edit <nº> --remove-label em-andamento`, com sucesso ou falha. Nunca deixe a label na issue ao sair da etapa.
 5. **Reler** o estado como no passo 1 e anotar a passagem (estado de antes → estado de depois).
