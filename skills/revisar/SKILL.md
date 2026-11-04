@@ -16,12 +16,15 @@ A revisão automática é a primeira passada antes da revisão humana. Ela confe
 - `make lint` e `make test` passam. Se não passarem, volte para a etapa de implementação em vez de revisar.
 
 ## 2. Pedidos no PR
+Antes de qualquer consulta ao PR, guarde o **instante da coleta** em UTC: `date -u +%Y-%m-%dT%H:%M:%SZ`. Guarde-o sempre, com PR ou sem PR: ele vai na âncora do passo 6.
+
 Se já existir PR da branch (`gh pr view`), trate os pedidos do usuário antes da revisão. Sem PR, ou sem pedido novo, siga para o passo 3.
 
 **Termos:**
-- **Comentário do usuário no PR:** comentário da conversa, review com corpo ou comentário em linha que não começa com um marcador `<!-- fabrica:<etapa> -->` nem com `<!-- fabrica:licao`.
+- **Comentário do usuário no PR:** comentário da conversa, review com corpo ou comentário em linha que não começa com um marcador `<!-- fabrica:<etapa> -->` nem com `<!-- fabrica:licao`. Review sem corpo não conta, inclusive a `APPROVED`; a review `APPROVED` com corpo conta.
 - **Âncora:** o último comentário com `<!-- fabrica:revisar -->` na conversa do PR.
-- **Pedido novo:** comentário do usuário no PR posterior à âncora, pela data de criação do comentário ou de envio da review (`submittedAt`). Sem âncora, todo comentário do usuário no PR conta.
+- **Referência:** o instante da linha `**Pedidos lidos até:**` da âncora. Numa âncora antiga, sem essa linha, a referência é a data de criação da própria âncora.
+- **Pedido novo:** comentário do usuário no PR posterior à referência, pela data de criação do comentário ou de envio da review (`submittedAt`). Sem âncora, todo comentário do usuário no PR conta.
 
 **Coletar:**
 - `gh pr view <nº do PR> --json comments,reviews`: conversa e reviews;
@@ -92,8 +95,10 @@ Se já existir PR da branch (`gh pr view`), atualize a descrição em vez de abr
 - Espere o CI: `gh pr checks --watch`. Se falhar por causa da mudança, corrija como no passo 4 (conta como rodada). Se precisou de duas ou mais correções por CI vermelho, registre uma lição com o gatilho `rodadas`, com os checks que falharam e o que os resolveu ([../licao/formato.md](../licao/formato.md)). Se falhar por motivo externo (instabilidade, credencial), registre no PR e siga.
 - Com CI verde e sem achados bloqueantes: `gh issue edit <nº> --add-label pronto-revisao --remove-label escalonado`. Se o passo 2 escalou uma mudança de escopo, remova `pronto-revisao` se estiver aplicada (`gh issue edit <nº> --remove-label pronto-revisao`) e mantenha `escalonado`: o PR espera a mudança da spec, não a revisão do usuário.
 - **Resposta no PR:** comente no PR (`gh pr comment <nº do PR> --body-file <arquivo>`) com o marcador `<!-- fabrica:revisar -->`. Esse comentário vira a nova âncora do passo 2, então publique-o sempre que aplicar `pronto-revisao` e sempre que tratar pedidos, mesmo com rascunho ou escalado:
+  - **instante da coleta:** logo abaixo do marcador, a linha `**Pedidos lidos até:** <instante da coleta do passo 2>`;
   - **sem pedidos:** uma linha, "PR pronto para a sua revisão", com o resumo da revisão automática;
-  - **com pedidos:** uma linha por pedido, com o trecho e o que foi feito (commit, escalado ou não procede, com o motivo).
+  - **com pedidos:** uma linha por pedido, com o trecho e o que foi feito (commit, escalado ou não procede, com o motivo);
+  - **chegaram durante esta rodada:** antes de publicar, colete de novo pelos mesmos caminhos do passo 2. Os pedidos posteriores ao instante da coleta não são tratados agora: cite cada um com um trecho numa seção "Chegaram durante esta rodada" e avise que ficam para o próximo `/fabrica:revisar`. Sem nenhum, omita a seção.
 - Comente na issue com o link do PR e diga ao usuário no chat que o PR está pronto para a revisão dele, ou o que ficou escalado.
 
 ## Regras

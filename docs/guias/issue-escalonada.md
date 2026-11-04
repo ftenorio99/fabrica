@@ -18,6 +18,7 @@ Um agente parou e aplicou a label `escalonado`. O `/fabrica:status` mostra a iss
    - **Resolver você mesmo:** corrija o ambiente ou a dependência que faltava.
 3. **Retome a etapa que parou:**
    - **Se a implementação parou:** rode `/fabrica:implementar <nº>`. Ela lê a sua resposta, remove `escalonado` e continua dos commits que já existem.
-   - **Se a revisão parou:** rode `/fabrica:revisar <nº>`.
+   - **Se a revisão parou por achados pendentes:** rode `/fabrica:revisar <nº>`.
+   - **Se a revisão parou porque um pedido seu no PR muda a spec:** remova `spec-aprovada`, rode `/fabrica:spec <nº> <ajuste>`, aprove de novo e retome com `/fabrica:implementar <nº>`.
 
 O `escalonado` sai sozinho quando a etapa é retomada. Detalhes em [`skills/implementar/SKILL.md`](../../skills/implementar/SKILL.md) e [`skills/revisar/SKILL.md`](../../skills/revisar/SKILL.md).
