@@ -14,12 +14,12 @@ Esta skill só lê. Ela não aplica labels, não comenta e não cria arquivo no 
 - Um argumento com `..` é período (`AAAA-MM-DD..AAAA-MM-DD`, com as datas inclusivas). Qualquer outro é o repositório.
 - **Sem período:** os últimos 30 dias até hoje (`date -u +%F`).
 - **Um período:** só ele. **Dois períodos:** o segundo é comparado ao primeiro.
-- **Validação:** antes de qualquer consulta, confira cada período com `date -d <data> +%F` nas duas pontas, e confira que o início não é posterior ao fim. Se falhar, pare e mostre o formato esperado: `AAAA-MM-DD..AAAA-MM-DD`.
+- **Validação:** antes de qualquer consulta, cada ponta do período precisa casar com `^[0-9]{4}-[0-9]{2}-[0-9]{2}$`, e `date -d <data> +%F` precisa devolver exatamente a mesma string. Só o `date -d` não basta, porque ele aceita `x`, `tomorrow` e `2026-1-5`. O início também não pode ser posterior ao fim. Se algo falhar, pare e mostre o formato esperado: `AAAA-MM-DD..AAAA-MM-DD`.
 
 ## 2. Coletar
 - Dono: `gh api user -q .login`.
-- **Issues entregues** em cada período: `gh search issues --owner <dono> --state closed --label agente --closed <desde>..<até> --json repository,number,title,createdAt,closedAt,url --limit 100 -- reason:completed`. Com repositório, use `--repo <dono>/<repositório>` no lugar de `--owner`. Ponha toda opção do `gh` antes do `--`. Uma issue fechada como "not planned" não entra.
-- Se um repositório trouxer 100 issues, a leitura parou nas 100 mais recentes: anote para as notas.
+- **Issues entregues** em cada período: `gh search issues --owner <dono> --state closed --label agente --closed <desde>..<até> --sort updated --order desc --json repository,number,title,createdAt,closedAt,url --limit 100 -- reason:completed`. Com repositório, use `--repo <dono>/<repositório>` no lugar de `--owner`. Ponha toda opção do `gh` antes do `--`. Uma issue fechada como "not planned" não entra.
+- **Limite de 100 por repositório:** sem repositório, o `--limit 100` vale para todos somados. Se a busca por `--owner` trouxer 100 issues, repita-a com `--repo` para cada repositório que apareceu. Um repositório que trouxer 100 issues na própria busca foi cortado nas 100 de atualização mais recente: anote o nome para as notas.
 - Para cada issue, numa pasta temporária da sessão:
   - **Issue:** `gh api repos/<repo>/issues/<nº>` → `created_at`, `closed_at` e `milestone.title`.
   - **Timeline:** `gh api repos/<repo>/issues/<nº>/timeline --paginate --slurp > <pasta>/tl-<nº>.json`. Confira que há um evento `labeled` com a label `agente`; sem ele, a issue não entra.
@@ -81,10 +81,10 @@ No chat, neste formato, omitindo as seções vazias:
 ## Notas
 - "Com o agente" inclui a espera até o comando ser rodado.
 - Tokens não são medidos ainda: o custo por etapa fica para uma issue própria.
-- <só se aconteceu> A leitura de <repo> parou nas 100 issues mais recentes.
+- A leitura vai até 100 issues por repositório, as de atualização mais recente. <"Nenhum repositório chegou ao limite." ou "Cortados no limite: <repos>.">
 ```
 
-Ordene a tabela por issue da mais recente para a mais antiga, pelo fechamento.
+As três notas aparecem sempre. Ordene a tabela por issue da mais recente para a mais antiga, pelo fechamento.
 
 ## Regras
 - **Só leitura:** nenhum comando que altere o GitHub ou o repositório. Os arquivos de timeline ficam na pasta temporária da sessão.
