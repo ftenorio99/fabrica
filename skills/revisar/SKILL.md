@@ -98,7 +98,7 @@ Se já existir PR da branch (`gh pr view`), atualize a descrição em vez de abr
   - **instante da coleta:** logo abaixo do marcador, a linha `**Pedidos lidos até:** <instante da coleta do passo 2>`;
   - **sem pedidos:** uma linha, "PR pronto para a sua revisão", com o resumo da revisão automática;
   - **com pedidos:** uma linha por pedido, com o trecho e o que foi feito (commit, escalado ou não procede, com o motivo);
-  - **chegaram durante esta rodada:** antes de publicar, colete de novo pelos mesmos caminhos do passo 2. Os pedidos posteriores ao instante da coleta não são tratados agora: cite cada um com um trecho numa seção "Chegaram durante esta rodada" e avise que ficam para o próximo `/fabrica:revisar`. Sem nenhum, omita a seção.
+  - **chegaram durante esta rodada:** antes de publicar, colete de novo pelos mesmos caminhos do passo 2, aplicando os "Termos" do passo 2: só conta comentário do usuário no PR posterior ao instante da coleta, que aqui faz o papel da referência, com o mesmo critério de data (criação do comentário ou `submittedAt` da review). Esses pedidos não são tratados agora: cite cada um com um trecho numa seção "Chegaram durante esta rodada" e avise que ficam para o próximo `/fabrica:revisar`. Sem nenhum, omita a seção.
 - Comente na issue com o link do PR e diga ao usuário no chat que o PR está pronto para a revisão dele, ou o que ficou escalado.
 
 ## Regras
