@@ -19,7 +19,7 @@ Esta skill só lê. Ela não aplica labels, não comenta e não cria arquivo no 
 ## 2. Coletar
 - Dono: `gh api user -q .login`.
 - **Issues entregues** em cada período: `gh search issues --owner <dono> --state closed --label agente --closed <desde>..<até> --sort updated --order desc --json repository,number,title,createdAt,closedAt,url --limit 100 -- reason:completed`. Com repositório, use `--repo <dono>/<repositório>` no lugar de `--owner`. Ponha toda opção do `gh` antes do `--`. Uma issue fechada como "not planned" não entra.
-- **Limite de 100 por repositório:** sem repositório, o `--limit 100` vale para todos somados. Se a busca por `--owner` trouxer 100 issues, repita-a com `--repo` para cada repositório que apareceu. Um repositório que trouxer 100 issues na própria busca foi cortado nas 100 de atualização mais recente: anote o nome para as notas.
+- **Limite de 100 por repositório:** sem repositório, o `--limit 100` vale para todos somados. Se a busca por `--owner` trouxer 100 issues, liste os repositórios do dono (`gh repo list <dono> --no-archived --limit 1000 --json nameWithOwner`) e repita a busca com `--repo` para cada um, inclusive os que não apareceram no corte. Um repositório que trouxer 100 issues na própria busca foi cortado nas 100 de atualização mais recente: anote o nome para as notas.
 - Para cada issue, numa pasta temporária da sessão:
   - **Issue:** `gh api repos/<repo>/issues/<nº>` → `created_at`, `closed_at` e `milestone.title`.
   - **Timeline:** `gh api repos/<repo>/issues/<nº>/timeline --paginate --slurp > <pasta>/tl-<nº>.json`. Confira que há um evento `labeled` com a label `agente`; sem ele, a issue não entra.
