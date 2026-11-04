@@ -31,7 +31,7 @@ Isso é diferente da **execução** em ondas, com várias issues implementadas e
 O código é em inglês: nomes de variáveis, funções, arquivos e pastas. Comentários, documentação, issues, PRs e a descrição dos commits são em português. Os commits seguem Conventional Commits, com o prefixo em inglês: `feat: adiciona tela de login`.
 
 ## Skills só por comando
-Todas as skills que mudam algo têm `disable-model-invocation: true`: só rodam quando você digita o comando. Assim o Claude não começa uma spec ou uma implementação por conta própria a partir de uma frase solta. A exceção é o `/fabrica:status`, que só lê e pode ser chamado pelo Claude quando você pergunta "o que falta?".
+Todas as skills que mudam algo têm `disable-model-invocation: true`: só rodam quando você digita o comando. Assim o Claude não começa uma spec ou uma implementação por conta própria a partir de uma frase solta. As exceções são o `/fabrica:status` e o `/fabrica:metricas`, que só leem e podem ser chamados pelo Claude quando você pergunta "o que falta?" ou "como a fábrica está indo?".
 
 ## Tudo no GitHub
 O estado de cada issue está nas labels, nos comentários dos agentes e no PR, sem arquivo de estado à parte. Os agentes usam a mesma conta que você, então cada comentário de agente começa com um marcador (`<!-- fabrica:<etapa> -->`) para ser distinguido dos seus. O mesmo fluxo pode rodar no terminal hoje e no GitHub Actions depois.
