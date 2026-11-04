@@ -1,7 +1,7 @@
 # SPEC-55: Comando avancar que executa as etapas de agente e para nos portões humanos
 
 **Issue:** #55 · **PRD:** — (a fábrica não tem `docs/prd.md`) · **Classe:** implementacao-complexa · **Tamanho:** G
-**Status:** rascunho · **Atualizada em:** 2026-11-04
+**Status:** aprovada · **Atualizada em:** 2026-11-04
 
 ## Contexto
 Hoje o usuário move cada issue à mão: lê o `/fabrica:status` e digita o comando da etapa seguinte. A tabela de `skills/status/estados.md` já diz, para cada estado, quem age e qual é o próximo passo, e foi escrita para servir também ao dispatcher da Fase 1. O `/fabrica:metricas` mostrou o custo disso: na #49, o agente trabalhou 5 min e a issue esperou 2h44 na fila. Este é o primeiro degrau, ainda local. O disparo por label no GitHub Actions fica para outra issue e reaproveita esta lógica.
@@ -139,3 +139,4 @@ No chat, ao fim:
 
 ## Histórico
 - 2026-11-04: criação.
+- 2026-11-04: aprovada.

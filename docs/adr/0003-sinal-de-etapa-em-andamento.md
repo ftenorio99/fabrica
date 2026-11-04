@@ -1,6 +1,6 @@
 # ADR 0003: Etapa em andamento sinalizada pela label em-andamento, com validade de 2 h
 
-**Status:** proposto · **Data:** 2026-11-04 · **Origem:** issue #55
+**Status:** aceito · **Data:** 2026-11-04 · **Origem:** issue #55
 
 ## Contexto
 O `/fabrica:avancar` (#55) executa etapas sem que o usuário digite cada comando, e o GitHub Actions da Fase 1 fará o mesmo. Duas execuções não podem pegar a mesma issue ao mesmo tempo. A tabela de `estados.md` já previa isso nos estados 8 e 12 ("se nenhuma sessão estiver nele"), mas não havia como saber se uma sessão estava neles. O estado da fábrica fica todo no GitHub, sem arquivo de estado à parte, e uma sessão pode morrer no meio sem limpar nada.
