@@ -53,7 +53,10 @@ since="2026-11-04T10:00:00Z"
 # Desde a #62 o script espera o log ter uma entrada recente. Uma entrada sem
 # usage com o horário de agora deixa os casos acima responderem na hora, e o
 # limite curto acelera os casos sem log aproveitável.
-printf '{"type":"system","timestamp":"%s"}\n' "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" >> "$project/$sid.jsonl"
+call_entry() { # call_entry <horário>: a resposta que chama o script, ainda sem usage
+  printf '{"type":"assistant","timestamp":"%s","message":{"id":"msg_call_%s","content":[{"type":"tool_use","name":"Bash","input":{"command":"python3 scripts/stage-usage.py --stage triagem --since x"}}]}}\n' "$1" "$RANDOM"
+}
+call_entry "$(date -u +%Y-%m-%dT%H:%M:%S.000Z)" >> "$project/$sid.jsonl"
 export FABRICA_STAGE_USAGE_TIMEOUT=1
 
 # CA1: soma deduplicada, com subagente, sem a resposta fora do intervalo.
@@ -94,6 +97,7 @@ reply() { # reply <id> <horário> <entrada>
   printf '{"type":"assistant","timestamp":"%s","message":{"id":"%s","usage":{"input_tokens":%s,"output_tokens":0}}}\n' "$2" "$1" "$3"
 }
 prompt() { printf '{"type":"user","timestamp":"%s","message":{"role":"user","content":"/fabrica:triagem 1"}}\n' "$1"; }
+meta() { printf '{"type":"user","isMeta":true,"timestamp":"%s","message":{"role":"user","content":"texto da skill"}}\n' "$1"; }
 tool_result() { printf '{"type":"user","timestamp":"%s","message":{"role":"user","content":[{"type":"tool_result","content":"ok"}]}}\n' "$1"; }
 inputs() { sed -E 's/.* entrada=([0-9]+) .*/\1/'; }
 start_of() { sed -E 's/.* inicio=([^ ]+) .*/\1/'; }
@@ -103,7 +107,7 @@ s1="33333333-3333-3333-3333-333333333333"
 { prompt "$(at -60)"; reply r1 "$(at -50)" 10; } > "$project/$s1.jsonl"
 # A resposta tem o horário de quando foi gerada, mas só chega ao arquivo 2 s depois.
 r2_at="$(at -1)"
-( sleep 2; reply r2 "$r2_at" 5 >> "$project/$s1.jsonl" ) &
+( sleep 2; { reply r2 "$r2_at" 5; call_entry "$r2_at"; } >> "$project/$s1.jsonl" ) &
 out="$(CLAUDE_CODE_SESSION_ID="$s1" FABRICA_STAGE_USAGE_TIMEOUT=10 python3 "$script" --stage triagem --since "$(at_s -55)")"
 wait
 check CA1 "log gravado com atraso: espera e soma tudo" 15 "$(inputs <<<"$out")"
@@ -120,6 +124,19 @@ check CA2 "limite estourado: soma o que há" 7 "$(inputs <<<"$out")"
 check CA2 "limite estourado: parcial=sim" 1 "$(grep -c 'parcial=sim -->$' <<<"$out")"
 check CA2 "limite estourado: termina em até 3 s" 1 "$(( ms <= 3000 ))"
 
+# CA2: uma entrada recente que não é a chamada do script não encerra a espera.
+s2b="45454545-4545-4545-4545-454545454545"
+{ prompt "$(at -300)"; reply r1 "$(at -290)" 7; printf '{"type":"api-request","timestamp":"%s"}\n' "$(at 0)"; tool_result "$(at 0)"; } > "$project/$s2b.jsonl"
+out="$(CLAUDE_CODE_SESSION_ID="$s2b" FABRICA_STAGE_USAGE_TIMEOUT=1 python3 "$script" --stage spec --since "$(at_s -295)")"
+check CA2 "entrada recente de outro tipo: continua parcial" 1 "$(grep -c 'parcial=sim -->$' <<<"$out")"
+t0=$(date +%s%N)
+CLAUDE_CODE_SESSION_ID="$s2b" FABRICA_STAGE_USAGE_TIMEOUT=nan python3 "$script" --stage spec --since "$(at_s -295)" >/dev/null &
+pid=$!
+( sleep 40; kill "$pid" 2>/dev/null ) & guard=$!
+wait "$pid"; kill "$guard" 2>/dev/null
+ms=$(( ($(date +%s%N) - t0) / 1000000 ))
+check CA2 "limite nan: cai nos 30 s e termina" 1 "$(( ms < 35000 ))"
+
 # CA3: sem sessão ou sem arquivo, responde sem esperar.
 t0=$(date +%s%N)
 env -u CLAUDE_CODE_SESSION_ID FABRICA_STAGE_USAGE_TIMEOUT=30 python3 "$script" --stage spec --since "$since" >/dev/null
@@ -133,7 +150,7 @@ check CA3 "sem arquivo: responde em menos de 1 s" 1 "$(( ms < 1000 ))"
 # CA4: a primeira resposta da etapa vem antes do --since e entra na soma.
 s4="66666666-6666-6666-6666-666666666666"
 p4="$(at -120)"
-{ reply antes "$(at -200)" 1000; prompt "$p4"; reply primeira "$(at -110)" 20; tool_result "$(at -105)"; reply segunda "$(at -90)" 3; printf '{"type":"system","timestamp":"%s"}\n' "$(at 0)"; } > "$project/$s4.jsonl"
+{ reply antes "$(at -200)" 1000; prompt "$p4"; meta "$(at -115)"; reply primeira "$(at -110)" 20; tool_result "$(at -105)"; reply segunda "$(at -90)" 3; call_entry "$(at 0)"; } > "$project/$s4.jsonl"
 out="$(CLAUDE_CODE_SESSION_ID="$s4" python3 "$script" --stage triagem --since "$(at_s -100)")"
 check CA4 "a primeira resposta entra na soma" 23 "$(inputs <<<"$out")"
 check CA4 "o início é o da mensagem do usuário" "${p4%.000Z}Z" "$(start_of <<<"$out")"
@@ -148,7 +165,7 @@ c5="$(at -200)"
   tool_result "$(at -199)"
   reply depois "$(at -150)" 30
   reply atual "$(at -90)" 4
-  printf '{"type":"system","timestamp":"%s"}\n' "$(at 0)"
+  call_entry "$(at 0)"
 } > "$project/$s5.jsonl"
 out="$(CLAUDE_CODE_SESSION_ID="$s5" python3 "$script" --stage revisar --since "$(at_s -100)")"
 check CA5 "a etapa anterior fica de fora" 34 "$(inputs <<<"$out")"

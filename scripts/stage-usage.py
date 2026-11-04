@@ -10,9 +10,9 @@ imprime a linha de custo da SPEC-58.
 
 SPEC-62:
 - O Claude Code grava o log com atraso. Antes de somar, o script espera o log
-  principal ter uma entrada de no máximo 10 s antes de agora, por até 30 s
-  (FABRICA_STAGE_USAGE_TIMEOUT). Se o prazo acabar, soma o que houver e
-  acrescenta `parcial=sim`.
+  principal ter a entrada da resposta que chamou o script, de no máximo 10 s
+  antes de agora, por até 30 s (FABRICA_STAGE_USAGE_TIMEOUT). Se o prazo
+  acabar, soma o que houver e acrescenta `parcial=sim`.
 - O início efetivo recua do --since até a última mensagem do usuário ou até
   a última chamada anterior deste script, o que for mais recente, em no
   máximo 30 min. --exact desliga o recuo.
@@ -22,6 +22,7 @@ código 0, para nunca derrubar a etapa.
 """
 import argparse
 import json
+import math
 import os
 import time
 from datetime import datetime, timedelta, timezone
@@ -91,12 +92,13 @@ def timestamp(entry):
 
 
 def wait_for_log(main_log, until, timeout):
-    """Espera uma entrada com timestamp >= until - 10 s. Devolve False no prazo."""
+    """Espera a entrada da resposta que chamou este script (até 10 s antes de
+    until). Ela é gravada depois das anteriores. Devolve False no prazo."""
     deadline = time.monotonic() + timeout
     while True:
         for entry in entries(main_log, tail=True):
             moment = timestamp(entry)
-            if moment is not None and moment >= until - FRESH_WINDOW:
+            if moment is not None and until - FRESH_WINDOW <= moment <= until and calls_this_script(entry):
                 return True
         if time.monotonic() >= deadline:
             return False
@@ -105,7 +107,10 @@ def wait_for_log(main_log, until, timeout):
 
 def is_user_prompt(entry):
     """Mensagem do usuário que não é resultado de ferramenta."""
-    if entry.get("type") != "user":
+    if entry.get("type") != "user" or entry.get("isMeta"):
+        return False
+    origin = entry.get("origin")
+    if isinstance(origin, dict) and origin.get("kind") not in (None, "human"):
         return False
     message = entry.get("message")
     if not isinstance(message, dict):
@@ -183,9 +188,11 @@ def sum_usage(logs, since, until):
 
 def timeout_seconds():
     try:
-        return max(float(os.environ.get("FABRICA_STAGE_USAGE_TIMEOUT", "30")), 0)
+        value = float(os.environ.get("FABRICA_STAGE_USAGE_TIMEOUT", "30"))
     except ValueError:
         return 30.0
+    # nan ou inf travariam a espera: a etapa nunca pode ficar presa aqui.
+    return max(value, 0) if math.isfinite(value) else 30.0
 
 
 def main():
