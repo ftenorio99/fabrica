@@ -1,6 +1,6 @@
 # Comandos
 
-Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de cada uma; o passo a passo fica no `SKILL.md` linkado no fim de cada seção. Só você chama as skills que mudam algo; o Claude pode chamar sozinho apenas o `/fabrica:status` e o `/fabrica:metricas`, que só leem (veja [Princípios](principios.md#skills-só-por-comando)).
+Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de cada uma; o passo a passo fica no `SKILL.md` linkado no fim de cada seção. Só você chama as skills que mudam algo; as duas que o Claude pode chamar sozinho são o `/fabrica:status` e o `/fabrica:metricas`, que só leem (veja [Princípios](principios.md#skills-só-por-comando)).
 
 ## `/fabrica:prd [ideia do produto em uma frase]`
 - **Quando:** no início de um projeto, ou quando o escopo do produto mudar.
