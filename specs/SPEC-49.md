@@ -1,7 +1,7 @@
 # SPEC-49: Estabilizar o caso de desempenho do test-protect-main.sh
 
 **Issue:** #49 · **PRD:** — (a fábrica não tem `docs/prd.md`) · **Classe:** implementacao-simples · **Tamanho:** P
-**Status:** rascunho · **Atualizada em:** 2026-11-04
+**Status:** aprovada · **Atualizada em:** 2026-11-04
 
 ## Contexto
 O `scripts/test-protect-main.sh` tem um caso de desempenho que garante o critério da SPEC-27: o hook PreToolUse (`hooks/protect-main.sh`) leva menos de 50 ms num comando de 40 KB. A SPEC-29 manteve esse critério no CA5. Hoje o caso mede uma execução só, sem aquecimento. Ele falhou em 2 de 5 execuções na branch da #41 (63 ms), sem nenhuma mudança no hook. Nesta máquina, execuções normais ficam entre 14 e 18 ms.
@@ -53,3 +53,4 @@ O caso de desempenho deixa de falhar pela oscilação da máquina, mas continua 
 
 ## Histórico
 - 2026-11-04: criação.
+- 2026-11-04: aprovada.
