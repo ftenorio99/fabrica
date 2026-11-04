@@ -62,6 +62,14 @@ Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de 
 - **Lições:** registra uma na issue, com a label `licao`, quando escala por um pedido seu, quando o CI precisa de duas ou mais correções e para cada achado bloqueante ou importante que fica sem corrigir. Sugestões não geram lição.
 - Detalhes: [`skills/revisar/SKILL.md`](../skills/revisar/SKILL.md).
 
+## `/fabrica:avancar [número da issue]`
+- **Quando:** quando você quiser que o fluxo ande sem digitar o comando de cada etapa. Rode no clone do repositório.
+- **O que faz:** para cada issue com `agente` num estado em que o agente age, executa a etapa seguinte (triagem, spec, implementação ou revisão), relê o estado e repete até a issue chegar a um ponto em que você age: perguntas na issue, spec para aprovar, PR para revisar ou bloqueio. Começa pela issue mais perto do merge, roda no máximo 4 etapas por execução e, se uma issue parar ou falhar, segue para a próxima. Com um número, avança só aquela issue. Nunca aprova spec, nunca faz merge e nunca responde por você.
+- **Lê:** o mesmo que o `/fabrica:status`, só no repositório atual, e o `SKILL.md` de cada etapa que executa.
+- **Cria:** o que cada etapa executada cria. No fim, mostra no chat o caminho de cada issue, onde ela parou e o que você faz.
+- **Labels:** aplica `em-andamento` durante cada etapa e a remove ao fim, para outra execução não pegar a mesma issue. A label vale por 2 h ([ADR 0003](adr/0003-sinal-de-etapa-em-andamento.md)). As demais labels são das etapas.
+- Detalhes: [`skills/avancar/SKILL.md`](../skills/avancar/SKILL.md).
+
 ## `/fabrica:status [repositório]`
 - **Quando:** a qualquer momento, para saber o que falta e quem age.
 - **O que faz:** mostra o que espera você, o que espera agente (com o comando e o diretório), o avanço dos marcos, a próxima issue a puxar e os alertas. Um dos alertas é o de requisito instável: um F com 3 ou mais mudanças aceitas no histórico do PRD. A seção "Lições" conta, por repositório, as lições registradas desde o fechamento do último marco, ou nos últimos 30 dias num repositório sem marco fechado.
