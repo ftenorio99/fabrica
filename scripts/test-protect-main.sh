@@ -290,13 +290,20 @@ jq -n --arg c 'git commit -m x' '{tool_input: {command: $c}}' | HOME=$tmp/sem-ho
   grep -q 'não estão instalados. Rode /fabrica:setup'
 result $? CA6 "sem hooks: mensagem de instalação"
 
-# Tempo: comando de 40 KB.
+# Tempo: comando de 40 KB. Uma execução de aquecimento é descartada e vale a
+# mediana de 5, para um pico isolado da máquina não reprovar o caso (#49).
 big="git commit -m \"$(head -c 40000 /dev/zero | tr '\0' a)\""
-start=$(date +%s%N)
 jq -n --arg c "$big" '{tool_input: {command: $c}}' | bash "$hook" >/dev/null
-ms=$(( ($(date +%s%N) - start) / 1000000 ))
+samples=()
+for _ in 1 2 3 4 5; do
+  start=$(date +%s%N)
+  jq -n --arg c "$big" '{tool_input: {command: $c}}' | bash "$hook" >/dev/null
+  samples+=("$(( ($(date +%s%N) - start) / 1000000 ))")
+done
+sorted="$(printf '%s\n' "${samples[@]}" | sort -n | tr '\n' ' ')"
+read -r _ _ ms _ <<<"$sorted"
 (( ms < 50 ))
-result $? CA6 "comando de 40 KB em ${ms} ms (limite 50 ms)"
+result $? CA6 "comando de 40 KB: mediana ${ms} ms em 5 execuções (${sorted% }), limite 50 ms"
 
 echo
 if (( failures )); then
