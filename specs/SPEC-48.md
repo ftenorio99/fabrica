@@ -1,7 +1,7 @@
 # SPEC-48: Corrigir a busca de backlog do /fabrica:status, recusada como sintaxe inválida
 
 **Issue:** #48 · **PRD:** — (a fábrica não tem `docs/prd.md`) · **Classe:** implementacao-simples · **Tamanho:** P
-**Status:** rascunho · **Atualizada em:** 2026-11-04
+**Status:** aprovada · **Atualizada em:** 2026-11-04
 
 ## Contexto
 O passo 1 do `skills/status/SKILL.md` coleta as issues de backlog com `gh search issues ... -- "fabrica:backlog in:body" -label:agente`. O `gh` monta a consulta como `fabrica:"backlog in:body"`, e o GitHub lê o `fabrica:` como um qualificador desconhecido. A busca falha com "The search query contains invalid syntax", e a seção "Backlog" do `/fabrica:status` fica vazia ou depende de um contorno improvisado. A triagem testou uma consulta alternativa e conferiu o resultado contra a lista completa do `kairo`.
@@ -55,3 +55,4 @@ O repositório não tem `make test`: a mudança é texto de skill. A evidência 
 
 ## Histórico
 - 2026-11-04: criação.
+- 2026-11-04: aprovada.
