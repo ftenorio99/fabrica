@@ -1,7 +1,7 @@
 # SPEC-41: Fechar casos-limite no tratamento dos pedidos no PR
 
 **Issue:** #41 · **PRD:** — (a fábrica não tem `docs/prd.md`) · **Classe:** implementacao-simples · **Tamanho:** P
-**Status:** rascunho · **Atualizada em:** 2026-11-04
+**Status:** aprovada · **Atualizada em:** 2026-11-04
 
 ## Contexto
 A SPEC-38 (PR #40) fez o `/fabrica:revisar` tratar os comentários do usuário no PR. Ela usa como âncora o último comentário `<!-- fabrica:revisar -->` da conversa. A revisão automática do #40 deixou três sugestões sem aplicar:
@@ -85,3 +85,4 @@ O repositório não tem `make test`: a mudança é texto de skill e manual. A ev
 
 ## Histórico
 - 2026-11-04: criação.
+- 2026-11-04: aprovada.
