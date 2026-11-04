@@ -38,6 +38,8 @@ Os retângulos são etapas de agente, que você dispara com o comando. Os hexág
 | Revisão | agente | revisão contra a spec, PR com evidências e a label `pronto-revisao` |
 | **Merge** | **você** | squash na `main`; a issue fecha sozinha |
 
+Você pode rodar cada etapa do agente pelo comando dela, ou deixar o [`/fabrica:avancar`](comandos.md#fabricaavancar-número-da-issue) executar as etapas em sequência. Ele para sozinho onde a tabela diz "você".
+
 Quando algo dá errado, o agente para, comenta na issue e aplica `escalonado`. Veja o guia [Issue escalonada](guias/issue-escalonada.md).
 
 ## Onde está o estado

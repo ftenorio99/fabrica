@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Cria ou corrige as sete labels da fábrica (agente, precisa-info, spec-pronta, spec-aprovada, escalonado, pronto-revisao, licao) num repositório do GitHub, conforme a tabela de estados.md, e instala na máquina os hooks do git que bloqueiam commit e push na main. Use num repositório que ainda não tem as labels, quando uma etapa avisar que uma label não existe ou quando avisarem que os hooks do git não estão instalados.
+description: Cria ou corrige as labels da fábrica (agente, precisa-info, spec-pronta, spec-aprovada, escalonado, pronto-revisao, licao, em-andamento) num repositório do GitHub, conforme a tabela de estados.md, e instala na máquina os hooks do git que bloqueiam commit e push na main. Use num repositório que ainda não tem as labels, quando uma etapa avisar que uma label não existe ou quando avisarem que os hooks do git não estão instalados.
 argument-hint: "[<dono>/<repo>]"
 disable-model-invocation: true
 ---

@@ -6,6 +6,8 @@
 
 **Critério de aceite (CA)** — Comportamento observável que a spec numera como CA1, CA2…, cada um com a forma de verificação. A revisão confere a implementação critério por critério. Veja [`/fabrica:spec`](comandos.md#fabricaspec-número-da-issue-ajustes-pedidos).
 
+**Em andamento** — Label `em-andamento`, que o `/fabrica:avancar` aplica enquanto roda uma etapa numa issue, para outra execução não pegar a mesma issue. Vale por 2 h; depois disso, é considerada esquecida. Veja [`estados.md`](../skills/status/estados.md#etapa-em-andamento).
+
 **Escalonado** — Label que um agente aplica quando para e precisa da sua decisão: falha que não conseguiu corrigir, desvio da spec, pendência de revisão ou pedido no PR que muda a spec. Veja [Issue escalonada](guias/issue-escalonada.md).
 
 **Fatiamento** — Seção do PRD que quebra as funcionalidades em itens de 1 a 2 dias, cada um com número fixo, agrupados em marcos. É a origem das issues de backlog. Veja [`skills/backlog/SKILL.md`](../skills/backlog/SKILL.md#formato-do-fatiamento).
