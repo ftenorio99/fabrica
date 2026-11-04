@@ -68,6 +68,16 @@ EOF
 out="$(python3 "$script" "$tmp/issue-ok.json" "$tmp/pr-missing.json")"
 check CA5 "revisar no PR sem linha: não medida" '{"medida": false, "tokens": null, "trabalho_min": null}' "$out"
 
+# SPEC-62: uma linha parcial=sim também derruba a medição.
+cat > "$tmp/issue-parcial.json" <<'EOF'
+[
+ {"body": "<!-- fabrica:triagem -->\n<!-- fabrica:custo etapa=triagem inicio=2026-11-04T10:00:00Z fim=2026-11-04T10:10:00Z entrada=10 saida=20 cache_escrita=30 cache_leitura=40 parcial=sim -->"},
+ {"body": "<!-- fabrica:spec -->\n<!-- fabrica:custo etapa=spec inicio=2026-11-04T11:00:00Z fim=2026-11-04T11:05:00Z entrada=1 saida=2 cache_escrita=3 cache_leitura=4 -->"}
+]
+EOF
+out="$(python3 "$script" "$tmp/issue-parcial.json" "$tmp/pr-ok.json")"
+check CA6 "linha parcial=sim: não medida" '{"medida": false, "tokens": null, "trabalho_min": null}' "$out"
+
 echo
 echo "$((total - failures))/$total ok"
 (( failures == 0 ))

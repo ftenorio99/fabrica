@@ -10,7 +10,7 @@ páginas) ou uma lista simples de comentários. `-` indica que não há PR.
 Imprime um JSON com `medida`, `tokens` e `trabalho_min`. A issue é medida
 quando cada comentário de triagem e de spec da issue e cada resposta do
 revisar no PR tem a linha de custo da própria etapa, e nenhuma linha diz
-`tokens=nao-medido`. Sem isso, `tokens` e `trabalho_min` saem como null.
+`tokens=nao-medido` nem `parcial=sim` (SPEC-62). Sem isso, `tokens` e `trabalho_min` saem como null.
 """
 import json
 import re
@@ -68,6 +68,9 @@ def main():
         if line.get("tokens") == "nao-medido" or not all(line.get(c, "").isdigit() for c in COUNTERS):
             complete = False
             continue
+        if line.get("parcial") == "sim":
+            # A soma pode estar abaixo do real: a issue deixa de ser medida.
+            complete = False
         tokens += sum(int(line[c]) for c in COUNTERS)
         try:
             work_seconds += max((parse(line["fim"]) - parse(line["inicio"])).total_seconds(), 0)
