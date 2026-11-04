@@ -14,6 +14,7 @@ Esta tabela é lida por `scripts/setup-labels.sh`, que cria ou corrige as labels
 | `escalonado` | implementar, revisar | `d93f0b` | O agente parou por falha e precisa do usuário. Sai quando a etapa é retomada. |
 | `pronto-revisao` | revisar | `c2e0c6` | PR com CI verde e revisão automática feita, aguardando o usuário. |
 | `licao` | triagem, implementar, revisar, licao | `f9d0c4` | Lição aprendida registrada num comentário fabrica:licao. |
+| `em-andamento` | avancar | `bfdadc` | Uma execução automática está rodando uma etapa nesta issue. Vale por 2 h. |
 
 ## Estados
 Avalie de cima para baixo; vale a primeira linha cuja condição for verdadeira.
@@ -29,12 +30,18 @@ Os agentes comentam com a mesma conta do GitHub do usuário, então o autor não
 | 5 | sem `spec-pronta`, sem `spec-aprovada` e sem marcador de spec | Triada | agente | `/fabrica:spec <nº>` |
 | 6 | `spec-pronta` sem `spec-aprovada`, com resposta nova ao marcador de spec | Ajuste da spec pedido | agente | `/fabrica:spec <nº> <ajustes>` |
 | 7 | `spec-pronta` sem `spec-aprovada` | Spec para aprovar | usuário | Revisar a spec e aplicar `spec-aprovada` ou comentar ajustes. |
-| 8 | `spec-aprovada` e nenhum PR da branch | Em implementação | agente | `/fabrica:implementar <nº>` (se nenhuma sessão estiver nele) |
+| 8 | `spec-aprovada` e nenhum PR da branch | Em implementação | agente | `/fabrica:implementar <nº>` (se não houver `em-andamento` recente) |
 | 9 | PR em rascunho | Revisão automática com pendências | usuário | Ler os achados pendentes no PR e decidir. |
 | 10 | PR aberto com CI falhando | CI vermelho | agente | `/fabrica:revisar <nº>` |
 | 11 | PR aberto com review `CHANGES_REQUESTED` ou com pedido novo no PR. Com a conta do usuário, o caminho é o comentário: o GitHub não deixa o autor pedir mudanças no próprio PR; a review vale para PR aberto por outra conta, como um bot | Ajustes do PR pedidos | agente | `/fabrica:revisar <nº>` |
-| 12 | PR aberto sem `pronto-revisao` | Em revisão automática | agente | `/fabrica:revisar <nº>` (se nenhuma sessão estiver nele) |
+| 12 | PR aberto sem `pronto-revisao` | Em revisão automática | agente | `/fabrica:revisar <nº>` (se não houver `em-andamento` recente) |
 | 13 | PR aberto com `pronto-revisao` | PR para revisar | usuário | Revisar o PR e fazer o merge com squash. |
+
+## Etapa em andamento
+A label `em-andamento` não é um estado: a issue continua no estado da tabela acima, e a label só diz que uma execução automática, como o `/fabrica:avancar`, está rodando uma etapa nela ([ADR 0003](../../docs/adr/0003-sinal-de-etapa-em-andamento.md)).
+- **Recente:** o último evento `labeled em-andamento` da timeline da issue tem menos de 2 h. Outra execução automática não pega a issue, e o `/fabrica:status` mostra "Em andamento" no lugar do comando.
+- **Esquecida:** o último evento tem 2 h ou mais, por exemplo numa sessão que morreu no meio. Outra execução pode pegar a issue, e o `/fabrica:status` alerta.
+- Os comandos manuais (`/fabrica:triagem` etc.) não aplicam nem conferem a label.
 
 ## Backlog
 Issue aberta **sem `agente`**, com milestone e com o marcador `<!-- fabrica:backlog item=<n> -->` no corpo, criada por `/fabrica:backlog` a partir do fatiamento do `docs/prd.md`. Ela fica fora da tabela de estados acima, que vale só para issues com `agente`.
@@ -60,3 +67,4 @@ Sinalize como alerta, sem tentar corrigir:
 - `pronto-revisao` sem PR aberto.
 - `spec-pronta` e `spec-aprovada` ao mesmo tempo é normal (a spec skill não remove a primeira); não é inconsistência.
 - PR fechado sem merge com a issue ainda aberta.
+- `em-andamento` aplicada há 2 h ou mais (label esquecida).

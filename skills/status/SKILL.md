@@ -17,6 +17,7 @@ Esta skill é o orquestrador em modo leitura: lê o estado de cada issue no GitH
 ## 1. Coletar
 - Dono: `gh api user -q .login`.
 - Issues: `gh search issues --owner <dono> --label agente --state open --json repository,number,title,labels,updatedAt,url --limit 100`. Com filtro, use `--repo <dono>/<repositório>`.
+- Para cada issue com `em-andamento`, o horário do último evento `labeled em-andamento`: `gh api repos/<repo>/issues/<nº>/timeline --paginate --slurp` ([Etapa em andamento](estados.md#etapa-em-andamento)).
 - Para cada issue, `gh issue view <nº> -R <repo> --json comments,labels` e localize os comentários mais recentes com `<!-- fabrica:triagem -->` e `<!-- fabrica:spec -->`. A branch da issue está no comentário de spec (`**Branch:**`).
 - Com a branch, procure o PR: `gh pr list -R <repo> --head <branch> --state all --json number,state,isDraft,url,reviewDecision,statusCheckRollup,updatedAt,body`.
 - Para cada PR aberto de issue do fluxo, `gh pr view <nº> -R <repo> --json comments,reviews`, para achar pedidos novos no PR (linha 11 de [estados.md](estados.md)). A referência é a linha `**Pedidos lidos até:**` do último comentário `<!-- fabrica:revisar -->`, ou a data dele quando a linha falta.
@@ -30,12 +31,13 @@ Esta skill é o orquestrador em modo leitura: lê o estado de cada issue no GitH
 Rode as consultas independentes em paralelo.
 
 ## 2. Classificar
-- Aplique a tabela de [estados.md](estados.md) a cada issue e anote estado, quem age e próximo passo.
+- Aplique a tabela de [estados.md](estados.md) a cada issue e anote estado, quem age e próximo passo. Numa issue de agente com `em-andamento` recente, o próximo passo é "Em andamento", sem comando: uma execução automática está nela.
 - **Diretório:** o comando de agente roda no clone do repositório. Use `~/projetos/<repositório>` se existir; senão, indique `gh repo clone <repo> ~/projetos/<repositório>`.
 - **Alertas:**
   - limite de trabalho em andamento: 3 ou mais issues abertas com `spec-aprovada` no mesmo repositório;
   - CI falhando em PR aberto;
   - item parado: sem atualização há mais de 3 dias;
+  - `em-andamento` esquecida: aplicada há 2 h ou mais. Texto: "`<repo>#<nº>`: `em-andamento` aplicada há <tempo>; a execução pode ter parado no meio. Remova a label ou rode `/fabrica:avancar <nº>`.";
   - inconsistências listadas em estados.md;
   - backlog acabando: o marco atual está perto de fechar e o marco depois do próximo existe no GitHub sem nenhuma issue. Sugira "rode `/fabrica:backlog` em `<repo>`".
   - requisito instável: na tabela `### Mudanças` do histórico do `docs/prd.md` (o mesmo PRD lido para os marcos), um F com 3 ou mais linhas cuja coluna Decisão começa com `aceita`. Uma linha com vários F conta para cada um, e um PRD sem a tabela não gera alerta. Texto: "`<repo>`: F<n> mudou <k> vezes; vale revisitar esse requisito com `/fabrica:prd`."
