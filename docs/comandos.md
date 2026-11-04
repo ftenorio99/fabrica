@@ -1,6 +1,6 @@
 # Comandos
 
-Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de cada uma; o passo a passo fica no `SKILL.md` linkado no fim de cada seção. Só você chama as skills que mudam algo; o Claude pode chamar sozinho apenas o `/fabrica:status`, que só lê (veja [Princípios](principios.md#skills-só-por-comando)).
+Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de cada uma; o passo a passo fica no `SKILL.md` linkado no fim de cada seção. Só você chama as skills que mudam algo; as duas que o Claude pode chamar sozinho são o `/fabrica:status` e o `/fabrica:metricas`, que só leem (veja [Princípios](principios.md#skills-só-por-comando)).
 
 ## `/fabrica:prd [ideia do produto em uma frase]`
 - **Quando:** no início de um projeto, ou quando o escopo do produto mudar.
@@ -68,6 +68,13 @@ Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de 
 - **Lê:** as issues com `agente`, os comentários dos agentes, os PRs, o backlog, as milestones, o PRD e as issues e PRs com `licao` dos seus repositórios.
 - **Cria:** nada. Só lê.
 - Detalhes: [`skills/status/SKILL.md`](../skills/status/SKILL.md).
+
+## `/fabrica:metricas [repositório] [período] [período de comparação]`
+- **Quando:** para saber como a fábrica está indo, ou se uma mudança nela melhorou o fluxo.
+- **O que faz:** para as issues entregues no período (por padrão, os últimos 30 dias), mostra quanto tempo cada uma levou da abertura ao merge, quanto esperou por você nos portões e quanto ficou com o agente, além das rodadas, escalonamentos e lições. Agrupa por marco e por repositório, com medianas. Com dois períodos (`AAAA-MM-DD..AAAA-MM-DD`), mostra a diferença entre eles. O tempo "com o agente" inclui a espera até você rodar o comando, e o custo em tokens ainda não é medido.
+- **Lê:** as issues fechadas com `agente`, a linha do tempo das labels de cada uma, os comentários dos agentes e os PRs.
+- **Cria:** nada. Só lê.
+- Detalhes: [`skills/metricas/SKILL.md`](../skills/metricas/SKILL.md).
 
 ## `/fabrica:licao [<dono>/<repo>#]<número> <texto da lição>`
 - **Quando:** quando você quiser anotar algo que deu errado, ou que vale lembrar na retrospectiva, numa issue ou num PR.
