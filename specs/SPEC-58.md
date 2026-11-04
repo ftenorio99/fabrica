@@ -1,7 +1,7 @@
 # SPEC-58: Custo em tokens e duração real por etapa nos comentários da fábrica
 
 **Issue:** #58 · **PRD:** — (a fábrica não tem `docs/prd.md`) · **Classe:** implementacao-complexa · **Tamanho:** G
-**Status:** rascunho · **Atualizada em:** 2026-11-04
+**Status:** aprovada · **Atualizada em:** 2026-11-04
 
 ## Contexto
 O `/fabrica:metricas` (#53) mede o tempo de cada issue pelos eventos do GitHub. Dois dados ainda faltam. O custo em tokens aparece como "não medido". O tempo "com o agente" mistura a fila, que é a espera até o comando ser rodado, com o trabalho, porque só o fim de cada etapa fica registrado. A triagem da #58 confirmou uma fonte no terminal: o log da sessão do Claude Code traz o `timestamp` e o `usage` de cada resposta do modelo, e os subagentes têm logs próprios na pasta da sessão.
@@ -122,3 +122,4 @@ O `/fabrica:metricas` lê as linhas de custo nos comentários da issue e do PR, 
 
 ## Histórico
 - 2026-11-04: criação.
+- 2026-11-04: aprovada.
