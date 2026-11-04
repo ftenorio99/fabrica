@@ -1,7 +1,7 @@
 # SPEC-53: Métricas da fábrica a partir dos eventos do GitHub
 
 **Issue:** #53 · **PRD:** — (a fábrica não tem `docs/prd.md`) · **Classe:** implementacao-complexa · **Tamanho:** G
-**Status:** rascunho · **Atualizada em:** 2026-11-04
+**Status:** aprovada · **Atualizada em:** 2026-11-04
 
 ## Contexto
 A fábrica não mede o próprio desempenho. As métricas em banco estão previstas só para a Fase 2, mas os eventos do GitHub já trazem o necessário: as labels aplicadas e removidas, com data, na timeline da issue, os comentários com marcador `<!-- fabrica:* -->`, as lições e o fechamento da issue no merge.
@@ -136,3 +136,4 @@ O repositório não tem `make test`: a skill é texto. A evidência é a execuç
 
 ## Histórico
 - 2026-11-04: criação.
+- 2026-11-04: aprovada.
