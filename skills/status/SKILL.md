@@ -21,7 +21,7 @@ Esta skill é o orquestrador em modo leitura: lê o estado de cada issue no GitH
 - Com a branch, procure o PR: `gh pr list -R <repo> --head <branch> --state all --json number,state,isDraft,url,reviewDecision,statusCheckRollup,updatedAt,body`.
 - Para cada PR aberto de issue do fluxo, `gh pr view <nº> -R <repo> --json comments,reviews`, para achar pedidos novos no PR (linha 11 de [estados.md](estados.md)). A referência é a linha `**Pedidos lidos até:**` do último comentário `<!-- fabrica:revisar -->`, ou a data dele quando a linha falta.
 - PRs abertos fora do fluxo (sem issue com `agente`): `gh search prs --owner <dono> --state open --json repository,number,title,url,updatedAt`.
-- Backlog: `gh search issues --owner <dono> --state open --json repository,number,title,body,url --limit 100 -- "fabrica:backlog in:body" -label:agente`. Fique só com as que têm o marcador `<!-- fabrica:backlog item=<n> -->`. Com filtro, use `--repo`.
+- Backlog: `gh search issues "backlog" --owner <dono> --state open --match body --json repository,number,title,body,url --limit 100 -- -label:agente`. Fique só com as que têm o marcador `<!-- fabrica:backlog item=<n> -->`. Com filtro, use `--repo`.
 - Repositórios com PRD: `gh repo list <dono> --no-archived --json nameWithOwner --limit 100` (com filtro, só o repositório) e, para cada um, `gh api repos/<repo>/contents/docs/prd.md --silent` (sucesso = tem PRD).
 - Milestones de cada repositório com PRD: `gh api "repos/<repo>/milestones?state=all&per_page=100"`, que traz `title`, `open_issues` e `closed_issues`. Considere só as de título `M<n> · <nome>`, na ordem de `<n>`.
 - Para as issues citadas no `Depende de` das issues de backlog do marco atual, confira se estão fechadas (`gh issue view <nº> -R <repo> --json state`).
