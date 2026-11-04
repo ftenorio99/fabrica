@@ -24,7 +24,7 @@ Problemas que já apareceram no uso real e como resolver cada um.
 
 ## "A label `<label>` não existe neste repositório"
 - **Sintoma:** uma etapa para com essa mensagem, comum num repositório novo.
-- **Causa:** as sete labels do fluxo ainda não foram criadas nesse repositório.
+- **Causa:** as labels do fluxo ainda não foram criadas nesse repositório.
 - **O que fazer:** rode `/fabrica:setup` no clone e repita a etapa. As etapas não criam labels sozinhas, de propósito.
 
 ## Não há nada no fluxo
