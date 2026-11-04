@@ -1,7 +1,7 @@
 # SPEC-50: Aplicar os Termos do passo 2 na segunda coleta do /fabrica:revisar
 
 **Issue:** #50 · **PRD:** — (a fábrica não tem `docs/prd.md`) · **Classe:** implementacao-simples · **Tamanho:** P
-**Status:** rascunho · **Atualizada em:** 2026-11-04
+**Status:** aprovada · **Atualizada em:** 2026-11-04
 
 ## Contexto
 A SPEC-41 (PR #47) criou uma segunda coleta no passo 6 do `skills/revisar/SKILL.md`, feita antes de publicar a âncora. Os pedidos que chegam durante a rodada vão para a seção "Chegaram durante esta rodada". O texto diz "colete de novo pelos mesmos caminhos do passo 2", mas não diz que o filtro dos "Termos" do passo 2 também vale. Sem isso, a seção pode citar como pedido comentários com marcador do agente, comentários de lição ou reviews sem corpo. A sugestão veio da revisão automática do PR #47.
@@ -56,3 +56,4 @@ O repositório não tem `make test`: a mudança é texto de skill. A evidência 
 
 ## Histórico
 - 2026-11-04: criação.
+- 2026-11-04: aprovada.
