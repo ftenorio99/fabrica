@@ -9,6 +9,7 @@ Rode `bash <diretório base da etapa>/../../scripts/check-gh.sh`. Ele imprime um
 |---|---|
 | `ok <versão>` | Segue. |
 | `desatualizado <versão> <mínima>` | Para e diz no chat: "O `gh` <versão> está abaixo da mínima da fábrica (<mínima>). Rode `/fabrica:setup` para ver como atualizar e repita a etapa." |
+| `desatualizado desconhecida <mínima>` | Para e diz no chat: "Não consegui ler a versão do `gh`. Rode `/fabrica:setup` para ver como reinstalá-lo e repita a etapa." |
 | `sem-login <versão>` | Para e diz no chat: "O `gh` não está autenticado. Rode `gh auth login` e repita a etapa." |
 | `ausente` | Para e diz no chat: "O `gh` não está instalado. Instale-o pelas instruções de https://github.com/cli/cli#installation e repita a etapa." |
 

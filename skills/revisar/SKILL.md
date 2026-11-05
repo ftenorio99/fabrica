@@ -12,7 +12,7 @@ Issue: #$ARGUMENTS
 A revisão automática é a primeira passada antes da revisão humana. Ela confere a mudança contra a spec, não contra o gosto de quem revisa. Esta skill **nunca faz merge**.
 
 ## 1. Pré-requisitos
-- **`gh`:** rode `bash <diretório base desta skill>/../../scripts/check-gh.sh`. Se a linha não for `ok`, pare antes de ler ou escrever no GitHub, como diz [../setup/gh.md](../setup/gh.md). Seguida a partir do `/fabrica:implementar`, a checagem já foi feita.
+- **`gh`:** rode `bash <diretório base desta skill>/../../scripts/check-gh.sh`. Se a linha não for `ok`, pare antes de ler ou escrever no GitHub, como diz [../setup/gh.md](../setup/gh.md). Seguida a partir do `/fabrica:implementar`, que já fez a checagem, não a repita.
 - Você está na branch da issue (a do comentário `<!-- fabrica:spec -->`), com commits além da `main` e tudo enviado (`git status` limpo, `git push` feito).
 - `make lint` e `make test` passam. Se não passarem, volte para a etapa de implementação em vez de revisar.
 

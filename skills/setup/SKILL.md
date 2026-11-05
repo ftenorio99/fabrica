@@ -12,7 +12,7 @@ Repositório: $ARGUMENTS (vazio = o repositório do diretório atual)
 ## 1. `gh`
 Rode `bash <diretório base>/../../scripts/check-gh.sh` e siga a linha que ele imprime:
 - **`ok <versão>`:** siga para o passo 2.
-- **`desatualizado <versão> <mínima>`:** explique que, abaixo da mínima, o `gh pr edit` falha com o erro de descontinuação dos Projects clássicos (cli/cli#11983), e mostre a versão atual e a mínima. Mostre também o comando para instalar pelo repositório oficial no Debian/Ubuntu, que atualiza o `gh` do repositório do Ubuntu:
+- **`desatualizado <versão> <mínima>`, com uma versão lida:** explique que, abaixo da mínima, o `gh pr edit` falha com o erro de descontinuação dos Projects clássicos (cli/cli#11983), e mostre a versão atual e a mínima. Mostre também o comando para instalar pelo repositório oficial no Debian/Ubuntu, que atualiza o `gh` do repositório do Ubuntu:
 
   ```bash
   (type -p wget >/dev/null || (sudo apt update && sudo apt install wget -y)) \
@@ -27,6 +27,7 @@ Rode `bash <diretório base>/../../scripts/check-gh.sh` e siga a linha que ele i
   ```
 
   Para as outras plataformas, indique https://github.com/cli/cli#installation. Não rode esse comando nem `sudo`: quem atualiza é o usuário. Depois, siga para o passo 2, porque as labels e os hooks funcionam com o `gh` antigo.
+- **`desatualizado desconhecida <mínima>`:** o script não conseguiu ler a versão. Pare o setup, mostre a primeira linha de `gh --version` e diga para reinstalar o `gh` pelo repositório oficial, com o comando acima ou pelas instruções de https://github.com/cli/cli#installation.
 - **`sem-login <versão>`:** pare o setup e diga para rodar `gh auth login` e repetir o `/fabrica:setup`.
 - **`ausente`:** pare o setup e indique a instalação em https://github.com/cli/cli#installation.
 
