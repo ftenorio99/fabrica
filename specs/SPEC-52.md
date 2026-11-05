@@ -1,7 +1,7 @@
 # SPEC-52: Atalho na triagem para issues pequenas e sem ambiguidade
 
 **Issue:** #52 · **PRD:** — (o fabrica não tem `docs/prd.md`) · **Classe:** implementacao-complexa · **Tamanho:** G
-**Status:** rascunho · **Atualizada em:** 2026-11-05
+**Status:** aprovada · **Atualizada em:** 2026-11-05
 
 ## Contexto
 Hoje toda issue segue o mesmo caminho: triagem, `/fabrica:spec`, aprovação com `spec-aprovada`, implementação, revisão e merge. A triagem já classifica o tamanho e a classe, mas essa classificação não muda o caminho. Ajustar um texto custa a mesma etapa de spec, com branch, arquivo e commit, que uma mudança de arquitetura. A issue pede um atalho para issues pequenas e sem ambiguidade. O atalho mantém o contrato verificável (os CAs), a revisão do agente e o merge humano, e a decisão sobre o formato dele fica registrada num ADR.
@@ -122,3 +122,4 @@ As etapas, o `/fabrica:status`, o `/fabrica:avancar` e o `/fabrica:metricas` pas
 
 ## Histórico
 - 2026-11-05: criação.
+- 2026-11-05: aprovada.

@@ -1,6 +1,6 @@
 # ADR 0004: atalho da triagem com spec curta
 
-**Status:** proposto · **Data:** 2026-11-05 · **Origem:** issue #52
+**Status:** aceito · **Data:** 2026-11-05 · **Origem:** issue #52
 
 ## Contexto
 Toda issue passa por triagem, spec, aprovação da spec, implementação, revisão e merge, qualquer que seja o tamanho. Ajustar um texto custa a mesma etapa de spec, com branch, arquivo `specs/SPEC-<nº>.md` e commit, que uma mudança de arquitetura. A triagem já sabe quando uma issue é pequena e sem ambiguidade: ela classifica o tamanho e a classe e procura lacunas.
