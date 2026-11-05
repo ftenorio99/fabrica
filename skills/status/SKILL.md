@@ -18,7 +18,7 @@ Esta skill é o orquestrador em modo leitura: lê o estado de cada issue no GitH
 - Dono: `gh api user -q .login`.
 - Issues: `gh search issues --owner <dono> --label agente --state open --json repository,number,title,labels,updatedAt,url --limit 100`. Com filtro, use `--repo <dono>/<repositório>`.
 - Para cada issue com `em-andamento`, o horário do último evento `labeled em-andamento`: `gh api repos/<repo>/issues/<nº>/timeline --paginate --slurp` ([Etapa em andamento](estados.md#etapa-em-andamento)).
-- Para cada issue, `gh issue view <nº> -R <repo> --json comments,labels` e localize os comentários mais recentes com `<!-- fabrica:triagem -->` e `<!-- fabrica:spec -->`. A branch da issue está no comentário de spec (`**Branch:**`).
+- Para cada issue, `gh issue view <nº> -R <repo> --json comments,labels` e localize os comentários mais recentes com `<!-- fabrica:triagem -->` e `<!-- fabrica:spec -->`. A branch da issue sai da regra da spec da issue de [estados.md](estados.md): o `**Branch:**` do comentário de spec ou, no atalho, o da spec curta do comentário de triagem.
 - Com a branch, procure o PR: `gh pr list -R <repo> --head <branch> --state all --json number,state,isDraft,url,reviewDecision,statusCheckRollup,updatedAt,body`.
 - Para cada PR aberto de issue do fluxo, `gh pr view <nº> -R <repo> --json comments,reviews`, para achar pedidos novos no PR (linha 11 de [estados.md](estados.md)). A referência é a linha `**Pedidos lidos até:**` do último comentário `<!-- fabrica:revisar -->`, ou a data dele quando a linha falta.
 - PRs abertos fora do fluxo (sem issue com `agente`): `gh search prs --owner <dono> --state open --json repository,number,title,url,updatedAt`.
@@ -31,7 +31,7 @@ Esta skill é o orquestrador em modo leitura: lê o estado de cada issue no GitH
 Rode as consultas independentes em paralelo.
 
 ## 2. Classificar
-- Aplique a tabela de [estados.md](estados.md) a cada issue e anote estado, quem age e próximo passo. Numa issue de agente com `em-andamento` recente, o próximo passo é "Em andamento", sem comando: uma execução automática está nela.
+- Aplique a tabela de [estados.md](estados.md) a cada issue e anote estado, quem age e próximo passo. Numa issue no atalho em "Spec para aprovar", o próximo passo é "Revisar a spec curta na triagem e aplicar `spec-aprovada`", com o link do comentário de triagem. Numa issue de agente com `em-andamento` recente, o próximo passo é "Em andamento", sem comando: uma execução automática está nela.
 - **Diretório:** o comando de agente roda no clone do repositório. Use `~/projetos/<repositório>` se existir; senão, indique `gh repo clone <repo> ~/projetos/<repositório>`.
 - **Alertas:**
   - limite de trabalho em andamento: 3 ou mais issues abertas com `spec-aprovada` no mesmo repositório;

@@ -14,7 +14,7 @@ Esta skill executa as etapas em que o agente age e para nos portões do usuário
 ## 1. Coletar
 - **Repositório:** `gh repo view --json nameWithOwner -q .nameWithOwner`. Fora de um clone com remote no GitHub, pare e diga que o comando roda dentro do clone do repositório.
 - **Issues:** com número, só ela. Sem número, todas as abertas com `agente`: `gh issue list --label agente --state open --json number,title,labels,url --limit 100`.
-- Para cada issue, colete o estado como no passo 1 do [`/fabrica:status`](../status/SKILL.md): comentários e labels, a branch do comentário de spec, o PR da branch e os pedidos novos no PR. Use só o repositório atual.
+- Para cada issue, colete o estado como no passo 1 do [`/fabrica:status`](../status/SKILL.md): comentários e labels, a branch da issue (pela regra da spec da issue de [estados.md](../status/estados.md)), o PR da branch e os pedidos novos no PR. Use só o repositório atual.
 - **Em andamento:** para cada issue com `em-andamento`, pegue o horário do último evento `labeled em-andamento`: `gh api repos/<repo>/issues/<nº>/timeline --paginate --slurp`. Siga a regra de [estados.md](../status/estados.md#etapa-em-andamento).
 
 ## 2. Selecionar
@@ -32,7 +32,7 @@ Esta skill executa as etapas em que o agente age e para nos portões do usuário
 | 2 Aguardando triagem | [triagem](../triagem/SKILL.md) | `<nº>` |
 | 4 Respostas recebidas | [spec](../spec/SKILL.md) se o último comentário do agente antes da resposta for de spec (`<!-- fabrica:spec -->`); senão, [triagem](../triagem/SKILL.md) | `<nº>` |
 | 5 Triada | [spec](../spec/SKILL.md) | `<nº>` |
-| 6 Ajuste da spec pedido | [spec](../spec/SKILL.md) | `<nº> <ajustes>`, com os ajustes tirados dos comentários do usuário posteriores ao último `<!-- fabrica:spec -->` |
+| 6 Ajuste da spec pedido | [spec](../spec/SKILL.md) | `<nº> <ajustes>`, com os ajustes tirados dos comentários do usuário posteriores ao último `<!-- fabrica:spec -->` ou, no atalho, ao comentário de triagem com a spec curta |
 | 8 Em implementação | [implementar](../implementar/SKILL.md), que já segue para o `revisar` | `<nº>` |
 | 10, 11 e 12 | [revisar](../revisar/SKILL.md) | `<nº>` |
 
