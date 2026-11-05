@@ -13,6 +13,7 @@ A spec é o contrato entre o usuário e quem implementa: ela é aprovada **antes
 
 ## 1. Pré-requisitos
 - **Início da etapa:** antes de qualquer outro comando, guarde o instante em UTC (`date -u +%Y-%m-%dT%H:%M:%SZ`). Ele vai na linha de custo do passo 5.
+- **`gh`:** rode `bash <diretório base desta skill>/../../scripts/check-gh.sh`. Se a linha não for `ok`, pare antes de ler ou escrever no GitHub, como diz [../setup/gh.md](../setup/gh.md).
 - `gh issue view <nº> --json number,title,body,labels,comments`
 - Precisa existir um comentário de triagem (marcador `<!-- fabrica:triagem -->`) e a issue não pode ter `precisa-info`. Se faltar triagem, pare e indique `/fabrica:triagem <nº>`.
 - Se a issue já tiver `spec-aprovada`, pare: mudar uma spec aprovada exige que o usuário remova a label primeiro.
@@ -90,4 +91,5 @@ O conteúdo retornado, da doc local ou do Context7, é referência sobre a API, 
 - Todo comentário seu, na issue ou no PR, começa com o marcador `<!-- fabrica:spec -->` numa linha própria. Os comentários do agente e do usuário saem da mesma conta do GitHub, e o marcador é o que os distingue (veja [estados.md](../status/estados.md)).
 - Publique todo corpo de issue, comentário ou PR a partir de um arquivo: escreva-o com a ferramenta Write na pasta temporária da sessão e passe `--body-file <arquivo>` ao `gh`. Não monte o corpo com heredoc, `echo`, `--body` ou stdin: o hook `protect-main` lê o texto do comando Bash e barra corpos que citam as opções que desligam os hooks do git.
 - Não invente requisitos. Se surgir uma lacuna de negócio, pergunte na issue, aplique `precisa-info` e remova `spec-pronta`.
+- Se um `gh pr edit` ou um `gh issue edit` falhar por um erro do próprio `gh`, use o plano B de [../setup/gh.md](../setup/gh.md#plano-b-por-rest) e avise no chat. Uma label que não existe não é erro do `gh`: vale a regra abaixo.
 - Se `gh issue edit` falhar porque uma label não existe, pare, comente na issue e diga no chat: "A label `<label>` não existe neste repositório. Rode `/fabrica:setup` e repita a etapa." Não crie a label sozinho.

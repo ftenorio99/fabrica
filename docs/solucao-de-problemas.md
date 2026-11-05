@@ -27,6 +27,15 @@ Problemas que já apareceram no uso real e como resolver cada um.
 - **Causa:** as labels do fluxo ainda não foram criadas nesse repositório.
 - **O que fazer:** rode `/fabrica:setup` no clone e repita a etapa. As etapas não criam labels sozinhas, de propósito.
 
+## "O `gh` <versão> está abaixo da mínima da fábrica"
+- **Sintoma:** uma etapa para com essa mensagem antes de mexer no GitHub, ou o `gh pr edit` falha com "Projects (classic) is being deprecated".
+- **Causa:** o `gh` instalado é anterior à correção do bug dos Projects clássicos (cli/cli#11983). Isso é comum com o `gh` do repositório do Ubuntu.
+- **O que fazer:** rode `/fabrica:setup`, que mostra a versão atual, a mínima e o comando para instalar pelo repositório oficial. Atualize e repita a etapa. Se a falha aparecer mesmo assim, a etapa refaz a edição pela API REST e avisa no chat, como diz [`skills/setup/gh.md`](../skills/setup/gh.md).
+
+## "O `gh` não está autenticado" ou "O `gh` não está instalado"
+- **Sintoma:** o setup ou uma etapa para com uma dessas mensagens.
+- **O que fazer:** rode `gh auth login`, ou instale o `gh` pelas [instruções oficiais](https://github.com/cli/cli#installation), e repita o comando.
+
 ## Não há nada no fluxo
 - **Sintoma:** o `/fabrica:status` não mostra nenhuma issue esperando você ou um agente.
 - **Causa:** nenhuma issue tem `agente` aberta.
