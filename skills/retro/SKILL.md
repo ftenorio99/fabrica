@@ -13,7 +13,7 @@ Esta skill é o observador da fábrica: ela vê onde as etapas falharam e propõ
 
 ## 1. Coletar
 - **Dono:** `gh api user -q .login`. As propostas vão sempre para `<dono>/fabrica`, qualquer que seja o repositório analisado.
-- **Repositórios:** com filtro, só `<dono>/<filtro>`. Sem filtro, os que têm issue com `agente`: `gh search issues --owner <dono> --label agente --json repository --limit 100`, sem repetir.
+- **Repositórios:** com filtro, só `<dono>/<filtro>`. Sem filtro, os que têm issue com `agente`: `gh search issues --owner <dono> --label agente --json repository --limit 100`, sem repetir. O limite de 100 vale para todos os repositórios somados: se a busca trouxer 100 issues, liste os repositórios do dono (`gh repo list <dono> --no-archived --limit 1000 --json nameWithOwner`) e use todos, como no [`/fabrica:metricas`](../metricas/SKILL.md). Os que não tiverem issue com `agente` na janela ficam de fora no passo seguinte.
 - **Data de corte** de cada repositório: a mesma das lições no [`/fabrica:status`](../status/SKILL.md) (passo 2, "Lições"). Com marco `M<n>` fechado, o `closedAt` mais recente das issues do último marco fechado. Sem marco fechado, 30 dias antes de hoje (`date -u -d '30 days ago' +%F`).
 - **Issues** de cada repositório: `gh search issues --repo <repo> --label agente --updated ">=<corte>" --json number,title,url --limit 100`. Sem `--state`, a busca traz abertas e fechadas. Se trouxer 100, anote o repositório como cortado no limite.
 - Para cada issue, numa pasta temporária da sessão:
