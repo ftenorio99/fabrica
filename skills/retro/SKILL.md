@@ -40,7 +40,7 @@ Na comparação revisor × usuário:
 - Pedidos que só acrescentam escopo, ou que não têm relação com nenhum achado nem com um erro, não são evidência.
 - Esta classificação é um julgamento seu. Marque cada uma como "provável" na saída.
 
-Uma evidência cujo link já está nas Evidências de uma issue já proposta vai para a lista "já proposta em fabrica#N" e não entra em padrão novo. Lições com `**Retro:**` já ficaram de fora antes.
+Uma evidência que não é lição e cujo link já está nas Evidências de uma issue já proposta vai para a lista "já proposta em fabrica#N" e não entra em padrão novo. A regra não vale para lições: um comentário de lição pode ter vários blocos com o mesmo link, e a lição considerada já ficou de fora pela linha `**Retro:**`. Um bloco sem `**Retro:**` é evidência nova, mesmo que o link do comentário esteja numa issue já proposta.
 
 Sem nenhuma evidência em nenhum repositório, diga isso no chat, com as datas de corte, e pare.
 
