@@ -95,7 +95,7 @@ Os CAs seguem as mesmas regras da [spec](../spec/SKILL.md#4-escrever): numerados
 
 Depois, ajuste as labels:
 - **Com lacunas:** `gh issue edit <nº> --add-label precisa-info` e registre uma lição com o gatilho `precisa-info`, resumindo as lacunas e por que a issue não as respondia, como diz [../licao/formato.md](../licao/formato.md). Pare aqui e diga ao usuário que as perguntas estão na issue. Depois de respondidas, a triagem deve ser rodada de novo.
-- **Sem lacunas e sem atalho:** `gh issue edit <nº> --remove-label precisa-info` (se estiver lá). Diga que a issue está pronta para `/fabrica:spec <nº>`.
+- **Sem lacunas e sem atalho:** `gh issue edit <nº> --remove-label precisa-info` (se estiver lá). Se a issue tiver `spec-pronta` e nenhum comentário de spec, sobra de uma rodada anterior com atalho, remova também `spec-pronta`. Diga que a issue está pronta para `/fabrica:spec <nº>`.
 - **Atalho:** `gh issue edit <nº> --add-label spec-pronta --remove-label precisa-info`. Diga que a spec curta está no comentário de triagem e que o usuário aplica `spec-aprovada` para aprovar ou comenta na issue para pedir a spec completa.
 
 ## Regras

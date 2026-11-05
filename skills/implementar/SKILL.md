@@ -23,7 +23,7 @@ Pare e explique o motivo (no chat e, quando indicado, na issue) se algum destes 
 
 ## 2. Preparar a branch
 - Se a issue tiver `escalonado`, é uma retomada depois de um bloqueio: leia o último comentário do agente e a resposta do usuário e remova a label (`gh issue edit <nº> --remove-label escalonado`).
-- `git fetch origin`, `git switch <branch>` e `git pull`. Se a `main` avançou desde a spec, faça `git rebase origin/main` e resolva conflitos simples; se o conflito mexer no escopo, pare e reporte.
+- `git fetch origin`, `git switch <branch>` e `git pull` (no atalho, se a branch ainda não existir, veja o item seguinte antes). Se a `main` avançou desde a spec, faça `git rebase origin/main` e resolva conflitos simples; se o conflito mexer no escopo, pare e reporte.
 - **Atalho:** se a branch não existir (local ou em `origin`), crie-a a partir da `main` atualizada (`git switch main && git pull && git switch -c <branch>`). Não há arquivo de spec: pule os dois itens seguintes.
 - Na spec, mude o status para `aprovada` e registre a data no histórico. Nos ADRs citados pela spec, mude o status de `proposto` para `aceito`.
 - Commit: `docs: marca spec da issue #<nº> como aprovada`.

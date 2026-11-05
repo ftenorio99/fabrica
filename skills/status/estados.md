@@ -79,6 +79,6 @@ Issue aberta **sem `agente`**, com milestone e com o marcador `<!-- fabrica:back
 Sinalize como alerta, sem tentar corrigir:
 - `spec-aprovada` sem spec da issue (nem comentário de spec, nem triagem com atalho), ou marcador de spec sem a branch que ele cita. No atalho, a branch só nasce no `/fabrica:implementar`, e a falta dela antes disso não é inconsistência.
 - `pronto-revisao` sem PR aberto.
-- `spec-pronta` e `spec-aprovada` ao mesmo tempo é normal (a spec skill não remove a primeira); não é inconsistência.
+- `spec-pronta` e `spec-aprovada` ao mesmo tempo é normal (nem a spec nem a triagem do atalho removem a primeira); não é inconsistência.
 - PR fechado sem merge com a issue ainda aberta.
 - `em-andamento` aplicada há 2 h ou mais (label esquecida). Ao contrário das outras, esta não tira a issue do fluxo: uma execução automática pode retomá-la ([Etapa em andamento](#etapa-em-andamento)).
