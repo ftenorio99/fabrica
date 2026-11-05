@@ -2,7 +2,7 @@
 
 ## Pré-requisitos
 - **Claude Code** instalado.
-- **`gh` autenticado** na sua conta do GitHub (`gh auth login`). Todas as etapas leem e escrevem issues, labels e PRs por ele.
+- **`gh` autenticado** na sua conta do GitHub (`gh auth login`), na versão mínima da fábrica ou acima. Todas as etapas leem e escrevem issues, labels e PRs por ele. A versão mínima está em [`scripts/check-gh.sh`](../scripts/check-gh.sh). O `gh` do repositório do Ubuntu costuma estar abaixo dela, então instale-o pelo repositório oficial ([instruções](https://github.com/cli/cli#installation)).
 - **Context7**, opcional mas recomendado. As skills `spec` e `implementar` consultam por ele a documentação atual das bibliotecas. Instale uma vez por máquina:
   ```
   npx ctx7 setup --claude
@@ -22,7 +22,8 @@ No Claude Code:
 ```
 
 ## Configurar a máquina e o repositório
-Rode `/fabrica:setup` no clone de um projeto. Ele faz duas coisas:
+Rode `/fabrica:setup` no clone de um projeto. Ele faz três coisas:
+- **`gh`:** confere se ele está instalado, autenticado e na versão mínima. Se estiver desatualizado, mostra como atualizar, sem instalar nada.
 - **Labels:** cria ou corrige as labels do fluxo no repositório. É seguro rodar de novo.
 - **Hooks do git:** na primeira vez em cada máquina, pede confirmação e instala os hooks globais que recusam commit e push na `main`. Veja [Princípios](principios.md#main-protegida).
 
