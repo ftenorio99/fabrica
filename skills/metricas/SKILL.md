@@ -36,7 +36,7 @@ Rode as consultas independentes em paralelo.
   - `com_o_agente`, do primeiro `agente` ao fechamento, menos `esperando_voce`;
   - `escalonamentos`, os eventos `labeled escalonado`.
 - **Tokens e trabalho:** `python3 <pasta desta skill>/costs.py <pasta>/ci-<nº>.json <pasta>/cp-<nº>.json` (sem PR, `-` no lugar do segundo arquivo). O script lê as linhas `<!-- fabrica:custo ... -->` que as etapas deixam no fim dos seus comentários e devolve:
-  - `medida`: se cada comentário de triagem e de spec da issue e cada resposta `<!-- fabrica:revisar -->` do PR tem a linha da própria etapa, sem nenhuma linha `tokens=nao-medido`;
+  - `medida`: se cada comentário de triagem e de spec da issue e cada resposta `<!-- fabrica:revisar -->` do PR tem a linha da própria etapa, sem nenhuma linha `tokens=nao-medido` nem `parcial=sim`;
   - `tokens`: a soma de entrada, saída e cache das linhas;
   - `trabalho_min`: a soma de `fim − inicio` das linhas.
 
@@ -94,7 +94,7 @@ No chat, neste formato, omitindo as seções vazias:
 
 ## Notas
 - "Com o agente" inclui a espera até o comando ser rodado. Numa issue medida, ele se divide em Trabalho, o tempo das etapas, e Fila, o resto.
-- Tokens e trabalho só contam as issues medidas: as etapas registradas a partir da versão 0.13.0 da fábrica, rodadas no terminal. Etapas no GitHub Actions ainda não são medidas.
+- Tokens e trabalho só contam as issues medidas: as etapas registradas a partir da versão 0.13.0 da fábrica, rodadas no terminal, sem linha `parcial=sim`, que marca uma soma feita antes de o log da sessão terminar de ser gravado. Etapas no GitHub Actions ainda não são medidas.
 - A leitura vai até 100 issues por repositório, as de atualização mais recente. <"Nenhum repositório chegou ao limite." ou "Cortados no limite: <repos>.">
 ```
 
