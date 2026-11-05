@@ -11,7 +11,7 @@ Esta tabela é lida por `scripts/setup-labels.sh`, que cria ou corrige as labels
 |---|---|---|---|
 | `agente` | usuário | `5319e7` | A issue entra na fábrica. |
 | `precisa-info` | triagem, spec | `fbca04` | Há perguntas para o usuário na issue. |
-| `spec-pronta` | spec | `0e8a16` | Spec na branch, aguardando aprovação. |
+| `spec-pronta` | triagem, spec | `0e8a16` | Spec na branch, ou spec curta na triagem, aguardando aprovação. |
 | `spec-aprovada` | usuário | `1d76db` | Implementação liberada. Conta para o limite de 3 em andamento. |
 | `escalonado` | implementar, revisar | `d93f0b` | O agente parou por falha e precisa do usuário. Sai quando a etapa é retomada. |
 | `pronto-revisao` | revisar | `c2e0c6` | PR com CI verde e revisão automática feita, aguardando o usuário. |
@@ -23,6 +23,12 @@ Avalie de cima para baixo; vale a primeira linha cuja condição for verdadeira.
 
 Os agentes comentam com a mesma conta do GitHub do usuário, então o autor não serve para distinguir os dois. **Comentário do agente** é o que começa com um marcador `<!-- fabrica:<etapa> -->` (`triagem`, `spec`, `implementar`, `revisar`, `backlog`); **comentário do usuário** é qualquer outro, exceto o comentário de lição. A regra vale na issue e no PR, onde contam os comentários da conversa, as reviews e os comentários em linha. Toda review do usuário conta, mesmo sem corpo: um comentário em linha avulso cria uma review `COMMENTED` de corpo vazio, e é por ela que o `/fabrica:status` o enxerga. A exceção é a review `APPROVED` de corpo vazio, que não é comentário do usuário; com corpo, ela conta. "Resposta nova" é um comentário do usuário posterior ao último comentário do agente com o marcador citado. "Pedido novo no PR" é um comentário ou review do usuário no PR posterior à referência do último comentário `<!-- fabrica:revisar -->` da conversa do PR. A referência é o instante da linha `**Pedidos lidos até:**` desse comentário, ou a data dele quando a linha falta. Sem esse comentário, todo comentário do usuário no PR conta. O **comentário de lição** começa com `<!-- fabrica:licao` ([formato](../licao/formato.md)) e é ignorado em todas as regras de estado: não é comentário do agente nem do usuário, não é resposta nova, não é o último comentário do agente e não é pedido novo no PR. A label `licao` também não entra em nenhuma condição da tabela. A **linha de custo** `<!-- fabrica:custo ... -->`, que as etapas acrescentam no fim dos seus comentários com o início, o fim e os tokens da execução, só serve ao `/fabrica:metricas`: ela não muda o estado da issue nem o tipo do comentário, que continua sendo decidido pelo marcador da primeira linha.
 
+A **spec da issue** e a **branch da issue** vêm de um destes comentários, nesta ordem:
+- o comentário `<!-- fabrica:spec -->` mais recente: a spec é o arquivo que ele cita, e a branch é o `**Branch:**` dele;
+- sem comentário de spec, o comentário de triagem mais recente, quando ele tem `**Atalho:** sim`: a spec é a seção `### Spec curta` dele, e a branch é o `**Branch:**` dela ([Atalho](#atalho)).
+
+Toda etapa e todo comando que lê a spec, a branch ou o PR de uma issue usa esta regra.
+
 | # | Condição | Estado | Quem age | Próximo passo |
 |---|---|---|---|---|
 | 1 | `escalonado` | Bloqueado | usuário | Ler o último comentário do agente na issue (ou no PR) e decidir; depois retomar a etapa que parou. |
@@ -30,8 +36,8 @@ Os agentes comentam com a mesma conta do GitHub do usuário, então o autor não
 | 3 | `precisa-info` sem resposta nova | Perguntas abertas | usuário | Responder as perguntas na issue. |
 | 4 | `precisa-info` com resposta nova | Respostas recebidas | agente | `/fabrica:triagem <nº>` (ou `/fabrica:spec <nº>`, se as perguntas vieram da spec) |
 | 5 | sem `spec-pronta`, sem `spec-aprovada` e sem marcador de spec | Triada | agente | `/fabrica:spec <nº>` |
-| 6 | `spec-pronta` sem `spec-aprovada`, com resposta nova ao marcador de spec | Ajuste da spec pedido | agente | `/fabrica:spec <nº> <ajustes>` |
-| 7 | `spec-pronta` sem `spec-aprovada` | Spec para aprovar | usuário | Revisar a spec e aplicar `spec-aprovada` ou comentar ajustes. |
+| 6 | `spec-pronta` sem `spec-aprovada`, com resposta nova ao marcador de spec ou, no atalho, sem comentário de spec, com resposta nova ao marcador de triagem | Ajuste da spec pedido | agente | `/fabrica:spec <nº> <ajustes>` |
+| 7 | `spec-pronta` sem `spec-aprovada` | Spec para aprovar | usuário | Revisar a spec e aplicar `spec-aprovada` ou comentar ajustes. No atalho, a spec é a spec curta da triagem, e comentar pede a spec completa. |
 | 8 | `spec-aprovada` e nenhum PR da branch | Em implementação | agente | `/fabrica:implementar <nº>` (se não houver `em-andamento` recente) |
 | 9 | PR em rascunho | Revisão automática com pendências | usuário | Ler os achados pendentes no PR e decidir. |
 | 10 | PR aberto com CI falhando | CI vermelho | agente | `/fabrica:revisar <nº>` |
@@ -44,6 +50,12 @@ A label `em-andamento` não é um estado: a issue continua no estado da tabela a
 - **Recente:** o último evento `labeled em-andamento` da timeline da issue tem menos de 2 h. Outra execução automática não pega a issue, e o `/fabrica:status` mostra "Em andamento" no lugar do comando.
 - **Esquecida:** o último evento tem 2 h ou mais, por exemplo numa sessão que morreu no meio. Outra execução pode pegar a issue, e o `/fabrica:status` alerta.
 - Os comandos manuais (`/fabrica:triagem` etc.) não aplicam nem conferem a label.
+
+## Atalho
+Uma issue pequena e sem ambiguidade pode pular a etapa `/fabrica:spec` ([ADR 0004](../../docs/adr/0004-atalho-da-triagem-com-spec-curta.md)). O critério e o formato estão na [triagem](../triagem/SKILL.md).
+- **Entrada:** a triagem registra `**Atalho:** sim`, publica a `### Spec curta` no próprio comentário e aplica `spec-pronta`. A issue vai direto para a linha 7, Spec para aprovar.
+- **Aprovação:** a mesma label `spec-aprovada`, que conta para o limite de 3 em andamento. A partir daí, o fluxo é o de sempre.
+- **Saída:** uma resposta nova ao comentário de triagem, antes de `spec-aprovada`, leva à linha 6. O `/fabrica:spec` escreve a spec completa, e o comentário de spec passa a valer como spec da issue. A spec curta nunca é editada.
 
 ## Backlog
 Issue aberta **sem `agente`**, com milestone e com o marcador `<!-- fabrica:backlog item=<n> -->` no corpo, criada por `/fabrica:backlog` a partir do fatiamento do `docs/prd.md`. Ela fica fora da tabela de estados acima, que vale só para issues com `agente`.
@@ -65,7 +77,7 @@ Issue aberta **sem `agente`**, com milestone e com o marcador `<!-- fabrica:back
 
 ## Inconsistências
 Sinalize como alerta, sem tentar corrigir:
-- `spec-aprovada` sem marcador de spec, ou marcador de spec sem a branch que ele cita.
+- `spec-aprovada` sem spec da issue (nem comentário de spec, nem triagem com atalho), ou marcador de spec sem a branch que ele cita. No atalho, a branch só nasce no `/fabrica:implementar`, e a falta dela antes disso não é inconsistência.
 - `pronto-revisao` sem PR aberto.
 - `spec-pronta` e `spec-aprovada` ao mesmo tempo é normal (a spec skill não remove a primeira); não é inconsistência.
 - PR fechado sem merge com a issue ainda aberta.
