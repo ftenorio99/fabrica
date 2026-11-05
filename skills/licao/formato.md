@@ -16,6 +16,7 @@ Um comentário por issue (ou PR) e por gatilho. A primeira linha é o marcador, 
 
 - **Gatilho:** um de `precisa-info`, `escalonado`, `rodadas`, `desvio`, `achado-pendente` ou `usuario`.
 - **Marcador próprio:** este comentário começa com `<!-- fabrica:licao`, não com o marcador da etapa que o publica. Ele não conta como comentário do agente nem do usuário em nenhuma regra de estado (veja [estados.md](../status/estados.md)).
+- **Campo `Retro`:** opcional, escrito só pelo `/fabrica:retro` ([../retro/SKILL.md](../retro/SKILL.md)), como última linha do bloco, depois de `Origem`: `- **Retro:** <AAAA-MM-DD> · <dono>/fabrica#<nº>` quando a lição virou proposta numa issue do fabrica, ou `- **Retro:** <AAAA-MM-DD> · descartada`. Ele marca a lição como considerada, e ela não volta na próxima retrospectiva. O campo não muda a contagem de lições do `/fabrica:status`, que conta os blocos `**Lição · `, nem o estado da issue. As etapas que registram lições não o escrevem.
 
 ## Gatilhos automáticos
 | Etapa | Quando | Gatilho |

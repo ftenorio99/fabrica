@@ -2,6 +2,8 @@
 
 Fonte da verdade do estado de uma issue na fábrica. Não existe arquivo de estado à parte: o estado é lido das **labels**, dos **marcadores de comentário** (`<!-- fabrica:triagem -->`, `<!-- fabrica:spec -->`), do marcador de backlog no corpo da issue (`<!-- fabrica:backlog item=<n> -->`), das **milestones** e do **PR** da branch da issue. Esta tabela serve ao `/fabrica:status` hoje e ao dispatcher do GitHub Actions na Fase 1.
 
+O marcador `<!-- fabrica:retro -->` na primeira linha do corpo identifica a issue que o `/fabrica:retro` criou no fabrica com uma proposta de melhoria. Ele não muda o estado: a issue nasce sem `agente`, fora do fluxo, e segue a tabela abaixo quando o usuário aplicar `agente`.
+
 ## Labels
 Esta tabela é lida por `scripts/setup-labels.sh`, que cria ou corrige as labels num repositório (`/fabrica:setup`). O `Significado` vira a descrição da label no GitHub, com no máximo 100 caracteres, e a `Cor` vai em hexadecimal sem `#`.
 
