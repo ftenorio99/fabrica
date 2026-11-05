@@ -13,7 +13,7 @@ A revisão automática é a primeira passada antes da revisão humana. Ela confe
 
 ## 1. Pré-requisitos
 - **`gh`:** rode `bash <diretório base desta skill>/../../scripts/check-gh.sh`. Se a linha não for `ok`, pare antes de ler ou escrever no GitHub, como diz [../setup/gh.md](../setup/gh.md). Seguida a partir do `/fabrica:implementar`, que já fez a checagem, não a repita.
-- Você está na branch da issue (a do comentário `<!-- fabrica:spec -->`), com commits além da `main` e tudo enviado (`git status` limpo, `git push` feito).
+- Você está na branch da issue (a da regra da spec da issue de [estados.md](../status/estados.md): o comentário `<!-- fabrica:spec -->` ou, no atalho, a spec curta da triagem), com commits além da `main` e tudo enviado (`git status` limpo, `git push` feito).
 - `make lint` e `make test` passam. Se não passarem, volte para a etapa de implementação em vez de revisar.
 
 ## 2. Pedidos no PR
@@ -33,7 +33,7 @@ Se já existir PR da branch (`gh pr view`), trate os pedidos do usuário antes d
 
 **Classificar** cada pedido novo:
 - **Ajuste:** resolve-se sem incluir, remover ou alterar um CA nem um item de "Fora de escopo" da spec (bug, caso-limite que um CA já cobre, nome, mensagem, teste faltando, documentação, estilo).
-- **Mudança de escopo:** exige incluir, remover ou alterar um CA, ou fazer algo de "Fora de escopo". Na dúvida, é mudança de escopo.
+- **Mudança de escopo:** exige incluir, remover ou alterar um CA, ou fazer algo de "Fora de escopo". Na dúvida, é mudança de escopo. No atalho, o "Fora de escopo" é a seção "Fora do escopo" do corpo da issue.
 
 **Tratar:**
 - **Ajuste:** corrija na branch, rode `make lint` e `make test`, faça commit (`fix: ...` ou o tipo adequado) e push. Essas correções não contam como rodada de revisão.
@@ -46,7 +46,7 @@ Guarde, para cada pedido, um trecho dele e o que foi feito: o commit da correç�
 Chame o subagente `revisor` deste plugin (no Agent tool, `fabrica:revisor`). Se ele não estiver disponível, use um subagente de propósito geral e passe a ele, como instruções, o conteúdo de [../../agents/revisor.md](../../agents/revisor.md).
 
 Passe ao revisor:
-- o número da issue e o caminho da spec;
+- o número da issue e o caminho da spec ou, no atalho, o link do comentário de triagem com a spec curta;
 - a branch e a base (`origin/main`);
 - as anotações da implementação: verificações manuais feitas e desvios da spec.
 
@@ -69,7 +69,7 @@ Se já existir PR da branch (`gh pr view`), atualize a descrição em vez de abr
   ## Resumo
   <O que muda, em duas a quatro frases, citando a spec.>
 
-  **Spec:** `specs/SPEC-<nº>.md` · **ADR:** <se houver>
+  **Spec:** `specs/SPEC-<nº>.md` (no atalho, o link do comentário de triagem com a spec curta) · **ADR:** <se houver>
 
   ## Critérios de aceite
   | ID | Status | Evidência |
