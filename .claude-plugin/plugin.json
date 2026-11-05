@@ -1,6 +1,6 @@
 {
   "name": "fabrica",
-  "version": "0.15.1",
+  "version": "0.16.0",
   "description": "Fábrica de software pessoal: skills, agentes e hooks que padronizam o fluxo issue → spec → implementação → revisão → PR.",
   "author": {
     "name": "Fernando Tenorio"
