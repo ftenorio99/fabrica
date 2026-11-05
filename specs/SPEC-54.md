@@ -1,7 +1,7 @@
 # SPEC-54: Retrospectiva por agente observador que propõe melhorias nas skills
 
 **Issue:** #54 · **PRD:** — (a fábrica não tem `docs/prd.md`) · **Classe:** implementacao-complexa · **Tamanho:** G
-**Status:** rascunho · **Atualizada em:** 2026-11-05
+**Status:** aprovada · **Atualizada em:** 2026-11-05
 
 ## Contexto
 As etapas já registram lições na hora (`label:licao`, #44), e os pedidos do usuário nos PRs já entram no fluxo (#40, #41). Quem transforma isso em melhoria da fábrica, porém, ainda é o usuário, numa retrospectiva manual que vira PRs no fabrica (ex.: #10, que saiu da retrospectiva do kairo#3). Na palestra de Zach Lloyd (Warp), a auto-melhoria é um dos quatro componentes da fábrica: um agente observador vê onde as skills falham e propõe mudanças nelas. Esta issue cria esse observador, sem dar a ele o poder de editar o fabrica.
@@ -153,3 +153,4 @@ O fabrica não tem `make test` para as skills. Os critérios são verificados à
 
 ## Histórico
 - 2026-11-05: criação.
+- 2026-11-05: aprovada.
