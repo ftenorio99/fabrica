@@ -173,6 +173,55 @@ check CA5 "o início é o da chamada anterior" "${c5%.000Z}Z" "$(start_of <<<"$o
 out="$(CLAUDE_CODE_SESSION_ID="$s5" python3 "$script" --stage revisar --since "$(at_s -100)" --exact)"
 check CA5 "--exact: sem recuo" 4 "$(inputs <<<"$out")"
 
+# --- SPEC-66 ---------------------------------------------------------------
+# O --since em segundos inteiros, como o fim cortado da etapa anterior.
+since66="$(at_s -100)"
+after() { printf '%s.%sZ' "${since66%Z}" "$1"; } # after <ms>: o --since mais <ms> milissegundos
+script_call() { # script_call <horário>: chamada do script com usage
+  printf '{"type":"assistant","timestamp":"%s","message":{"id":"chamada_%s","usage":{"input_tokens":500,"output_tokens":0},"content":[{"type":"tool_use","name":"Bash","input":{"command":"python3 scripts/stage-usage.py --stage implementar --since x"}}]}}\n' "$1" "$RANDOM"
+}
+p66="$(at -300)"
+
+# CA1: a chamada anterior 0,2 s depois do --since vira marco.
+s61="66000001-0000-0000-0000-000000000000"
+{
+  prompt "$p66"
+  reply anterior "$(at -290)" 1000
+  script_call "$(after 200)"
+  tool_result "$(after 300)"
+  reply depois "$(at -50)" 30
+  call_entry "$(at 0)"
+} > "$project/$s61.jsonl"
+out="$(CLAUDE_CODE_SESSION_ID="$s61" python3 "$script" --stage revisar --since "$since66")"
+check CA1 "chamada 0,2 s depois do --since: só o que vem depois dela" 30 "$(inputs <<<"$out")"
+check CA1 "chamada 0,2 s depois do --since: início no segundo da chamada" "$since66" "$(start_of <<<"$out")"
+
+# CA2: a chamada 2 s depois do --since é da própria etapa e não vira marco.
+s62="66000002-0000-0000-0000-000000000000"
+{
+  prompt "$p66"
+  reply anterior "$(at -290)" 1000
+  script_call "$(at -98)"
+  reply depois "$(at -50)" 30
+  call_entry "$(at 0)"
+} > "$project/$s62.jsonl"
+out="$(CLAUDE_CODE_SESSION_ID="$s62" python3 "$script" --stage revisar --since "$since66")"
+check CA2 "chamada 2 s depois do --since: recua até o marco anterior" 1530 "$(inputs <<<"$out")"
+check CA2 "chamada 2 s depois do --since: início na mensagem do usuário" "${p66%.000Z}Z" "$(start_of <<<"$out")"
+
+# CA3: a mensagem do usuário não tem margem.
+s63="66000003-0000-0000-0000-000000000000"
+{
+  prompt "$p66"
+  reply anterior "$(at -290)" 1000
+  prompt "$(after 500)"
+  reply depois "$(at -50)" 30
+  call_entry "$(at 0)"
+} > "$project/$s63.jsonl"
+out="$(CLAUDE_CODE_SESSION_ID="$s63" python3 "$script" --stage revisar --since "$since66")"
+check CA3 "mensagem 0,5 s depois do --since: não vira marco" 1030 "$(inputs <<<"$out")"
+check CA3 "mensagem 0,5 s depois do --since: início na mensagem anterior" "${p66%.000Z}Z" "$(start_of <<<"$out")"
+
 echo
 echo "$((total - failures))/$total ok"
 (( failures == 0 ))
