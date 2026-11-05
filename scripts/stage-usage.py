@@ -17,6 +17,9 @@ SPEC-62:
   a última chamada anterior deste script, o que for mais recente, em no
   máximo 30 min. --exact desliga o recuo.
 
+SPEC-66: a chamada anterior do script vale como marco até 1 s depois do
+--since, que vem cortado em segundos do fim da etapa anterior.
+
 Sem log aproveitável, imprime a linha com `tokens=nao-medido`. Sai sempre com
 código 0, para nunca derrubar a etapa.
 """
@@ -37,6 +40,9 @@ FIELDS = (
 )
 FRESH_WINDOW = timedelta(seconds=10)
 MAX_LOOKBACK = timedelta(minutes=30)
+# O fim da etapa anterior sai cortado em segundos, então a chamada que a fechou
+# fica até 1 s depois do --since da etapa seguinte (SPEC-66).
+CALL_MARGIN = timedelta(seconds=1)
 POLL_SECONDS = 0.5
 TAIL_BYTES = 512 * 1024
 SCRIPT_NAME = "stage-usage.py"
@@ -140,14 +146,21 @@ def calls_this_script(entry):
 
 
 def effective_start(main_log, since):
-    """Recua o início até a última mensagem do usuário ou chamada anterior do script."""
+    """Recua o início até a última mensagem do usuário ou chamada anterior do script.
+
+    A chamada do script vale como marco até CALL_MARGIN depois do --since,
+    porque o --since vindo do fim da etapa anterior perdeu os milissegundos.
+    A mensagem do usuário vale só até o --since.
+    """
     floor = since - MAX_LOOKBACK
     start = None
     for entry in entries(main_log):
         moment = timestamp(entry)
-        if moment is None or not floor <= moment <= since:
+        if moment is None or not floor <= moment <= since + CALL_MARGIN:
             continue
         if is_user_prompt(entry):
+            if moment > since:
+                continue
             candidate = moment
         elif calls_this_script(entry):
             # A resposta que chamou o script pertence à etapa anterior.
