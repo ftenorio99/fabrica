@@ -1,7 +1,7 @@
 # SPEC-66: Recuo da linha de custo ignora a chamada anterior por causa do fim cortado em segundos
 
 **Issue:** #66 · **PRD:** — (a fábrica não tem `docs/prd.md`) · **Classe:** implementacao-simples · **Tamanho:** P
-**Status:** rascunho · **Atualizada em:** 2026-11-05
+**Status:** aprovada · **Atualizada em:** 2026-11-05
 
 ## Contexto
 O `scripts/stage-usage.py` recua o início da etapa até o marco mais recente que não seja posterior ao `--since` (SPEC-62). Os marcos são a mensagem do usuário que disparou a etapa e a chamada anterior do próprio script. Quando o `implementar` segue para o `revisar`, o `--since` do `revisar` é o `fim` da linha do `implementar`, e esse `fim` é cortado para segundos. No PR #65, a chamada que fechou o `implementar` ficou no log às 02:39:00.195, e o `--since` do `revisar` foi 02:39:00. A chamada ficou fora da janela, o recuo foi até a mensagem do usuário, às 02:35:34, e a linha do `revisar` somou o `implementar` de novo.
@@ -57,3 +57,4 @@ Na segunda de duas etapas seguidas, a linha de custo começa logo depois da cham
 
 ## Histórico
 - 2026-11-05: criação.
+- 2026-11-05: aprovada.
