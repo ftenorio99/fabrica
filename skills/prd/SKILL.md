@@ -50,6 +50,7 @@ Entre as rodadas, resuma em uma ou duas linhas o que você entendeu, para o usu�
 - Indique o próximo passo: depois do merge do PR do PRD, rodar `/fabrica:backlog` para criar as milestones e as issues do backlog.
 
 ## 5. Labels
+- **`gh`:** antes das labels, rode `bash <diretório base desta skill>/../../scripts/check-gh.sh`. Se a linha não for `ok`, não crie as labels: mostre a linha e indique `/fabrica:setup`, como diz [../setup/gh.md](../setup/gh.md). O PRD já escrito fica.
 - Sem pedir confirmação, rode `bash <diretório base desta skill>/../../scripts/setup-labels.sh` no diretório do projeto, para as labels da fábrica existirem antes da primeira issue.
 - Se ainda não houver remote no GitHub (repositório não criado), não trate como falha: avise que o setup roda com `/fabrica:setup` depois do `gh repo create`.
 - Mostre o resultado em uma linha (repositório e labels criadas ou corrigidas).

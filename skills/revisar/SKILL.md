@@ -12,6 +12,7 @@ Issue: #$ARGUMENTS
 A revisão automática é a primeira passada antes da revisão humana. Ela confere a mudança contra a spec, não contra o gosto de quem revisa. Esta skill **nunca faz merge**.
 
 ## 1. Pré-requisitos
+- **`gh`:** rode `bash <diretório base desta skill>/../../scripts/check-gh.sh`. Se a linha não for `ok`, pare antes de ler ou escrever no GitHub, como diz [../setup/gh.md](../setup/gh.md). Seguida a partir do `/fabrica:implementar`, a checagem já foi feita.
 - Você está na branch da issue (a do comentário `<!-- fabrica:spec -->`), com commits além da `main` e tudo enviado (`git status` limpo, `git push` feito).
 - `make lint` e `make test` passam. Se não passarem, volte para a etapa de implementação em vez de revisar.
 
@@ -108,4 +109,5 @@ Se já existir PR da branch (`gh pr view`), atualize a descrição em vez de abr
 - Todo comentário seu, na issue ou no PR, começa com o marcador `<!-- fabrica:revisar -->` numa linha própria, exceto o comentário de lição, que segue [../licao/formato.md](../licao/formato.md). Os comentários do agente e do usuário saem da mesma conta do GitHub, e o marcador é o que os distingue (veja [estados.md](../status/estados.md)).
 - Publique todo corpo de issue, comentário ou PR a partir de um arquivo: escreva-o com a ferramenta Write na pasta temporária da sessão e passe `--body-file <arquivo>` ao `gh`. Não monte o corpo com heredoc, `echo`, `--body` ou stdin: o hook `protect-main` lê o texto do comando Bash e barra corpos que citam as opções que desligam os hooks do git.
 - O status de cada CA no PR precisa ter evidência; "implementado" sem evidência não conta.
+- Se um `gh pr edit` ou um `gh issue edit` falhar por um erro do próprio `gh`, use o plano B de [../setup/gh.md](../setup/gh.md#plano-b-por-rest) e avise no chat. Uma label que não existe não é erro do `gh`: vale a regra abaixo.
 - Se `gh issue edit` falhar porque uma label não existe, pare, comente na issue e diga no chat: "A label `<label>` não existe neste repositório. Rode `/fabrica:setup` e repita a etapa." Não crie a label sozinho. A exceção é a `licao`: sem ela, a etapa avisa e segue, como diz [../licao/formato.md](../licao/formato.md).

@@ -16,6 +16,7 @@ Os termos (item com issue, marco atual, perto de fechar, janela) e o marcador es
 - Nunca aplique `agente`.
 - Publique todo corpo de issue, comentário ou PR a partir de um arquivo: escreva-o com a ferramenta Write na pasta temporária da sessão e passe `--body-file <arquivo>` ao `gh`. Não monte o corpo com heredoc, `echo`, `--body` ou stdin: o hook `protect-main` lê o texto do comando Bash e barra corpos que citam as opções que desligam os hooks do git.
 - Nada é criado ou alterado antes da confirmação do usuário.
+- Se um `gh pr edit` ou um `gh issue edit` falhar por um erro do próprio `gh`, use o plano B de [../setup/gh.md](../setup/gh.md#plano-b-por-rest) e avise no chat.
 - Não commite na `main`: a anotação do PRD vai pela branch `docs/backlog` e por PR.
 - Em qualquer saída depois de criar a worktree do passo 1 (plano vazio, PRD inválido, cancelamento, erro ou fim do passo 5), remova-a com `git worktree remove --force <tmp>`. O git não deixa a mesma branch em duas worktrees, e uma worktree esquecida quebra a próxima execução.
 
@@ -35,6 +36,7 @@ Itens de 1 a 2 dias de trabalho humano, agrupados por marco e em ordem de depend
 - Cada item tem número fixo, título, as F entre parênteses (`base` quando não há F) e, quando houver, `depende de <números>`. A ordem da lista não cria dependência. Ao ganhar issue, o item recebe ` · #<nº>` no fim.
 
 ## 1. Ler
+- **`gh`:** rode `bash <diretório base desta skill>/../../scripts/check-gh.sh`. Se a linha não for `ok`, pare antes de ler ou escrever no GitHub, como diz [../setup/gh.md](../setup/gh.md).
 - Confirme que está num clone com remote no GitHub (`gh repo view --json nameWithOwner`). Se não estiver, pare e diga o que falta.
 - Se sobrou uma worktree da branch `docs/backlog` de uma execução anterior (`git worktree list`), remova-a com `git worktree remove --force <caminho>`.
 - `git fetch origin`. Veja se existe PR aberto da branch `docs/backlog` (`gh pr list --head docs/backlog --state open`).
