@@ -1,7 +1,7 @@
 # SPEC-39: Verificar a versão mínima do gh no setup e nas etapas da fábrica
 
 **Issue:** #39 · **PRD:** — (a fábrica não tem `docs/prd.md`) · **Classe:** implementacao-simples · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-11-05
+**Status:** aprovada · **Atualizada em:** 2026-11-05
 
 ## Contexto
 Todas as etapas da fábrica leem e escrevem no GitHub pelo `gh`. Numa implementação, o `gh pr edit` falhou com o erro de descontinuação dos Projects clássicos (`repository.pullRequest.projectCards`), e o agente precisou atualizar o PR pela API REST. A causa era o `gh` 2.46.0 do repositório do Ubuntu. O bug é o [cli/cli#11983](https://github.com/cli/cli/issues/11983), e o `gh` 2.103.3 do repositório oficial não o tem. Hoje a fábrica só descobre um `gh` antigo quando um comando falha no meio de uma etapa.
@@ -110,3 +110,4 @@ O plano B vale só para falha do próprio `gh` num `gh pr edit` ou num `gh issue
 
 ## Histórico
 - 2026-11-05: criação.
+- 2026-11-05: aprovada.
