@@ -55,7 +55,7 @@ O que dá errado no caminho fica registrado na hora, num comentário de lição 
 - **Pelos agentes:** a triagem, a implementação e a revisão registram uma lição quando param para perguntar, escalam, precisam de várias rodadas de correção, desviam do desenho da spec ou deixam um achado sério sem corrigir.
 - **Por você:** com [`/fabrica:licao`](comandos.md#fabricalicao-donoreponúmero-texto-da-lição), numa issue ou num PR.
 
-A lição não muda o estado da issue. O `/fabrica:status` conta as lições desde o último marco fechado, e a busca pela label `licao` reúne todas para a retrospectiva. O formato e os gatilhos estão em [`skills/licao/formato.md`](../skills/licao/formato.md).
+A lição não muda o estado da issue. O `/fabrica:status` conta as lições desde o último marco fechado, e a busca pela label `licao` reúne todas. O [`/fabrica:retro`](comandos.md#fabricaretro-repositório) lê as lições ainda não consideradas, junto com os escalonamentos e os seus pedidos nos PRs, e propõe mudanças no fabrica. As lições que ele considera ganham a linha `Retro` e não voltam na próxima retrospectiva. O formato e os gatilhos estão em [`skills/licao/formato.md`](../skills/licao/formato.md).
 
 ## Planejamento em ondas
 O backlog não cria todas as issues de uma vez:

@@ -84,6 +84,13 @@ Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de 
 - **Cria:** nada. Só lê.
 - Detalhes: [`skills/metricas/SKILL.md`](../skills/metricas/SKILL.md).
 
+## `/fabrica:retro [repositório]`
+- **Quando:** ao fechar um marco, ou quando você quiser saber o que mudar na fábrica.
+- **O que faz:** desde o último marco fechado (ou nos últimos 30 dias), junta o que deu errado: as lições ainda não consideradas, os escalonamentos, as issues com mais de uma rodada de triagem ou de spec e os seus pedidos nos PRs comparados com o que o revisor tinha apontado. Agrupa em padrões, cada um com as evidências e uma proposta de mudança num arquivo do fabrica. Você escolhe quais viram issue no fabrica, revê o texto e confirma. A comparação com o revisor é um julgamento da skill e aparece como "provável".
+- **Lê:** as issues com `agente`, os comentários, a linha do tempo das labels e os PRs dos seus repositórios, e as issues que retrospectivas anteriores criaram no fabrica.
+- **Cria:** com a sua confirmação, as issues no fabrica, sem `agente`, e a linha `Retro` nas lições consideradas, para elas não voltarem na próxima retrospectiva. Não edita o fabrica.
+- Detalhes: [`skills/retro/SKILL.md`](../skills/retro/SKILL.md).
+
 ## `/fabrica:licao [<dono>/<repo>#]<número> <texto da lição>`
 - **Quando:** quando você quiser anotar algo que deu errado, ou que vale lembrar na retrospectiva, numa issue ou num PR.
 - **O que faz:** organiza o seu texto no formato de lição (o que aconteceu, causa provável, ação sugerida e origem), mostra o resultado e só publica depois que você confirma. Campos que o texto não preenche ficam "não informado". Sem número, pergunta o destino. Com `<dono>/<repo>#<nº>`, registra em outro repositório, como uma lição sobre a fábrica vista no kairo.

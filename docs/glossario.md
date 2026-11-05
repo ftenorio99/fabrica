@@ -28,6 +28,8 @@
 
 **PRD** — Documento de requisitos do produto, em `docs/prd.md`. Tem o problema, o público, as funcionalidades numeradas (F1, F2…) e o fatiamento. Criado e atualizado pelo `/fabrica:prd`. Veja [`/fabrica:prd`](comandos.md#fabricaprd-ideia-do-produto-em-uma-frase).
 
+**Retrospectiva** — Leitura do que deu errado desde o último marco fechado, feita pelo `/fabrica:retro`: agrupa as lições, os escalonamentos, as rodadas e os seus pedidos nos PRs em padrões e propõe mudanças no fabrica, que viram issues só com a sua confirmação. Veja [`/fabrica:retro`](comandos.md#fabricaretro-repositório).
+
 **Spec** — O contrato de uma issue, em `specs/SPEC-<nº>.md`: objetivo, comportamento, critérios de aceite e desenho técnico. É escrita antes do código e aprovada por você com `spec-aprovada`. Veja [`/fabrica:spec`](comandos.md#fabricaspec-número-da-issue-ajustes-pedidos).
 
 **Triagem** — Primeira etapa de uma issue no fluxo: classifica tipo, classe e tamanho e pergunta na issue o que só você sabe. Veja [`/fabrica:triagem`](comandos.md#fabricatriagem-número-da-issue).
