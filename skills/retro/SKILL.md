@@ -94,11 +94,11 @@ No chat, neste formato, omitindo as seções vazias:
   - [<repo>#<nº> · <fonte>](<link>): <uma frase>
   ```
 
-  Mostre os títulos e os corpos no chat e pergunte com o AskUserQuestion: **Criar**, **Ajustar** (o usuário diz o que mudar, e você mostra de novo) ou **Cancelar** (nada é criado).
+  Mostre os títulos e os corpos no chat e pergunte com o AskUserQuestion: **Criar**, **Ajustar** (o usuário diz o que mudar, e você mostra de novo) ou **Cancelar** (nada é criado, e as lições desses padrões ficam sem a linha `Retro`, como se o padrão não tivesse sido oferecido).
 - **Criar:** `gh issue create -R <dono>/fabrica --title "<título>" --label <label> --body-file <arquivo>`, com:
   - título em português, sem prefixo de tipo, como as outras issues do fabrica;
   - label `enhancement`, ou `bug` quando a proposta corrige uma regra que está errada. Nunca `agente`: puxar a issue para o fluxo é do usuário.
-- **Padrões não escolhidos:** se sobrou algum, pergunte com o AskUserQuestion se as lições deles ficam marcadas como consideradas: **Marcar** (não voltam na próxima retro) ou **Deixar para a próxima retro**.
+- **Padrões não escolhidos:** são os oferecidos na pergunta e não marcados. Os que passaram dos 16 e os cancelados no **Cancelar** não entram aqui e nunca recebem `descartada`. Se sobrou algum padrão não escolhido, pergunte com o AskUserQuestion se as lições deles ficam marcadas como consideradas: **Marcar** (não voltam na próxima retro) ou **Deixar para a próxima retro**.
 
 ## 6. Marcar as lições
 Só depois da confirmação, para cada lição considerada:
