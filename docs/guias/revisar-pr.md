@@ -3,7 +3,7 @@
 O PR chegou com `pronto-revisao`: a revisão automática passou e o CI está verde. Falta você.
 
 ## Por onde começar
-O corpo do PR segue sempre a mesma ordem. Leia as seções nesta ordem:
+Leia as seções do corpo do PR nesta ordem, que não é a ordem em que elas aparecem:
 1. **Para a sua revisão:** onde o agente pede atenção, como arquivos sensíveis, decisões e riscos.
 2. **Desvios da spec:** o que mudou em relação ao desenho aprovado, e por quê.
 3. **Revisão automática:** os achados que foram corrigidos e as **sugestões não aplicadas**, que são para você decidir.

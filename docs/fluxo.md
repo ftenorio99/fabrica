@@ -51,10 +51,11 @@ Os seus portões são os mesmos: você aprova a spec curta com `spec-aprovada`, 
 Para tirar uma issue do atalho, comente na issue antes de aprovar. O próximo passo passa a ser o `/fabrica:spec`, que escreve a spec completa levando o seu comentário em conta. O critério está na [triagem](../skills/triagem/SKILL.md), e a decisão, no [ADR 0004](adr/0004-atalho-da-triagem-com-spec-curta.md).
 
 ## Onde está o estado
-Não existe arquivo de estado. O estado de cada issue é lido de três lugares no GitHub:
+Não existe arquivo de estado. O estado de cada issue é lido do GitHub:
 - as labels;
 - os comentários dos agentes, que começam com um marcador como `<!-- fabrica:spec -->`;
-- o PR da branch da issue.
+- o PR da branch da issue;
+- nas issues de backlog, a milestone `M<n>` e o marcador `<!-- fabrica:backlog item=<n> -->` no corpo, que dão o avanço por marco.
 
 A tabela completa de estados, com quem age e o próximo passo de cada um, fica em [`skills/status/estados.md`](../skills/status/estados.md). O `/fabrica:status` aplica essa tabela e mostra o quadro.
 

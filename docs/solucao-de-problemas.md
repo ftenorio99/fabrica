@@ -27,9 +27,9 @@ Problemas que já apareceram no uso real e como resolver cada um.
 - **Causa:** as labels do fluxo ainda não foram criadas nesse repositório.
 - **O que fazer:** rode `/fabrica:setup` no clone e repita a etapa. As etapas não criam labels sozinhas, de propósito.
 
-## "O `gh` <versão> está abaixo da mínima da fábrica"
-- **Sintoma:** uma etapa para com essa mensagem antes de mexer no GitHub, ou o `gh pr edit` falha com "Projects (classic) is being deprecated".
-- **Causa:** o `gh` instalado é anterior à correção do bug dos Projects clássicos (cli/cli#11983). Isso é comum com o `gh` do repositório do Ubuntu.
+## "O `gh` <versão> está abaixo da mínima da fábrica" ou "Não consegui ler a versão do `gh`"
+- **Sintoma:** uma etapa para com uma dessas mensagens antes de mexer no GitHub, ou o `gh pr edit` falha com "Projects (classic) is being deprecated".
+- **Causa:** o `gh` instalado é anterior à correção do bug dos Projects clássicos (cli/cli#11983). Isso é comum com o `gh` do repositório do Ubuntu. Na segunda mensagem, o `gh --version` não devolveu uma versão legível, e o `gh` precisa ser reinstalado.
 - **O que fazer:** rode `/fabrica:setup`, que mostra a versão atual, a mínima e o comando para instalar pelo repositório oficial. Atualize e repita a etapa. Se a falha aparecer mesmo assim, a etapa refaz a edição pela API REST e avisa no chat, como diz [`skills/setup/gh.md`](../skills/setup/gh.md).
 
 ## "O `gh` não está autenticado" ou "O `gh` não está instalado"
@@ -60,7 +60,7 @@ Problemas que já apareceram no uso real e como resolver cada um.
 ## "Os hooks do git da fábrica não estão instalados nesta máquina"
 - **Sintoma:** a sessão abre com esse aviso, ou o Claude é bloqueado em qualquer `commit` ou `push`.
 - **Causa:** a máquina ainda não tem os hooks globais do git, ou o `core.hooksPath` foi alterado.
-- **O que fazer:** rode `/fabrica:setup` e confirme a instalação. Para conferir o estado, use `bash scripts/setup-githooks.sh --check` neste repositório. A resposta é `ok`, `ausente` ou `atualizado <versão>`.
+- **O que fazer:** rode `/fabrica:setup` e confirme a instalação. Para conferir o estado, use `bash scripts/setup-githooks.sh --check` no clone da fábrica, onde o script fica. A resposta é `ok`, `ausente` ou `atualizado <versão>`. O `--check` não muda a configuração do git, mas não é só leitura: se a versão do plugin mudou, ele copia os hooks novos e responde `atualizado <versão>`.
 
 ## "Commit direto na 'main' bloqueado" ou "Push para a main bloqueado"
 - **Sintoma:** o git recusa um commit ou um push.

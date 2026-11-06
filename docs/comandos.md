@@ -14,7 +14,7 @@ Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de 
 ## `/fabrica:backlog`
 - **Quando:** depois do merge do PRD, quando o marco atual estiver perto de fechar ou quando o PRD mudar.
 - **O que faz:** compara o fatiamento do PRD com o GitHub e mostra um plano. Só aplica o que você confirmar.
-- **Lê:** o `docs/prd.md` da `main`, as milestones e todas as issues do repositório.
+- **Lê:** o `docs/prd.md` da `main` ou, com um PR `docs/backlog` aberto, o da branch desse PR com a `main` mesclada; as milestones e todas as issues do repositório.
 - **Cria:** as milestones `M<n> · <nome>`; issues enxutas, com o marcador `fabrica:backlog`, só para o marco atual e o seguinte; e um PR `docs/backlog` que anota no PRD o número de cada issue.
 - **Labels:** cria as issues com `enhancement`, se a label existir. Não aplica `agente`: puxar a issue é com você.
 - Detalhes: [`skills/backlog/SKILL.md`](../skills/backlog/SKILL.md).
