@@ -38,7 +38,7 @@ Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de 
 ## `/fabrica:spec <número da issue> [ajustes pedidos]`
 - **Quando:** numa issue triada e sem perguntas abertas, ou para ajustar uma spec que você ainda não aprovou. Numa issue no atalho, quando você comenta antes de aprovar: o comentário tira a issue do atalho, e a spec completa substitui a spec curta.
 - **O que faz:** escreve a spec com critérios de aceite verificáveis (CA1, CA2…) e o desenho técnico.
-- **Lê:** a issue e a triagem, `CLAUDE.md`, PRD, ADRs, specs, o código que será tocado e a documentação das bibliotecas (doc local ou Context7).
+- **Lê:** a issue e a triagem, `CLAUDE.md`, PRD, ADRs, specs, o código que será tocado e a documentação das bibliotecas (doc local ou Context7). Confere na ajuda do `gh` instalado (`gh <comando> --help`) cada flag e cada campo `--json` que a spec cita.
 - **Cria:** a branch `<tipo>/<nº>-<descrição>`, `specs/SPEC-<nº>.md` (e um ADR, se a decisão vale para além da issue) e um comentário com o resumo.
 - **Spec já aprovada:** para mudá-la, remova `spec-aprovada` antes. O ajuste registra no histórico da spec o tipo, o motivo e os CAs incluídos, removidos e alterados, e o comentário na issue aponta o código da branch que esses CAs tocam.
 - **Labels:** aplica `spec-pronta`. Se surgir uma lacuna de negócio, aplica `precisa-info` e remove `spec-pronta`. Nunca aplica `spec-aprovada`, que é sua.
