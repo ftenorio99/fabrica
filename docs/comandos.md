@@ -5,7 +5,7 @@ Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de 
 ## `/fabrica:prd [ideia do produto em uma frase]`
 - **Quando:** no início de um projeto, ou quando o escopo do produto mudar.
 - **O que faz:** conduz uma entrevista em rodadas (problema, objetivo, escopo, restrições, riscos) e escreve o PRD, com funcionalidades numeradas (F1, F2…) e um fatiamento em marcos `M<n>`.
-- **PRD que já existe:** é a baseline do produto. Antes de escrever, o `/fabrica:prd` classifica cada mudança (incluir, excluir ou alterar) e mostra o impacto nas issues do GitHub, com a ação indicada para cada uma. Você aceita, rejeita ou adia cada mudança, e só as aceitas entram no PRD. Todas, com o motivo, ficam registradas na tabela "Mudanças" do histórico.
+- **PRD que já existe:** é a baseline do produto. Antes de escrever, o `/fabrica:prd` classifica cada mudança (incluir, excluir ou alterar) e mostra o impacto nas issues do GitHub, com a ação indicada para cada uma. Para um item cuja issue foi fechada como "not planned", a ação indicada é reabri-la, se o item continua no PRD; a reabertura é sua. Você aceita, rejeita ou adia cada mudança, e só as aceitas entram no PRD. Todas, com o motivo, ficam registradas na tabela "Mudanças" do histórico.
 - **Lê:** `CLAUDE.md`, `README.md` e o que existir em `docs/`. Ao atualizar, lê também as issues e os PRs do repositório.
 - **Cria:** `docs/prd.md`, sem commit; oferece um PR na branch `docs/prd`. Ao criar o PRD, cria também as labels do repositório. Ao atualizar, não mexe em labels nem em issues.
 - **Labels:** não aplica labels em issues. Próximo passo, depois do merge: `/fabrica:backlog`.
@@ -13,7 +13,7 @@ Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de 
 
 ## `/fabrica:backlog`
 - **Quando:** depois do merge do PRD, quando o marco atual estiver perto de fechar ou quando o PRD mudar.
-- **O que faz:** compara o fatiamento do PRD com o GitHub e mostra um plano. Só aplica o que você confirmar.
+- **O que faz:** compara o fatiamento do PRD com o GitHub e mostra um plano. Só aplica o que você confirmar. Se você aplicar sem os possíveis pares, cada um ganha um comentário de recusa e não volta nas execuções seguintes; para desfazer a recusa, apague o comentário.
 - **Lê:** o `docs/prd.md` da `main` ou, com um PR `docs/backlog` aberto, o da branch desse PR com a `main` mesclada; as milestones e todas as issues do repositório.
 - **Cria:** as milestones `M<n> · <nome>`; issues enxutas, com o marcador `fabrica:backlog`, só para o marco atual e o seguinte; e um PR `docs/backlog` que anota no PRD o número de cada issue.
 - **Labels:** cria as issues com `enhancement`, se a label existir. Não aplica `agente`: puxar a issue é com você.
@@ -31,14 +31,14 @@ Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de 
 - **Quando:** numa issue com `agente` que ainda não foi triada, ou depois de você responder as perguntas da triagem.
 - **O que faz:** classifica tipo, classe e tamanho, liga a issue ao PRD e às dependências e procura lacunas que só você pode responder.
 - **Lê:** a issue e os comentários, `CLAUDE.md`, `docs/prd.md`, specs e ADRs e o código que a issue deve tocar.
-- **Cria:** um comentário de triagem na issue, que sempre diz se a issue cabe no [atalho](fluxo.md#atalho) e por quê. No atalho, o comentário traz uma spec curta, com o objetivo, os critérios de aceite e o nome da branch, e a triagem aplica `spec-pronta`. Não escreve código nem cria a branch.
+- **Cria:** um comentário de triagem na issue, que sempre diz se a issue cabe no [atalho](fluxo.md#atalho) e por quê. No atalho, o comentário traz uma spec curta, com o objetivo, os critérios de aceite, o que fica fora do escopo e o nome da branch, e a triagem aplica `spec-pronta`. Não escreve código nem cria a branch.
 - **Labels:** aplica `precisa-info` quando há perguntas e a remove quando não há. No atalho, aplica `spec-pronta`. Junto com as perguntas, registra uma [lição](#fabricalicao-donoreponúmero-texto-da-lição) e aplica `licao`.
 - Detalhes: [`skills/triagem/SKILL.md`](../skills/triagem/SKILL.md).
 
 ## `/fabrica:spec <número da issue> [ajustes pedidos]`
 - **Quando:** numa issue triada e sem perguntas abertas, ou para ajustar uma spec que você ainda não aprovou. Numa issue no atalho, quando você comenta antes de aprovar: o comentário tira a issue do atalho, e a spec completa substitui a spec curta.
 - **O que faz:** escreve a spec com critérios de aceite verificáveis (CA1, CA2…) e o desenho técnico.
-- **Lê:** a issue e a triagem, `CLAUDE.md`, PRD, ADRs, specs, o código que será tocado e a documentação das bibliotecas (doc local ou Context7).
+- **Lê:** a issue e a triagem, `CLAUDE.md`, PRD, ADRs, specs, o código que será tocado e a documentação das bibliotecas (doc local ou Context7). Confere na ajuda do `gh` instalado (`gh <comando> --help`) cada flag e cada campo `--json` que a spec cita.
 - **Cria:** a branch `<tipo>/<nº>-<descrição>`, `specs/SPEC-<nº>.md` (e um ADR, se a decisão vale para além da issue) e um comentário com o resumo.
 - **Spec já aprovada:** para mudá-la, remova `spec-aprovada` antes. O ajuste registra no histórico da spec o tipo, o motivo e os CAs incluídos, removidos e alterados, e o comentário na issue aponta o código da branch que esses CAs tocam.
 - **Labels:** aplica `spec-pronta`. Se surgir uma lacuna de negócio, aplica `precisa-info` e remove `spec-pronta`. Nunca aplica `spec-aprovada`, que é sua.
@@ -56,7 +56,7 @@ Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de 
 ## `/fabrica:revisar <número da issue>`
 - **Quando:** chamada pela implementação, ou de novo depois que você comentar pedidos no PR.
 - **O que faz:** um subagente revisor confere a branch contra a spec, critério por critério. Os achados bloqueantes e importantes são corrigidos em até duas rodadas, e as sugestões vão listadas no PR para você decidir. Antes disso, trata os seus comentários no PR feitos depois do início da última revisão (os que chegam enquanto ela roda ficam para a próxima): corrige o que cabe na spec e escala o que mudaria um critério de aceite. Nunca faz merge.
-- **Lê:** a spec (no atalho, a spec curta da triagem e o "Fora do escopo" da issue), os ADRs que ela cita, o `CLAUDE.md`, o diff da branch contra a `main` e os seus comentários no PR.
+- **Lê:** a spec (no atalho, a spec curta da triagem, com a linha "Fora do escopo"), os ADRs que ela cita, o `CLAUDE.md`, o diff da branch contra a `main` e os seus comentários no PR.
 - **Cria:** o PR com a evidência de cada critério, ou atualiza a descrição de um PR que já existe, e um comentário no PR com o que foi feito em cada pedido seu.
 - **Labels:** aplica `pronto-revisao` e remove `escalonado`. Se sobrar pendência, ou se um pedido seu mudar a spec, aplica `escalonado` em vez de `pronto-revisao`; com pendência da revisão, o PR fica como rascunho.
 - **Lições:** registra uma na issue, com a label `licao`, quando escala por um pedido seu, quando o CI precisa de duas ou mais correções e para cada achado bloqueante ou importante que fica sem corrigir. Sugestões não geram lição.
@@ -79,7 +79,7 @@ Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de 
 
 ## `/fabrica:metricas [repositório] [período] [período de comparação]`
 - **Quando:** para saber como a fábrica está indo, ou se uma mudança nela melhorou o fluxo.
-- **O que faz:** para as issues entregues no período (por padrão, os últimos 30 dias), mostra quanto tempo cada uma levou da abertura ao merge, quanto esperou por você nos portões e quanto ficou com o agente, além das rodadas, escalonamentos e lições. Agrupa por marco e por repositório, com medianas. Com dois períodos (`AAAA-MM-DD..AAAA-MM-DD`), mostra a diferença entre eles. O tempo "com o agente" inclui a espera até você rodar o comando. Nas issues medidas, ele aparece dividido em trabalho, o tempo em que as etapas rodaram, e fila, a espera até o comando, ao lado dos tokens gastos. Essas colunas vêm da linha de custo que a triagem, a spec, a implementação e a revisão deixam, invisível, no fim do comentário que publicam, com o início, o fim e os tokens da execução, lidos do log da sessão do Claude Code. As issues entregues antes da versão 0.13.0, as etapas sem log, como as do GitHub Actions, e as issues com uma soma parcial, feita antes de o log da sessão terminar de ser gravado, aparecem como "não medido". A issue que passou pelo [atalho](fluxo.md#atalho), sem a etapa de spec, mostra `atalho` na coluna Spec, e não uma rodada zero.
+- **O que faz:** para as issues entregues no período (por padrão, os últimos 30 dias), mostra quanto tempo cada uma levou da abertura ao merge, quanto esperou por você nos portões e quanto ficou com o agente, além das rodadas, escalonamentos e lições. Agrupa por marco e por repositório, com medianas. Com dois períodos (`AAAA-MM-DD..AAAA-MM-DD`), mostra a diferença entre eles. O tempo "com o agente" inclui a espera até você rodar o comando. Nas issues medidas, ele aparece dividido em trabalho, o tempo em que as etapas rodaram, e fila, a espera até o comando, ao lado dos tokens gastos. Essas colunas vêm da linha de custo que a triagem, a spec, a implementação e a revisão deixam, invisível, no fim do comentário que publicam, com o início, o fim e os tokens da execução, lidos do log da sessão do Claude Code. As issues entregues antes da versão 0.13.0, as etapas sem log, como as do GitHub Actions, e as issues com uma soma parcial, feita antes de o log da sessão terminar de ser gravado, aparecem como "não medido". A issue que passou pelo [atalho](fluxo.md#atalho), sem a etapa de spec, mostra `atalho` na coluna Spec, e não uma rodada zero. Numa issue reaberta, o tempo em que ela ficou fechada não conta em nenhum dos tempos, e os escalonamentos depois do fechamento também não. Com dois períodos, as tabelas por marco e por issue dizem de qual período é cada linha.
 - **Lê:** as issues fechadas com `agente`, a linha do tempo das labels de cada uma, os comentários dos agentes e os PRs.
 - **Cria:** nada. Só lê.
 - Detalhes: [`skills/metricas/SKILL.md`](../skills/metricas/SKILL.md).

@@ -84,12 +84,14 @@ A linha `**Atalho:**` vai sempre. Com `**Atalho:** sim`, acrescente ao fim do co
 |---|---|---|
 | CA1 | <comportamento observável> | unitário / e2e / manual |
 
+**Fora do escopo:** <o que não faz parte da issue>
+
 **Branch:** `<tipo>/<nº>-<descricao-curta>`
 
 Para aprovar, aplique a label `spec-aprovada`. Para pedir a spec completa, comente na issue.
 ```
 
-Os CAs seguem as mesmas regras da [spec](../spec/SKILL.md#4-escrever): numerados, observáveis e cada um com a forma de verificação. Os limites da issue são a seção "Fora do escopo" do corpo dela. A branch usa o tipo da triagem e um resumo curto do título, mas não a crie: ela nasce no `/fabrica:implementar`.
+Os CAs seguem as mesmas regras da [spec](../spec/SKILL.md#4-escrever): numerados, observáveis e cada um com a forma de verificação. A linha `**Fora do escopo:**` traz os limites da issue por escrito: vem da seção "Fora do escopo" do corpo da issue quando ela existe e, quando não existe, dos limites que a triagem leu na issue. Se a triagem não consegue escrever nenhum limite a partir da issue, falta responder "quais limites ela tem" (passo 3): é uma lacuna, e então não há atalho. A branch usa o tipo da triagem e um resumo curto do título, mas não a crie: ela nasce no `/fabrica:implementar`.
 
 **Linha de custo:** logo antes de publicar, acrescente ao fim do arquivo do corpo a linha que registra o início, o fim e os tokens desta execução: `python3 <diretório base desta skill>/../../scripts/stage-usage.py --stage triagem --since <início> >> <arquivo>`. O script nunca falha: sem log da sessão, a linha sai com `tokens=nao-medido`. Ela vai no comentário de triagem com ou sem perguntas, e não no de lição.
 

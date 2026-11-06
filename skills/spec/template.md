@@ -33,6 +33,7 @@
 
 **Fontes da documentação:**
 - <biblioteca> <versão> — <caminho da doc local | ID do Context7 | não verificada>. <"versão não confirmada", se for o caso>
+- gh <versão de `gh --version`> — <comandos de ajuda consultados, ex.: `gh search issues --help`>
 
 **ADR:** <docs/adr/NNNN-titulo.md, ou "nenhum">
 
