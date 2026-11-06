@@ -19,14 +19,20 @@ Esta skill só lê. Ela não aplica labels, não comenta e não cria arquivo no 
 ## 2. Coletar
 - Dono: `gh api user -q .login`.
 - **Issues entregues** em cada período: `gh search issues --owner <dono> --state closed --label agente --closed <desde>..<até> --sort updated --order desc --json repository,number,title,createdAt,closedAt,url --limit 100 -- reason:completed`. Com repositório, use `--repo <dono>/<repositório>` no lugar de `--owner`. Ponha toda opção do `gh` antes do `--`. Uma issue fechada como "not planned" não entra.
-- **Limite de 100 por repositório:** sem repositório, o `--limit 100` vale para todos somados. Se a busca por `--owner` trouxer 100 issues, liste os repositórios do dono (`gh repo list <dono> --no-archived --limit 1000 --json nameWithOwner`) e repita a busca com `--repo` para cada um, inclusive os que não apareceram no corte. Um repositório que trouxer 100 issues na própria busca foi cortado nas 100 de atualização mais recente: anote o nome para as notas.
+- **Limite de 100 por repositório:** sem repositório, o `--limit 100` vale para todos somados. Se a busca por `--owner` trouxer 100 issues, liste os repositórios do dono, inclusive os arquivados (`gh repo list <dono> --limit 1000 --json nameWithOwner`), e repita a busca com `--repo` para cada um, inclusive os que não apareceram no corte. Um repositório arquivado sem issue entregue no período não aparece no relatório, como qualquer repositório sem issue. Um repositório que trouxer 100 issues na própria busca foi cortado nas 100 de atualização mais recente: anote o nome para as notas.
+- **Limite de taxa da busca:** a busca do GitHub permite 30 requisições por minuto, num limite separado da API REST. Rode as buscas repetidas por repositório em sequência, uma de cada vez. Se uma delas falhar por limite de taxa:
+  1. leia `gh api rate_limit -q .resources.search.reset`, um horário em segundos Unix;
+  2. espere até esse horário;
+  3. repita a busca uma vez.
+
+  Se a repetição falhar de novo, siga sem esse repositório e anote o nome para as notas.
 - Para cada issue, numa pasta temporária da sessão:
   - **Issue:** `gh api repos/<repo>/issues/<nº>` → `created_at`, `closed_at` e `milestone.title`.
   - **Timeline:** `gh api repos/<repo>/issues/<nº>/timeline --paginate --slurp > <pasta>/tl-<nº>.json`. Confira que há um evento `labeled` com a label `agente`; sem ele, a issue não entra.
   - **Comentários:** `gh api repos/<repo>/issues/<nº>/comments --paginate --slurp > <pasta>/ci-<nº>.json`.
   - **PR:** a branch sai da regra da spec da issue de [estados.md](../status/estados.md): o `**Branch:**` do comentário `<!-- fabrica:spec -->` mais recente ou, no atalho, o da spec curta do comentário de triagem. Com ela, `gh pr list -R <repo> --head <branch> --state merged --json number` e os comentários do PR com `gh api repos/<repo>/issues/<nº do PR>/comments --paginate --slurp > <pasta>/cp-<nº>.json`.
 
-Rode as consultas independentes em paralelo.
+Rode as consultas independentes em paralelo, menos as buscas repetidas por repositório, que vão em sequência.
 
 ## 3. Calcular por issue
 - **Tempos:** `python3 <diretório base desta skill>/durations.py <created_at> <closed_at> <pasta>/tl-<nº>.json`. O script devolve, em minutos:
@@ -34,7 +40,9 @@ Rode as consultas independentes em paralelo.
   - `antes_do_fluxo`, da criação até o primeiro `labeled agente`;
   - `esperando_voce`, o tempo em que valia um portão do usuário: `precisa-info`, `escalonado` ou `pronto-revisao` na issue, ou `spec-pronta` sem `spec-aprovada`. Os intervalos são unidos, então o mesmo minuto não conta duas vezes;
   - `com_o_agente`, do primeiro `agente` ao fechamento, menos `esperando_voce`;
-  - `escalonamentos`, os eventos `labeled escalonado`.
+  - `escalonamentos`, os eventos `labeled escalonado` até o `closed_at`. Os posteriores ao fechamento não contam.
+
+  **Issue reaberta:** cada par de eventos `closed` → `reopened` anterior ao `closed_at` é um intervalo fechado. O script o desconta de todos os tempos, e um portão do usuário aplicado durante o intervalo também não conta. Assim, `antes_do_fluxo + esperando_voce + com_o_agente` continua somando `abertura_ao_merge`, a menos do arredondamento.
 - **Tokens e trabalho:** `python3 <diretório base desta skill>/costs.py <pasta>/ci-<nº>.json <pasta>/cp-<nº>.json` (sem PR, `-` no lugar do segundo arquivo). O script lê as linhas `<!-- fabrica:custo ... -->` que as etapas deixam no fim dos seus comentários e devolve:
   - `medida`: se cada comentário de triagem e de spec da issue e cada resposta `<!-- fabrica:revisar -->` do PR tem a linha da própria etapa, sem nenhuma linha `tokens=nao-medido` nem `parcial=sim`;
   - `tokens`: a soma de entrada, saída e cache das linhas;
@@ -95,10 +103,20 @@ No chat, neste formato, omitindo as seções vazias:
 ## Notas
 - "Com o agente" inclui a espera até o comando ser rodado. Numa issue medida, ele se divide em Trabalho, o tempo das etapas, e Fila, o resto.
 - Tokens e trabalho só contam as issues medidas: as etapas registradas a partir da versão 0.13.0 da fábrica, rodadas no terminal, sem linha `parcial=sim`, que marca uma soma feita antes de o log da sessão terminar de ser gravado. Etapas no GitHub Actions ainda não são medidas.
-- A leitura vai até 100 issues por repositório, as de atualização mais recente. <"Nenhum repositório chegou ao limite." ou "Cortados no limite: <repos>.">
+- A leitura vai até 100 issues por repositório, as de atualização mais recente. <"Nenhum repositório chegou ao limite." ou "Cortados no limite: <repos>."> <"Não lidos por limite de taxa: <repos>.", só quando houver>
 ```
 
 As três notas aparecem sempre. Ordene a tabela por issue da mais recente para a mais antiga, pelo fechamento.
+
+**Dois períodos:** as tabelas "Por marco" e "Por issue" ganham a coluna `Período`, a primeira, com o período da linha no formato `AAAA-MM-DD..AAAA-MM-DD`. A tabela "Por issue" vem ordenada pelo período, o primeiro antes, e, dentro dele, do fechamento mais recente para o mais antigo. Com um período só, a coluna não aparece. Exemplo:
+
+```markdown
+## Por issue
+| Período | Issue | Abertura ao merge | Antes do fluxo | Esperando você | Com o agente | Trabalho | Fila | Triagem | Spec | Respostas no PR | Escalonamentos | Lições | Tokens |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 2026-10-01..2026-10-31 | [fabrica#50](url) | 37min | 26min | 5min | 6min | não medido | não medido | 1 | 1 | 2 | 0 | 0 | não medido |
+| 2026-11-01..2026-11-30 | [fabrica#58](url) | 1h10 | 5min | 38min | 27min | 18min | 9min | 1 | 1 | 1 | 0 | 0 | 2,4M |
+```
 
 ## Regras
 - **Só leitura:** nenhum comando que altere o GitHub ou o repositório. Os arquivos de timeline ficam na pasta temporária da sessão.
