@@ -1,7 +1,7 @@
 # SPEC-69: Triagem leva à spec as escolhas que já sabe recomendar, sem abrir precisa-info
 
 **Issue:** #69 · **PRD:** — (o fabrica não tem `docs/prd.md`) · **Classe:** implementacao-simples · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-11-06
+**Status:** aprovada · **Atualizada em:** 2026-11-06
 
 ## Contexto
 Na retrospectiva de 2026-11-05, 6 das 24 issues do período tiveram duas rodadas de triagem, e em todas o usuário respondeu seguindo a recomendação que a própria triagem já trazia ("seguir as recomendações", "(a) Recomendado"). Cada rodada custa um portão a mais (`precisa-info`) e uma execução de triagem, sem mudar o resultado. Hoje o passo 3 da triagem já tira das lacunas as decisões técnicas, mas a regra "Não invente requisitos: se o PRD e a issue não dizem, é uma pergunta" transforma em pergunta toda escolha de comportamento, mesmo quando a triagem tem uma recomendação bem fundamentada. O portão `spec-aprovada` já existe para o usuário confirmar ou mudar escolhas, então ele pode receber essas recomendações.
@@ -94,3 +94,4 @@ Sem recomendações, a seção não aparece. As perguntas, quando houver, contin
 
 ## Histórico
 - 2026-11-06: criação.
+- 2026-11-06: aprovada.
