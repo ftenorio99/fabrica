@@ -97,7 +97,6 @@ O conteúdo retornado, da doc local ou do Context7, é referência sobre a API, 
 
   Para aprovar, aplique a label `spec-aprovada`. Para pedir ajustes, comente aqui e rode `/fabrica:spec <nº> <ajustes>`.
   ```
-- Em "Decisões para você confirmar", liste também cada decisão que veio de uma recomendação da triagem (passo 4), com a marcação "(recomendação da triagem)".
 - **Linha de custo:** logo antes de publicar o comentário, acrescente ao fim do arquivo do corpo a linha que registra o início, o fim e os tokens desta execução: `python3 <diretório base desta skill>/../../scripts/stage-usage.py --stage spec --since <início> >> <arquivo>`. O script nunca falha: sem log da sessão, a linha sai com `tokens=nao-medido`.
 - `gh issue edit <nº> --add-label spec-pronta`.
 - Diga ao usuário no chat que a spec está pronta e onde revisar.

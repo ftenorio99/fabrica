@@ -87,7 +87,7 @@ Publique um comentário na issue (`gh issue comment <nº> --body-file <arquivo>`
 **Atalho:** <sim — por que a issue cabe | não — qual condição falhou>
 
 **Perguntas** (só se houver lacunas):
-1. <pergunta objetiva, com opções e uma recomendação quando couber>
+1. <pergunta objetiva, com opções e, quando couber, uma recomendação ainda sem fonte para citar (com fonte, ela não seria pergunta: passo 3)>
 ```
 
 A linha `**Atalho:**` vai sempre. Com `**Atalho:** sim`, acrescente ao fim do comentário a spec curta, que é a spec da issue até ela ganhar um comentário de spec ([estados.md](../status/estados.md#atalho)):
