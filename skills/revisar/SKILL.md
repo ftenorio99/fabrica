@@ -33,7 +33,7 @@ Se já existir PR da branch (`gh pr view`), trate os pedidos do usuário antes d
 
 **Classificar** cada pedido novo:
 - **Ajuste:** resolve-se sem incluir, remover ou alterar um CA nem um item de "Fora de escopo" da spec (bug, caso-limite que um CA já cobre, nome, mensagem, teste faltando, documentação, estilo).
-- **Mudança de escopo:** exige incluir, remover ou alterar um CA, ou fazer algo de "Fora de escopo". Na dúvida, é mudança de escopo. No atalho, o "Fora de escopo" é a seção "Fora do escopo" do corpo da issue.
+- **Mudança de escopo:** exige incluir, remover ou alterar um CA, ou fazer algo de "Fora de escopo". Na dúvida, é mudança de escopo. No atalho, o "Fora de escopo" é a linha `**Fora do escopo:**` da spec curta.
 
 **Tratar:**
 - **Ajuste:** corrija na branch, rode `make lint` e `make test`, faça commit (`fix: ...` ou o tipo adequado) e push. Essas correções não contam como rodada de revisão.
