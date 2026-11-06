@@ -1,7 +1,7 @@
 # SPEC-75: Métricas distorcem tempos e contagens em issues reabertas, escalonamentos tardios e repositórios arquivados
 
 **Issue:** #75 · **PRD:** — (o fabrica não tem `docs/prd.md`) · **Classe:** implementacao-simples · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-11-06
+**Status:** aprovada · **Atualizada em:** 2026-11-06
 
 ## Contexto
 O `/fabrica:metricas` (SPEC-58 e anteriores) é o instrumento para comparar mudanças na fábrica. A revisão automática do PR #57 deixou sugestões não aplicadas que continuam valendo na `main` e distorcem os números. Uma issue reaberta conta o tempo em que ficou fechada. Um escalonamento posterior ao fechamento entra na contagem. Com dois períodos, as tabelas não dizem de qual período é cada linha. Quando a busca passa de 100 issues, os repositórios arquivados ficam de fora. E a repetição da busca em paralelo pode estourar o limite da busca do GitHub.
@@ -94,3 +94,4 @@ Se a repetição falhar de novo, siga sem esse repositório e acrescente às Not
 
 ## Histórico
 - 2026-11-06: criação.
+- 2026-11-06: aprovada.
