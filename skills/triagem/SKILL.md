@@ -52,7 +52,7 @@ Uma escolha que a issue deixa em aberto **não** é lacuna quando você tem uma 
 - o código existente;
 - uma convenção já seguida no repositório.
 
-Isso vale para decisões técnicas (biblioteca, nome de rota, estrutura de pastas) e também para escolhas de comportamento. A sua preferência, sem uma fonte dessas, não basta. Essas escolhas vão para a spec como recomendações (passo 4), e o usuário as confirma ou muda no portão `spec-aprovada`.
+Isso vale para escolhas de comportamento: nelas, a sua preferência, sem uma fonte dessas, não basta. Decisões técnicas (biblioteca, nome de rota, estrutura de pastas) continuam não sendo lacuna mesmo sem fonte: a spec as decide. Com uma fonte para citar, leve-as também como recomendação. Essas escolhas vão para a spec como recomendações (passo 4), e o usuário as confirma ou muda no portão `spec-aprovada`.
 
 Continuam sendo lacuna, e viram pergunta:
 - a divisão de uma issue maior que 2 dias, mesmo com uma divisão recomendada;
