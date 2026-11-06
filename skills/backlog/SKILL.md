@@ -49,6 +49,7 @@ Itens de 1 a 2 dias de trabalho humano, agrupados por marco e em ordem de depend
 ## 2. Migrar, se preciso
 - **PRD sem marcos** (fatiamento numa lista única, sem `### M<n>`): proponha o agrupamento em marcos, com nome e F de cada um, a partir das funcionalidades e da ordem da lista. Mantenha os números dos itens e proponha as dependências explícitas (`depende de`) que a ordem e os títulos sugerem.
 - **Item sem issue registrada** (sem issue com o marcador e sem `#<nº>` no PRD): procure issue sem o marcador `fabrica:backlog` cujo título, ignorando maiúsculas e espaços nas pontas, seja igual ao do item. Isso vira um **par**. Títulos parecidos, mas não iguais, viram **possível par**. Issue fechada também conta.
+- **Possível par recusado:** antes de propor um possível par, leia os comentários da issue candidata (`gh api repos/<repo>/issues/<nº>/comments --paginate`). Se um deles começar com `<!-- fabrica:backlog par-recusado item=<n> -->`, com o mesmo `<n>`, a issue não é possível par desse item: o usuário já recusou. A recusa vale só para esse item e só para o possível par. O par exato, de título igual, continua valendo.
 
 ## 3. Planejar
 Calcule, com o PRD já migrado:
@@ -72,7 +73,7 @@ Os grupos 5, 6 e 7 olham só issues abertas. Uma issue fechada conta para "item 
 - Senão, mostre o plano no chat, em tabelas curtas por grupo, com o marco atual e a janela. Quando houver migração, mostre o fatiamento novo inteiro.
 - Pergunte com o AskUserQuestion:
   - **Aplicar tudo**, com fechamento dos itens removidos, se houver;
-  - **Aplicar sem os possíveis pares**, que só aparece quando houver possíveis pares;
+  - **Aplicar sem os possíveis pares**, que só aparece quando houver possíveis pares. Essa escolha recusa os possíveis pares: cada um ganha o comentário de recusa no passo 5 e não volta nas execuções seguintes;
   - **Cancelar**.
   Para fechar issues de itens removidos, use uma pergunta separada, com seleção múltipla das issues. Sem confirmação, nada fecha.
 - Cancelado: diga que nada foi alterado e pare.
@@ -92,12 +93,18 @@ Aplique nesta ordem. Se um comando falhar, pare, mostre o que já foi aplicado e
 3. **Pares confirmados:**
    - ponha a issue na milestone com `gh issue edit <nº> --milestone "<título do marco>"`, mesmo que ela esteja fechada;
    - acrescente ao fim do corpo uma linha `---` seguida do bloco do formato abaixo, sem apagar o texto que já existe.
-4. **Issues de backlog sem `agente` a atualizar:** reescreva título, corpo e milestone com `gh issue edit`.
-5. **Fechamento:** só as issues confirmadas, com `gh issue close <nº> --reason "not planned" --comment "<!-- fabrica:backlog -->"` e uma linha dizendo que o item saiu do PRD.
-6. **PRD:**
+4. **Possíveis pares recusados**, só com a escolha "Aplicar sem os possíveis pares": em cada um, publique com `gh issue comment <nº> --body-file <arquivo>` o comentário abaixo, que o passo 2 lê nas próximas execuções. Para desfazer, o usuário apaga o comentário.
+
+   ```markdown
+   <!-- fabrica:backlog par-recusado item=<n> -->
+   Esta issue não é o item <n> do fatiamento ("<título do item>"): o par foi recusado no `/fabrica:backlog`. Para desfazer, apague este comentário.
+   ```
+5. **Issues de backlog sem `agente` a atualizar:** reescreva título, corpo e milestone com `gh issue edit`.
+6. **Fechamento:** só as issues confirmadas, com `gh issue close <nº> --reason "not planned" --comment "<!-- fabrica:backlog -->"` e uma linha dizendo que o item saiu do PRD.
+7. **PRD:**
    - **branch:** trabalhe numa worktree temporária, para não mexer na branch em que o clone está:
      - com PR aberto de `docs/backlog`, use a worktree criada no passo 1, que já tem a `main` mesclada;
-     - sem PR aberto, use `git worktree add -B docs/backlog <tmp> origin/main`. Se já houver uma branch `docs/backlog` remota com PR mergeado, faça o push com `--force-with-lease`, porque a branch recomeça da `main`.
+     - sem PR aberto, use `git worktree add -B docs/backlog <tmp> origin/main`. Se já houver uma branch `docs/backlog` remota, de um PR mergeado, de um PR fechado sem merge ou sem PR nenhum, faça o push com `--force-with-lease`, porque a branch recomeça da `main`.
    - **conteúdo:** grave a migração, se houver, e as anotações ` · #<nº>`. Não mude nenhuma outra linha do PRD.
    - **commit e PR:** commit `docs: registra issues do backlog no prd` e push. Sem PR aberto, crie um com `gh pr create --base main --head docs/backlog --body-file <arquivo>`, com o título igual ao commit e um corpo que liste as issues criadas e vinculadas.
    - **limpeza:** remova a worktree (`git worktree remove <tmp>`).
