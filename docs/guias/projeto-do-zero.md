@@ -7,7 +7,7 @@ Da ideia à primeira issue no fluxo.
    cd ~/projetos
    gh repo create <nome> --private --clone
    ```
-   O primeiro commit leva o `README.md` e o `.gitignore` da stack. Os hooks do git deixam passar o commit inicial e o primeiro push de um repositório novo.
+   O primeiro commit leva o `README.md` e o `.gitignore` da stack. Os hooks do git deixam passar o commit inicial e o primeiro push de um repositório novo. O projeto nasce na LTS mais recente do runtime, conferida na fonte oficial, como manda o [`CLAUDE.md` do projeto](../../templates/CLAUDE.md).
 2. **Configure**, se for a primeira vez nesta máquina: rode `/fabrica:setup` para instalar os hooks do git. Veja [Primeiros passos](../primeiros-passos.md).
 3. **Escreva o PRD:** no clone, rode `/fabrica:prd <ideia em uma frase>`.
    - **Entrevista:** responda em rodadas. O agente propõe opções, com a recomendação dele primeiro.

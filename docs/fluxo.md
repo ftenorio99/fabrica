@@ -34,7 +34,7 @@ Os retângulos são etapas de agente, que você dispara com o comando. Os hexág
 | Puxar | você | a label `agente` numa issue de backlog |
 | Triagem | agente | comentário de triagem; perguntas na issue só para o que ela não sabe recomendar, e as recomendações seguem para a spec; no [atalho](#atalho), a spec curta e a label `spec-pronta` |
 | Spec | agente | `specs/SPEC-<nº>.md` na branch da issue e a label `spec-pronta` |
-| **Aprovar a spec** | **você** | a label `spec-aprovada` |
+| **Aprovar a spec** | **você** | a label `spec-aprovada`, que também confirma as recomendações que a triagem levou para a spec |
 | Implementação | agente | código e testes na branch, verificações registradas |
 | Revisão | agente | revisão contra a spec, PR com evidências e a label `pronto-revisao` |
 | **Merge** | **você** | squash na `main`; a issue fecha sozinha |
