@@ -18,7 +18,8 @@ O produto mudou depois que o backlog foi criado: uma funcionalidade nova, uma qu
    - **Issue sem spec aprovada:** rode `/fabrica:spec <nº> <ajuste>`.
    - **Issue com spec aprovada:** remova `spec-aprovada`, rode `/fabrica:spec <nº> <ajuste>` e aprove de novo. A spec registra o tipo e o motivo da mudança e os CAs alterados.
    - **Issue com PR aberto:** decida entre parar (fechar o PR ou pedir ajuste) e seguir, tratando a mudança numa issue nova.
-   - **Issue já fechada:** a mudança vira uma issue nova.
+   - **Issue já fechada como concluída:** a mudança vira uma issue nova.
+   - **Issue fechada como "not planned":** se o item continua no PRD, reabra a issue (`gh issue reopen <nº>`). Ela mantém o marcador do backlog e volta para o backlog. Se o item saiu, basta o ajuste no PRD.
 
 Se o `/fabrica:status` avisar que um F mudou 3 ou mais vezes, vale revisitar esse requisito com `/fabrica:prd` antes de mexer nele de novo.
 
