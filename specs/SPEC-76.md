@@ -1,7 +1,7 @@
 # SPEC-76: Casos-limite no status, no backlog e no PRD com issues fechadas e pares recusados
 
 **Issue:** #76 · **PRD:** — (o fabrica não tem `docs/prd.md`) · **Classe:** implementacao-simples · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-11-06
+**Status:** aprovada · **Atualizada em:** 2026-11-06
 
 ## Contexto
 As revisões automáticas dos PRs #21 (backlog) e #36 (mudanças de requisitos) deixaram cinco sugestões não aplicadas que continuam valendo na `main`. São casos raros, mas cada um leva a uma leitura errada do estado ou a trabalho repetido:
@@ -104,3 +104,4 @@ A reabertura é uma ação indicada no relatório, para o usuário decidir: o `/
 
 ## Histórico
 - 2026-11-06: criação.
+- 2026-11-06: aprovada.
