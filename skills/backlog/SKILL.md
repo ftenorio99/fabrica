@@ -99,7 +99,7 @@ Aplique nesta ordem. Se um comando falhar, pare, mostre o que já foi aplicado e
      - com PR aberto de `docs/backlog`, use a worktree criada no passo 1, que já tem a `main` mesclada;
      - sem PR aberto, use `git worktree add -B docs/backlog <tmp> origin/main`. Se já houver uma branch `docs/backlog` remota com PR mergeado, faça o push com `--force-with-lease`, porque a branch recomeça da `main`.
    - **conteúdo:** grave a migração, se houver, e as anotações ` · #<nº>`. Não mude nenhuma outra linha do PRD.
-   - **commit e PR:** commit `docs: registra issues do backlog no prd` e push. Sem PR aberto, crie um com `gh pr create --base main --head docs/backlog`, com o título igual ao commit e um corpo que liste as issues criadas e vinculadas.
+   - **commit e PR:** commit `docs: registra issues do backlog no prd` e push. Sem PR aberto, crie um com `gh pr create --base main --head docs/backlog --body-file <arquivo>`, com o título igual ao commit e um corpo que liste as issues criadas e vinculadas.
    - **limpeza:** remova a worktree (`git worktree remove <tmp>`).
    - **merge:** é do usuário; não faça.
 

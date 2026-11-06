@@ -29,13 +29,13 @@ Esta skill só lê. Ela não aplica labels, não comenta e não cria arquivo no 
 Rode as consultas independentes em paralelo.
 
 ## 3. Calcular por issue
-- **Tempos:** `python3 <pasta desta skill>/durations.py <created_at> <closed_at> <pasta>/tl-<nº>.json`. O script devolve, em minutos:
+- **Tempos:** `python3 <diretório base desta skill>/durations.py <created_at> <closed_at> <pasta>/tl-<nº>.json`. O script devolve, em minutos:
   - `abertura_ao_merge`;
   - `antes_do_fluxo`, da criação até o primeiro `labeled agente`;
   - `esperando_voce`, o tempo em que valia um portão do usuário: `precisa-info`, `escalonado` ou `pronto-revisao` na issue, ou `spec-pronta` sem `spec-aprovada`. Os intervalos são unidos, então o mesmo minuto não conta duas vezes;
   - `com_o_agente`, do primeiro `agente` ao fechamento, menos `esperando_voce`;
   - `escalonamentos`, os eventos `labeled escalonado`.
-- **Tokens e trabalho:** `python3 <pasta desta skill>/costs.py <pasta>/ci-<nº>.json <pasta>/cp-<nº>.json` (sem PR, `-` no lugar do segundo arquivo). O script lê as linhas `<!-- fabrica:custo ... -->` que as etapas deixam no fim dos seus comentários e devolve:
+- **Tokens e trabalho:** `python3 <diretório base desta skill>/costs.py <pasta>/ci-<nº>.json <pasta>/cp-<nº>.json` (sem PR, `-` no lugar do segundo arquivo). O script lê as linhas `<!-- fabrica:custo ... -->` que as etapas deixam no fim dos seus comentários e devolve:
   - `medida`: se cada comentário de triagem e de spec da issue e cada resposta `<!-- fabrica:revisar -->` do PR tem a linha da própria etapa, sem nenhuma linha `tokens=nao-medido` nem `parcial=sim`;
   - `tokens`: a soma de entrada, saída e cache das linhas;
   - `trabalho_min`: a soma de `fim − inicio` das linhas.
