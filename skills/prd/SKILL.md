@@ -65,8 +65,8 @@ O PRD que já existe é a baseline: toda mudança passa por análise de impacto 
    - **motivo.**
 2. **Analisar o impacto, antes de escrever qualquer coisa.**
    - **Consultas, agrupadas, sem uma chamada por F:**
-     - `gh issue list --state all --limit 1000 --json number,title,body,state,labels,milestone`;
-     - `gh pr list --state all --limit 200 --json number,state,headRefName`.
+     - `gh issue list --state all --limit 1000 --json number,title,body,state,stateReason,labels,milestone`;
+     - `gh pr list --state all --limit 1000 --json number,state,headRefName`. Se vierem 1000 PRs, avise no relatório que a lista pode ter sido cortada.
 
      Liste também os comentários `<!-- fabrica:spec -->` das issues afetadas, que trazem a branch, e, nas issues sem eles, os comentários de triagem com `**Atalho:** sim`, cuja spec curta traz a branch ([estados.md](../status/estados.md)).
    - **Ligação item → issue:** pela anotação ` · #<nº>` do fatiamento ou pelo marcador `<!-- fabrica:backlog item=<n> -->` no corpo.
@@ -79,7 +79,8 @@ O PRD que já existe é a baseline: toda mudança passa por análise de impacto 
      | No fluxo, sem PR, sem `spec-aprovada` | Rever a spec com `/fabrica:spec <nº> <ajuste>`. |
      | No fluxo, com `spec-aprovada` e sem PR | O usuário remove `spec-aprovada` e roda `/fabrica:spec <nº> <ajuste>`. |
      | PR aberto | O usuário decide: parar (fechar o PR ou pedir ajuste) ou seguir e tratar a mudança numa issue nova. |
-     | Fechada | Abrir uma issue nova de `feat` ou `fix`; nunca alterar a anterior. |
+     | Fechada como concluída (`stateReason` `COMPLETED`, vazio ou outro valor) | Abrir uma issue nova de `feat` ou `fix`; nunca alterar a anterior. |
+     | Fechada como "not planned" (`stateReason` `NOT_PLANNED`) | Se o item continua no PRD, reabrir a issue (`gh issue reopen <nº>`), que mantém o marcador e volta ao backlog. Se o item sai, só ajustar o PRD. A reabertura é do usuário: esta skill só a indica. |
    - **Rodapé do relatório:**
      - as milestones afetadas;
      - o esforço relativo de cada mudança, em `P`, `M` ou `G`, com a escala da triagem;
