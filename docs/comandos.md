@@ -29,7 +29,7 @@ Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de 
 
 ## `/fabrica:triagem <número da issue>`
 - **Quando:** numa issue com `agente` que ainda não foi triada, ou depois de você responder as perguntas da triagem.
-- **O que faz:** classifica tipo, classe e tamanho, liga a issue ao PRD e às dependências e procura lacunas que só você pode responder.
+- **O que faz:** classifica tipo, classe e tamanho, liga a issue ao PRD e às dependências e procura lacunas que só você pode responder. Pergunta só o que não sabe recomendar: uma escolha em aberto para a qual a triagem tem uma recomendação apoiada numa fonte (a issue, o PRD, um ADR, uma spec, o código ou uma convenção do repositório) vai no comentário como recomendação e segue para a spec, onde você a confirma ao aprovar.
 - **Lê:** a issue e os comentários, `CLAUDE.md`, `docs/prd.md`, specs e ADRs e o código que a issue deve tocar.
 - **Cria:** um comentário de triagem na issue, que sempre diz se a issue cabe no [atalho](fluxo.md#atalho) e por quê. No atalho, o comentário traz uma spec curta, com o objetivo, os critérios de aceite, o que fica fora do escopo e o nome da branch, e a triagem aplica `spec-pronta`. Não escreve código nem cria a branch.
 - **Labels:** aplica `precisa-info` quando há perguntas e a remove quando não há. No atalho, aplica `spec-pronta`. Junto com as perguntas, registra uma [lição](#fabricalicao-donoreponúmero-texto-da-lição) e aplica `licao`.
@@ -38,7 +38,7 @@ Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de 
 ## `/fabrica:spec <número da issue> [ajustes pedidos]`
 - **Quando:** numa issue triada e sem perguntas abertas, ou para ajustar uma spec que você ainda não aprovou. Numa issue no atalho, quando você comenta antes de aprovar: o comentário tira a issue do atalho, e a spec completa substitui a spec curta.
 - **O que faz:** escreve a spec com critérios de aceite verificáveis (CA1, CA2…) e o desenho técnico.
-- **Lê:** a issue e a triagem, `CLAUDE.md`, PRD, ADRs, specs, o código que será tocado e a documentação das bibliotecas (doc local ou Context7). Confere na ajuda do `gh` instalado (`gh <comando> --help`) cada flag e cada campo `--json` que a spec cita.
+- **Lê:** a issue e a triagem, com as recomendações que ela levou para a spec, que viram decisões para você confirmar, `CLAUDE.md`, PRD, ADRs, specs, o código que será tocado e a documentação das bibliotecas (doc local ou Context7). Confere na ajuda do `gh` instalado (`gh <comando> --help`) cada flag e cada campo `--json` que a spec cita.
 - **Cria:** a branch `<tipo>/<nº>-<descrição>`, `specs/SPEC-<nº>.md` (e um ADR, se a decisão vale para além da issue) e um comentário com o resumo.
 - **Spec já aprovada:** para mudá-la, remova `spec-aprovada` antes. O ajuste registra no histórico da spec o tipo, o motivo e os CAs incluídos, removidos e alterados, e o comentário na issue aponta o código da branch que esses CAs tocam.
 - **Labels:** aplica `spec-pronta`. Se surgir uma lacuna de negócio, aplica `precisa-info` e remove `spec-pronta`. Nunca aplica `spec-aprovada`, que é sua.
