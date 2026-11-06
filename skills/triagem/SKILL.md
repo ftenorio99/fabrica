@@ -33,7 +33,7 @@ A triagem decide se a issue está pronta para virar spec. Ela não escreve códi
 - **Atalho:** a issue cabe no atalho quando atende a todas estas condições ([ADR 0004](../../docs/adr/0004-atalho-da-triagem-com-spec-curta.md)):
   - tamanho `P`;
   - classe `implementacao-simples` ou `documentacao`;
-  - nenhuma lacuna (passo 3);
+  - nenhuma lacuna (passo 3). As recomendações levadas para a spec não contam como lacuna;
   - nenhum arquivo sensível entre os arquivos prováveis (autenticação, pagamentos, migrações de banco, `.github/`).
 
   Em cada rodada de triagem, avalie o critério de novo.
@@ -44,7 +44,20 @@ A issue está pronta para spec quando dá para responder, sem chutar:
 - como saber que terminou (pelo menos uma ideia de critério de aceite);
 - quais limites ela tem (o que não faz parte dela).
 
-Decisões técnicas que o próprio agente pode recomendar (biblioteca, nome de rota, estrutura de pastas) **não** são lacunas: elas vão para a spec, onde o usuário aprova. Lacuna é o que só o usuário sabe: comportamento, prioridade, regra de negócio.
+Uma escolha que a issue deixa em aberto **não** é lacuna quando você tem uma **recomendação defensável** para ela: uma opção recomendada e uma justificativa tirada de uma fonte que dá para citar, entre estas:
+- o corpo ou os comentários da issue;
+- o PRD;
+- um ADR;
+- uma spec anterior;
+- o código existente;
+- uma convenção já seguida no repositório.
+
+Isso vale para decisões técnicas (biblioteca, nome de rota, estrutura de pastas) e também para escolhas de comportamento. A sua preferência, sem uma fonte dessas, não basta. Essas escolhas vão para a spec como recomendações (passo 4), e o usuário as confirma ou muda no portão `spec-aprovada`.
+
+Continuam sendo lacuna, e viram pergunta:
+- a divisão de uma issue maior que 2 dias, mesmo com uma divisão recomendada;
+- a regra de negócio, a prioridade ou o comportamento sem recomendação defensável;
+- uma escolha em que as fontes se contradizem, por exemplo a issue contra o PRD.
 
 Se a issue for maior que 2 dias, a lacuna é a divisão: proponha as partes (títulos e escopo de cada uma) no comentário e pergunte se o usuário quer dividir. Não crie as issues.
 
@@ -68,6 +81,9 @@ Publique um comentário na issue (`gh issue comment <nº> --body-file <arquivo>`
 
 **Riscos:** <o que pode complicar, ou "nenhum relevante">
 
+**Recomendações levadas para a spec:** (só se houver recomendações)
+1. <escolha em aberto>: <opção recomendada>, porque <justificativa, citando a fonte>. Alternativa: <opção descartada>.
+
 **Atalho:** <sim — por que a issue cabe | não — qual condição falhou>
 
 **Perguntas** (só se houver lacunas):
@@ -88,23 +104,25 @@ A linha `**Atalho:**` vai sempre. Com `**Atalho:** sim`, acrescente ao fim do co
 
 **Branch:** `<tipo>/<nº>-<descricao-curta>`
 
-Para aprovar, aplique a label `spec-aprovada`. Para pedir a spec completa, comente na issue.
+Para aprovar, aplique a label `spec-aprovada`, que confirma também as recomendações acima. Para pedir a spec completa, comente na issue.
 ```
+
+A seção `**Recomendações levadas para a spec:**` só aparece quando há recomendações (passo 3), com um item por escolha. Sem recomendações, omita-a. As perguntas, quando houver, ficam na seção `**Perguntas**`. No atalho, os CAs da spec curta já seguem as recomendações. Na frase final da spec curta, omita "que confirma também as recomendações acima" quando não houver recomendações.
 
 Os CAs seguem as mesmas regras da [spec](../spec/SKILL.md#4-escrever): numerados, observáveis e cada um com a forma de verificação. A linha `**Fora do escopo:**` traz os limites da issue por escrito: vem da seção "Fora do escopo" do corpo da issue quando ela existe e, quando não existe, dos limites que a triagem leu na issue. Se a triagem não consegue escrever nenhum limite a partir da issue, falta responder "quais limites ela tem" (passo 3): é uma lacuna, e então não há atalho. A branch usa o tipo da triagem e um resumo curto do título, mas não a crie: ela nasce no `/fabrica:implementar`.
 
 **Linha de custo:** logo antes de publicar, acrescente ao fim do arquivo do corpo a linha que registra o início, o fim e os tokens desta execução: `python3 <diretório base desta skill>/../../scripts/stage-usage.py --stage triagem --since <início> >> <arquivo>`. O script nunca falha: sem log da sessão, a linha sai com `tokens=nao-medido`. Ela vai no comentário de triagem com ou sem perguntas, e não no de lição.
 
 Depois, ajuste as labels:
-- **Com lacunas:** `gh issue edit <nº> --add-label precisa-info` e registre uma lição com o gatilho `precisa-info`, resumindo as lacunas e por que a issue não as respondia, como diz [../licao/formato.md](../licao/formato.md). Pare aqui e diga ao usuário que as perguntas estão na issue. Depois de respondidas, a triagem deve ser rodada de novo.
-- **Sem lacunas e sem atalho:** `gh issue edit <nº> --remove-label precisa-info` (se estiver lá). Se a issue tiver `spec-pronta` e nenhum comentário de spec, sobra de uma rodada anterior com atalho, remova também `spec-pronta`. Diga que a issue está pronta para `/fabrica:spec <nº>`.
+- **Com lacunas:** `gh issue edit <nº> --add-label precisa-info` e registre uma lição com o gatilho `precisa-info`, resumindo as lacunas e por que a issue não as respondia, como diz [../licao/formato.md](../licao/formato.md). Pare aqui e diga ao usuário que as perguntas estão na issue. Depois de respondidas, a triagem deve ser rodada de novo. As recomendações do mesmo comentário seguem para a spec na rodada seguinte, se o usuário não as contestar.
+- **Sem lacunas e sem atalho:** vale também para a issue que só tem recomendações, que não abrem `precisa-info` nem geram lição. `gh issue edit <nº> --remove-label precisa-info` (se estiver lá). Se a issue tiver `spec-pronta` e nenhum comentário de spec, sobra de uma rodada anterior com atalho, remova também `spec-pronta`. Diga que a issue está pronta para `/fabrica:spec <nº>`.
 - **Atalho:** `gh issue edit <nº> --add-label spec-pronta --remove-label precisa-info`. Diga que a spec curta está no comentário de triagem e que o usuário aplica `spec-aprovada` para aprovar ou comenta na issue para pedir a spec completa.
 
 ## Regras
 - Não escreva código nem branch, e não escreva spec fora da spec curta do atalho.
 - Não pergunte no chat o que pode ser perguntado na issue.
 - Todo comentário seu, na issue ou no PR, começa com o marcador `<!-- fabrica:triagem -->` numa linha própria, exceto o comentário de lição, que segue [../licao/formato.md](../licao/formato.md). Os comentários do agente e do usuário saem da mesma conta do GitHub, e o marcador é o que os distingue (veja [estados.md](../status/estados.md)).
-- Não invente requisitos: se o PRD e a issue não dizem, é uma pergunta.
+- Não invente requisitos: se o PRD e a issue não dizem e você não tem uma recomendação defensável (passo 3), é uma pergunta.
 - Publique todo corpo de issue, comentário ou PR a partir de um arquivo: escreva-o com a ferramenta Write na pasta temporária da sessão e passe `--body-file <arquivo>` ao `gh`. Não monte o corpo com heredoc, `echo`, `--body` ou stdin: o hook `protect-main` lê o texto do comando Bash e barra corpos que citam as opções que desligam os hooks do git.
 - Em rodadas seguintes, publique um novo comentário de triagem completo (com o mesmo marcador); não edite os anteriores, para manter o histórico.
 - Se um `gh pr edit` ou um `gh issue edit` falhar por um erro do próprio `gh`, use o plano B de [../setup/gh.md](../setup/gh.md#plano-b-por-rest) e avise no chat. Uma label que não existe não é erro do `gh`: vale a regra abaixo.
