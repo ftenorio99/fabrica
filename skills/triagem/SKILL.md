@@ -98,7 +98,7 @@ A linha `**Atalho:**` vai sempre. Com `**Atalho:** sim`, acrescente ao fim do co
 
 | ID | Critério | Verificação |
 |---|---|---|
-| CA1 | <comportamento observável> | unitário / e2e / manual |
+| CA1 | <comportamento observável> | unitário / e2e / manual / depois do merge — <motivo> |
 
 **Fora do escopo:** <o que não faz parte da issue>
 

@@ -7,7 +7,7 @@ Leia as seções do corpo do PR nesta ordem, que não é a ordem em que elas apa
 1. **Para a sua revisão:** onde o agente pede atenção, como arquivos sensíveis, decisões e riscos.
 2. **Desvios da spec:** o que mudou em relação ao desenho aprovado, e por quê.
 3. **Revisão automática:** os achados que foram corrigidos e as **sugestões não aplicadas**, que são para você decidir.
-4. **Critérios de aceite:** a evidência de cada critério. "Implementado" sem teste ou comando não conta.
+4. **Critérios de aceite:** a evidência de cada critério. "Implementado" sem teste ou comando não conta. Um CA com ⏳ foi marcado na spec como verificação depois do merge, com o motivo: ele não bloqueia o PR, e você o confere depois do merge, como diz "Para a sua revisão".
 
 O `/fabrica:status` já resume esses pontos para cada PR que espera você.
 
@@ -18,4 +18,4 @@ O `/fabrica:status` já resume esses pontos para cada PR que espera você.
 - **Sugestões:** as não aplicadas podem virar ajustes neste PR ou uma issue nova.
 
 ## Depois do merge na própria fábrica
-Se o PR era da fábrica, atualize o plugin: `/plugin marketplace update fabrica` e `/reload-plugins`.
+Se o PR era da fábrica, atualize o plugin: `/plugin marketplace update fabrica` e `/reload-plugins`. Em seguida, confira os CAs ⏳ do PR com o plugin atualizado.

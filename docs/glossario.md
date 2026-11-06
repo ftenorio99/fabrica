@@ -6,7 +6,7 @@
 
 **Backlog** — As issues abertas sem `agente`, criadas pelo `/fabrica:backlog` a partir do fatiamento do PRD. Esperam você puxá-las para o fluxo. Veja [`estados.md`](../skills/status/estados.md#backlog).
 
-**Critério de aceite (CA)** — Comportamento observável que a spec numera como CA1, CA2…, cada um com a forma de verificação. A revisão confere a implementação critério por critério. Veja [`/fabrica:spec`](comandos.md#fabricaspec-número-da-issue-ajustes-pedidos).
+**Critério de aceite (CA)** — Comportamento observável que a spec numera como CA1, CA2…, cada um com a forma de verificação, antes do merge ou, sem caminho para isso, marcada `depois do merge` com o motivo. A revisão confere a implementação critério por critério. Veja [`/fabrica:spec`](comandos.md#fabricaspec-número-da-issue-ajustes-pedidos).
 
 **Em andamento** — Label `em-andamento`, que o `/fabrica:avancar` aplica enquanto roda uma etapa numa issue, para outra execução não pegar a mesma issue. Vale por 2 h; depois disso, é considerada esquecida. Veja [`estados.md`](../skills/status/estados.md#etapa-em-andamento).
 

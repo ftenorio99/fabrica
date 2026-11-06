@@ -37,7 +37,7 @@ Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de 
 
 ## `/fabrica:spec <número da issue> [ajustes pedidos]`
 - **Quando:** numa issue triada e sem perguntas abertas, ou para ajustar uma spec que você ainda não aprovou. Numa issue no atalho, quando você comenta antes de aprovar: o comentário tira a issue do atalho, e a spec completa substitui a spec curta.
-- **O que faz:** escreve a spec com critérios de aceite verificáveis (CA1, CA2…) e o desenho técnico.
+- **O que faz:** escreve a spec com critérios de aceite verificáveis (CA1, CA2…) e o desenho técnico. Um CA que não tem como ser verificado antes do merge vem marcado `depois do merge`, com o motivo.
 - **Lê:** a issue e a triagem, com as recomendações que ela levou para a spec, que viram decisões para você confirmar, `CLAUDE.md`, PRD, ADRs, specs, o código que será tocado e a documentação das bibliotecas (doc local ou Context7). Confere na ajuda do `gh` instalado (`gh <comando> --help`) cada flag e cada campo `--json` que a spec cita.
 - **Cria:** a branch `<tipo>/<nº>-<descrição>`, `specs/SPEC-<nº>.md` (e um ADR, se a decisão vale para além da issue) e um comentário com o resumo.
 - **Spec já aprovada:** para mudá-la, remova `spec-aprovada` antes. O ajuste registra no histórico da spec o tipo, o motivo e os CAs incluídos, removidos e alterados, e o comentário na issue aponta o código da branch que esses CAs tocam.
@@ -55,7 +55,7 @@ Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de 
 
 ## `/fabrica:revisar <número da issue>`
 - **Quando:** chamada pela implementação, ou de novo depois que você comentar pedidos no PR.
-- **O que faz:** um subagente revisor confere a branch contra a spec, critério por critério. Os achados bloqueantes e importantes são corrigidos em até duas rodadas, e as sugestões vão listadas no PR para você decidir. Antes disso, trata os seus comentários no PR feitos depois do início da última revisão (os que chegam enquanto ela roda ficam para a próxima): corrige o que cabe na spec e escala o que mudaria um critério de aceite. Nunca faz merge.
+- **O que faz:** um subagente revisor confere a branch contra a spec, critério por critério. Os achados bloqueantes e importantes são corrigidos em até duas rodadas, e as sugestões vão listadas no PR para você decidir. Os CAs marcados `depois do merge` na spec vão para o PR com ⏳, sem bloquear o `pronto-revisao`, para você conferir depois do merge. Antes disso, trata os seus comentários no PR feitos depois do início da última revisão (os que chegam enquanto ela roda ficam para a próxima): corrige o que cabe na spec e escala o que mudaria um critério de aceite. Nunca faz merge.
 - **Lê:** a spec (no atalho, a spec curta da triagem, com a linha "Fora do escopo"), os ADRs que ela cita, o `CLAUDE.md`, o diff da branch contra a `main` e os seus comentários no PR.
 - **Cria:** o PR com a evidência de cada critério, ou atualiza a descrição de um PR que já existe, e um comentário no PR com o que foi feito em cada pedido seu.
 - **Labels:** aplica `pronto-revisao` e remove `escalonado`. Se sobrar pendência, ou se um pedido seu mudar a spec, aplica `escalonado` em vez de `pronto-revisao`; com pendência da revisão, o PR fica como rascunho.

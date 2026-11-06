@@ -53,6 +53,7 @@ Passe ao revisor:
 O revisor devolve, para cada critério de aceite, se está atendido e com qual evidência, e uma lista de achados com severidade `bloqueante`, `importante` ou `sugestão`.
 
 ## 4. Corrigir
+- Um CA que o revisor devolve como `depois do merge` não é achado nem pendência: ele vai para o PR com ⏳ (passo 5).
 - Corrija todos os achados `bloqueante` e `importante` que procedem. Se discordar de um achado, registre o motivo; ele vai para o PR.
 - Depois de corrigir, rode `make lint` e `make test`, faça commit (`fix: ...` ou o tipo adequado) e push, e faça uma nova rodada de revisão.
 - No máximo **duas rodadas de correção**. Se ainda restarem achados bloqueantes, abra o PR mesmo assim como rascunho (`--draft`), liste os achados pendentes, aplique `escalonado` na issue e não aplique `pronto-revisao`.
@@ -76,6 +77,7 @@ Se já existir PR da branch (`gh pr view`), atualize a descrição em vez de abr
   |---|---|---|
   | CA1 | ✅ | <teste que cobre, ou comando executado e resultado> |
   | CA2 | ✅ | <...> |
+  | CA3 | ⏳ | confere depois do merge: <o quê> |
 
   ## Verificações manuais
   <Cada verificação da spec: comando executado e resultado observado.>
@@ -87,14 +89,14 @@ Se já existir PR da branch (`gh pr view`), atualize a descrição em vez de abr
   <Número de rodadas, achados corrigidos, achados de que discordou (com o motivo) e sugestões não aplicadas.>
 
   ## Para a sua revisão
-  <Onde vale olhar com mais atenção: arquivos sensíveis, decisões, riscos.>
+  <Onde vale olhar com mais atenção: arquivos sensíveis, decisões, riscos. Cite cada CA ⏳ e o que você confere depois do merge.>
 
   Fixes #<nº>
   ```
 
 ## 6. CI, labels e resposta no PR
 - Espere o CI: `gh pr checks --watch`. Se falhar por causa da mudança, corrija como no passo 4 (conta como rodada). Se precisou de duas ou mais correções por CI vermelho, registre uma lição com o gatilho `rodadas`, com os checks que falharam e o que os resolveu ([../licao/formato.md](../licao/formato.md)). Se falhar por motivo externo (instabilidade, credencial), registre no PR e siga.
-- Com CI verde e sem achados bloqueantes: `gh issue edit <nº> --add-label pronto-revisao --remove-label escalonado`. Se o passo 2 escalou uma mudança de escopo, remova `pronto-revisao` se estiver aplicada (`gh issue edit <nº> --remove-label pronto-revisao`) e mantenha `escalonado`: o PR espera a mudança da spec, não a revisão do usuário.
+- Com CI verde e sem achados bloqueantes, mesmo com CAs ⏳ "depois do merge": `gh issue edit <nº> --add-label pronto-revisao --remove-label escalonado`. Se o passo 2 escalou uma mudança de escopo, remova `pronto-revisao` se estiver aplicada (`gh issue edit <nº> --remove-label pronto-revisao`) e mantenha `escalonado`: o PR espera a mudança da spec, não a revisão do usuário.
 - **Resposta no PR:** comente no PR (`gh pr comment <nº do PR> --body-file <arquivo>`) com o marcador `<!-- fabrica:revisar -->`. Esse comentário vira a nova âncora do passo 2, então publique-o sempre que aplicar `pronto-revisao` e sempre que tratar pedidos, mesmo com rascunho ou escalado:
   - **instante da coleta:** logo abaixo do marcador, a linha `**Pedidos lidos até:** <instante da coleta do passo 2>`;
   - **sem pedidos:** uma linha, "PR pronto para a sua revisão", com o resumo da revisão automática;
@@ -108,6 +110,6 @@ Se já existir PR da branch (`gh pr view`), atualize a descrição em vez de abr
 - Não mude a spec para fazer a implementação passar, nem por um pedido feito no PR. Se a spec estiver errada, comente na issue.
 - Todo comentário seu, na issue ou no PR, começa com o marcador `<!-- fabrica:revisar -->` numa linha própria, exceto o comentário de lição, que segue [../licao/formato.md](../licao/formato.md). Os comentários do agente e do usuário saem da mesma conta do GitHub, e o marcador é o que os distingue (veja [estados.md](../status/estados.md)).
 - Publique todo corpo de issue, comentário ou PR a partir de um arquivo: escreva-o com a ferramenta Write na pasta temporária da sessão e passe `--body-file <arquivo>` ao `gh`. Não monte o corpo com heredoc, `echo`, `--body` ou stdin: o hook `protect-main` lê o texto do comando Bash e barra corpos que citam as opções que desligam os hooks do git.
-- O status de cada CA no PR precisa ter evidência; "implementado" sem evidência não conta.
+- O status de cada CA no PR precisa ter evidência; "implementado" sem evidência não conta. A exceção é o CA marcado `depois do merge — <motivo>` na spec, que vai com ⏳ e "confere depois do merge: <o quê>".
 - Se um `gh pr edit` ou um `gh issue edit` falhar por um erro do próprio `gh`, use o plano B de [../setup/gh.md](../setup/gh.md#plano-b-por-rest) e avise no chat. Uma label que não existe não é erro do `gh`: vale a regra abaixo.
 - Se `gh issue edit` falhar porque uma label não existe, pare, comente na issue e diga no chat: "A label `<label>` não existe neste repositório. Rode `/fabrica:setup` e repita a etapa." Não crie a label sozinho. A exceção é a `licao`: sem ela, a etapa avisa e segue, como diz [../licao/formato.md](../licao/formato.md).

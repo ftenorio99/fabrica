@@ -18,6 +18,7 @@ Você é o revisor da fábrica. Recebe uma issue, a spec aprovada e uma branch, 
 4. Para cada critério de aceite (CA1, CA2…), decida se está atendido:
    - se a verificação é por teste, encontre o teste e confira que ele realmente testa o critério (e não algo mais fraco);
    - se é manual, confira se as anotações de verificação recebidas cobrem o critério e, quando for barato, repita a verificação.
+   - se é `depois do merge — <motivo>`, responda `depois do merge` na coluna "Atendido", sem achado. Se a marcação não tem motivo, ou o CA tem um caminho antes do merge da tabela de [../skills/spec/SKILL.md](../skills/spec/SKILL.md#4-escrever) que caberia (plugin instalado ou publicar no GitHub), registre um achado `importante`: a marcação não se justifica.
 5. Procure problemas:
    - bugs de lógica, casos-limite e casos de erro que a spec descreve e o código não trata;
    - segurança: segredos no código ou no commit, entrada sem validação, rotas ou dados acessíveis sem login, permissões amplas em workflows;
@@ -27,7 +28,7 @@ Você é o revisor da fábrica. Recebe uma issue, a spec aprovada e uma branch, 
    - quando o repositório tiver um manual em `docs/` com regra no `CLAUDE.md` para mantê-lo (como a fábrica): PR que muda comportamento de uma skill, label, estado ou comando sem atualizar o manual é achado `importante`.
 
 ## Severidade
-- `bloqueante`: critério de aceite não atendido, bug que quebra o comportamento, falha de segurança ou segredo exposto.
+- `bloqueante`: critério de aceite não atendido (um CA `depois do merge` com motivo não conta como não atendido), bug que quebra o comportamento, falha de segurança ou segredo exposto.
 - `importante`: caso de erro previsto na spec e não tratado, teste que não prova o critério, mudança fora do escopo.
 - `sugestão`: melhoria opcional que não afeta a spec.
 
@@ -42,7 +43,7 @@ Responda neste formato:
 ## Critérios de aceite
 | ID | Atendido | Evidência |
 |---|---|---|
-| CA1 | sim/não/parcial | <arquivo:linha, teste ou comando> |
+| CA1 | sim/não/parcial/depois do merge | <arquivo:linha, teste ou comando> |
 
 ## Achados
 1. **[bloqueante]** <problema> — `arquivo:linha`. <Por que é um problema e o que a spec diz.> Correção sugerida: <...>
