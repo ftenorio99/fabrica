@@ -31,12 +31,12 @@ Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de 
 - **Quando:** numa issue com `agente` que ainda não foi triada, ou depois de você responder as perguntas da triagem.
 - **O que faz:** classifica tipo, classe e tamanho, liga a issue ao PRD e às dependências e procura lacunas que só você pode responder.
 - **Lê:** a issue e os comentários, `CLAUDE.md`, `docs/prd.md`, specs e ADRs e o código que a issue deve tocar.
-- **Cria:** um comentário de triagem na issue. Não escreve spec, código nem branch.
-- **Labels:** aplica `precisa-info` quando há perguntas e a remove quando não há. Junto com as perguntas, registra uma [lição](#fabricalicao-donoreponúmero-texto-da-lição) e aplica `licao`.
+- **Cria:** um comentário de triagem na issue, que sempre diz se a issue cabe no [atalho](fluxo.md#atalho) e por quê. No atalho, o comentário traz uma spec curta, com o objetivo, os critérios de aceite e o nome da branch, e a triagem aplica `spec-pronta`. Não escreve código nem cria a branch.
+- **Labels:** aplica `precisa-info` quando há perguntas e a remove quando não há. No atalho, aplica `spec-pronta`. Junto com as perguntas, registra uma [lição](#fabricalicao-donoreponúmero-texto-da-lição) e aplica `licao`.
 - Detalhes: [`skills/triagem/SKILL.md`](../skills/triagem/SKILL.md).
 
 ## `/fabrica:spec <número da issue> [ajustes pedidos]`
-- **Quando:** numa issue triada e sem perguntas abertas, ou para ajustar uma spec que você ainda não aprovou.
+- **Quando:** numa issue triada e sem perguntas abertas, ou para ajustar uma spec que você ainda não aprovou. Numa issue no atalho, quando você comenta antes de aprovar: o comentário tira a issue do atalho, e a spec completa substitui a spec curta.
 - **O que faz:** escreve a spec com critérios de aceite verificáveis (CA1, CA2…) e o desenho técnico.
 - **Lê:** a issue e a triagem, `CLAUDE.md`, PRD, ADRs, specs, o código que será tocado e a documentação das bibliotecas (doc local ou Context7).
 - **Cria:** a branch `<tipo>/<nº>-<descrição>`, `specs/SPEC-<nº>.md` (e um ADR, se a decisão vale para além da issue) e um comentário com o resumo.
@@ -47,8 +47,8 @@ Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de 
 ## `/fabrica:implementar <número da issue>`
 - **Quando:** depois que você aplicou `spec-aprovada`.
 - **O que faz:** implementa só o que a spec pede, com testes de cada critério, `make lint`, `make test` e as verificações manuais. Respeita o limite de 3 issues em andamento. Termina chamando a etapa de revisão.
-- **Lê:** a spec aprovada, o `CLAUDE.md`, o código que será tocado e a documentação das bibliotecas.
-- **Cria:** commits na branch da issue.
+- **Lê:** a spec aprovada (no atalho, a spec curta da triagem), o `CLAUDE.md`, o código que será tocado e a documentação das bibliotecas.
+- **Cria:** commits na branch da issue. No atalho, cria também a branch, com o nome que a triagem anunciou.
 - **Labels:** remove `escalonado` ao retomar. Aplica `escalonado` quando para por falha ou por um desvio da spec que você precisa decidir.
 - **Lições:** registra uma na issue, com a label `licao`, quando escala, quando precisa de duas ou mais rodadas de correção e quando um desvio muda o desenho técnico ou vem de um erro da spec.
 - Detalhes: [`skills/implementar/SKILL.md`](../skills/implementar/SKILL.md).
@@ -56,7 +56,7 @@ Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de 
 ## `/fabrica:revisar <número da issue>`
 - **Quando:** chamada pela implementação, ou de novo depois que você comentar pedidos no PR.
 - **O que faz:** um subagente revisor confere a branch contra a spec, critério por critério. Os achados bloqueantes e importantes são corrigidos em até duas rodadas, e as sugestões vão listadas no PR para você decidir. Antes disso, trata os seus comentários no PR feitos depois do início da última revisão (os que chegam enquanto ela roda ficam para a próxima): corrige o que cabe na spec e escala o que mudaria um critério de aceite. Nunca faz merge.
-- **Lê:** a spec, os ADRs que ela cita, o `CLAUDE.md`, o diff da branch contra a `main` e os seus comentários no PR.
+- **Lê:** a spec (no atalho, a spec curta da triagem e o "Fora do escopo" da issue), os ADRs que ela cita, o `CLAUDE.md`, o diff da branch contra a `main` e os seus comentários no PR.
 - **Cria:** o PR com a evidência de cada critério, ou atualiza a descrição de um PR que já existe, e um comentário no PR com o que foi feito em cada pedido seu.
 - **Labels:** aplica `pronto-revisao` e remove `escalonado`. Se sobrar pendência, ou se um pedido seu mudar a spec, aplica `escalonado` em vez de `pronto-revisao`; com pendência da revisão, o PR fica como rascunho.
 - **Lições:** registra uma na issue, com a label `licao`, quando escala por um pedido seu, quando o CI precisa de duas ou mais correções e para cada achado bloqueante ou importante que fica sem corrigir. Sugestões não geram lição.
@@ -72,14 +72,14 @@ Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de 
 
 ## `/fabrica:status [repositório]`
 - **Quando:** a qualquer momento, para saber o que falta e quem age.
-- **O que faz:** mostra o que espera você, o que espera agente (com o comando e o diretório), o avanço dos marcos, a próxima issue a puxar e os alertas. Um dos alertas é o de requisito instável: um F com 3 ou mais mudanças aceitas no histórico do PRD. A seção "Lições" conta, por repositório, as lições registradas desde o fechamento do último marco, ou nos últimos 30 dias num repositório sem marco fechado.
+- **O que faz:** mostra o que espera você, o que espera agente (com o comando e o diretório), o avanço dos marcos, a próxima issue a puxar e os alertas. Numa issue no [atalho](fluxo.md#atalho), o próximo passo aponta para a spec curta no comentário de triagem. Um dos alertas é o de requisito instável: um F com 3 ou mais mudanças aceitas no histórico do PRD. A seção "Lições" conta, por repositório, as lições registradas desde o fechamento do último marco, ou nos últimos 30 dias num repositório sem marco fechado.
 - **Lê:** as issues com `agente`, os comentários dos agentes, os PRs, o backlog, as milestones, o PRD e as issues e PRs com `licao` dos seus repositórios.
 - **Cria:** nada. Só lê.
 - Detalhes: [`skills/status/SKILL.md`](../skills/status/SKILL.md).
 
 ## `/fabrica:metricas [repositório] [período] [período de comparação]`
 - **Quando:** para saber como a fábrica está indo, ou se uma mudança nela melhorou o fluxo.
-- **O que faz:** para as issues entregues no período (por padrão, os últimos 30 dias), mostra quanto tempo cada uma levou da abertura ao merge, quanto esperou por você nos portões e quanto ficou com o agente, além das rodadas, escalonamentos e lições. Agrupa por marco e por repositório, com medianas. Com dois períodos (`AAAA-MM-DD..AAAA-MM-DD`), mostra a diferença entre eles. O tempo "com o agente" inclui a espera até você rodar o comando. Nas issues medidas, ele aparece dividido em trabalho, o tempo em que as etapas rodaram, e fila, a espera até o comando, ao lado dos tokens gastos. Essas colunas vêm da linha de custo que a triagem, a spec, a implementação e a revisão deixam, invisível, no fim do comentário que publicam, com o início, o fim e os tokens da execução, lidos do log da sessão do Claude Code. As issues entregues antes da versão 0.13.0, as etapas sem log, como as do GitHub Actions, e as issues com uma soma parcial, feita antes de o log da sessão terminar de ser gravado, aparecem como "não medido".
+- **O que faz:** para as issues entregues no período (por padrão, os últimos 30 dias), mostra quanto tempo cada uma levou da abertura ao merge, quanto esperou por você nos portões e quanto ficou com o agente, além das rodadas, escalonamentos e lições. Agrupa por marco e por repositório, com medianas. Com dois períodos (`AAAA-MM-DD..AAAA-MM-DD`), mostra a diferença entre eles. O tempo "com o agente" inclui a espera até você rodar o comando. Nas issues medidas, ele aparece dividido em trabalho, o tempo em que as etapas rodaram, e fila, a espera até o comando, ao lado dos tokens gastos. Essas colunas vêm da linha de custo que a triagem, a spec, a implementação e a revisão deixam, invisível, no fim do comentário que publicam, com o início, o fim e os tokens da execução, lidos do log da sessão do Claude Code. As issues entregues antes da versão 0.13.0, as etapas sem log, como as do GitHub Actions, e as issues com uma soma parcial, feita antes de o log da sessão terminar de ser gravado, aparecem como "não medido". A issue que passou pelo [atalho](fluxo.md#atalho), sem a etapa de spec, mostra `atalho` na coluna Spec, e não uma rodada zero.
 - **Lê:** as issues fechadas com `agente`, a linha do tempo das labels de cada uma, os comentários dos agentes e os PRs.
 - **Cria:** nada. Só lê.
 - Detalhes: [`skills/metricas/SKILL.md`](../skills/metricas/SKILL.md).

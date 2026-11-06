@@ -19,7 +19,7 @@ Esta skill é o observador da fábrica: ela vê onde as etapas falharam e propõ
 - Para cada issue, numa pasta temporária da sessão:
   - **Comentários:** `gh api repos/<repo>/issues/<nº>/comments --paginate --slurp > <pasta>/ci-<repo>-<nº>.json`. Guarde o `id`, o `html_url` e o `body` de cada um.
   - **Timeline:** `gh api repos/<repo>/issues/<nº>/timeline --paginate --slurp > <pasta>/tl-<repo>-<nº>.json`.
-  - **PR:** a branch está no comentário `<!-- fabrica:spec -->` mais recente (`**Branch:**`). Com ela, `gh pr list -R <repo> --head <branch> --state all --json number,url,body`. Para o PR, `gh pr view <nº> -R <repo> --json comments,reviews`, `gh api repos/<repo>/pulls/<nº>/comments --paginate` (comentários em linha) e `gh api repos/<repo>/issues/<nº>/comments --paginate --slurp` (para o `id` dos comentários de lição do PR).
+  - **PR:** a branch sai da regra da spec da issue de [estados.md](../status/estados.md): o `**Branch:**` do comentário `<!-- fabrica:spec -->` mais recente ou, no atalho, o da spec curta do comentário de triagem. Com ela, `gh pr list -R <repo> --head <branch> --state all --json number,url,body`. Para o PR, `gh pr view <nº> -R <repo> --json comments,reviews`, `gh api repos/<repo>/pulls/<nº>/comments --paginate` (comentários em linha) e `gh api repos/<repo>/issues/<nº>/comments --paginate --slurp` (para o `id` dos comentários de lição do PR).
 - **Issues já propostas:** `gh search issues --repo <dono>/fabrica "fabrica:retro" --match body --json number,body,url --limit 100`. Fique só com as que têm `<!-- fabrica:retro -->` na primeira linha do corpo, e guarde os links da seção Evidências de cada uma.
 
 Rode as consultas independentes em paralelo.

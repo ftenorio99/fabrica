@@ -2,6 +2,8 @@
 
 **ADR** — Registro de uma decisão de arquitetura que vale para além de uma issue, em `docs/adr/`. A spec cria um ADR quando a decisão afeta o projeto inteiro. Veja os [ADRs da fábrica](adr/).
 
+**Atalho** — Caminho de uma issue pequena e sem ambiguidade, em que a triagem publica uma spec curta e a etapa de spec não roda. Você aprova com a mesma `spec-aprovada`. Veja [Atalho](fluxo.md#atalho).
+
 **Backlog** — As issues abertas sem `agente`, criadas pelo `/fabrica:backlog` a partir do fatiamento do PRD. Esperam você puxá-las para o fluxo. Veja [`estados.md`](../skills/status/estados.md#backlog).
 
 **Critério de aceite (CA)** — Comportamento observável que a spec numera como CA1, CA2…, cada um com a forma de verificação. A revisão confere a implementação critério por critério. Veja [`/fabrica:spec`](comandos.md#fabricaspec-número-da-issue-ajustes-pedidos).
@@ -30,6 +32,6 @@
 
 **Retrospectiva** — Leitura do que deu errado desde o último marco fechado, feita pelo `/fabrica:retro`: agrupa as lições, os escalonamentos, as rodadas e os seus pedidos nos PRs em padrões e propõe mudanças no fabrica, que viram issues só com a sua confirmação. Veja [`/fabrica:retro`](comandos.md#fabricaretro-repositório).
 
-**Spec** — O contrato de uma issue, em `specs/SPEC-<nº>.md`: objetivo, comportamento, critérios de aceite e desenho técnico. É escrita antes do código e aprovada por você com `spec-aprovada`. Veja [`/fabrica:spec`](comandos.md#fabricaspec-número-da-issue-ajustes-pedidos).
+**Spec** — O contrato de uma issue, em `specs/SPEC-<nº>.md`: objetivo, comportamento, critérios de aceite e desenho técnico. No [atalho](fluxo.md#atalho), é a spec curta do comentário de triagem, só com o objetivo e os critérios. É escrita antes do código e aprovada por você com `spec-aprovada`. Veja [`/fabrica:spec`](comandos.md#fabricaspec-número-da-issue-ajustes-pedidos).
 
 **Triagem** — Primeira etapa de uma issue no fluxo: classifica tipo, classe e tamanho e pergunta na issue o que só você sabe. Veja [`/fabrica:triagem`](comandos.md#fabricatriagem-número-da-issue).

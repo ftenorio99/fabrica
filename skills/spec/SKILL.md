@@ -17,9 +17,10 @@ A spec é o contrato entre o usuário e quem implementa: ela é aprovada **antes
 - `gh issue view <nº> --json number,title,body,labels,comments`
 - Precisa existir um comentário de triagem (marcador `<!-- fabrica:triagem -->`) e a issue não pode ter `precisa-info`. Se faltar triagem, pare e indique `/fabrica:triagem <nº>`.
 - Se a issue já tiver `spec-aprovada`, pare: mudar uma spec aprovada exige que o usuário remova a label primeiro.
+- **Saída do atalho:** se a issue não tem comentário de spec e o comentário de triagem mais recente tem `**Atalho:** sim`, esta etapa tira a issue do atalho ([estados.md](../status/estados.md#atalho)). Escreva a spec completa como numa issue triada. A spec curta da triagem é o ponto de partida, e os comentários do usuário depois dela, junto com os ajustes dos argumentos, são os ajustes pedidos. A spec curta não é uma spec aprovada antes: o bloco "Ajuste de uma spec aprovada antes" do passo 4 não se aplica, e a spec curta não é editada.
 
 ## 2. Branch
-- Use o tipo da triagem e um resumo curto do título: `<tipo>/<nº>-<descricao-curta>`.
+- Use o tipo da triagem e um resumo curto do título: `<tipo>/<nº>-<descricao-curta>`. Na saída do atalho, use o nome do `**Branch:**` da spec curta.
 - Se a branch já existir (local ou em `origin`), use-a: esta é uma rodada de ajuste. Senão, crie-a a partir da `main` atualizada (`git switch main && git pull && git switch -c <branch>`).
 - A spec e, depois, a implementação vivem na mesma branch e chegam juntas no PR da issue.
 

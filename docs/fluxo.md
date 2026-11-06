@@ -13,6 +13,7 @@ flowchart TD
     info --> triagem
     triagem --> spec["/fabrica:spec<br/>spec-pronta"]
     spec --> aprovar[["Portão: você aprova a spec<br/>spec-aprovada"]]
+    triagem -->|atalho: spec curta<br/>spec-pronta| aprovar
     aprovar --> implementar["/fabrica:implementar"]
     implementar --> revisar["/fabrica:revisar<br/>PR e pronto-revisao"]
     revisar --> merge[["Portão: você revisa e faz o merge"]]
@@ -31,7 +32,7 @@ Os retângulos são etapas de agente, que você dispara com o comando. Os hexág
 | PRD | você e o agente, em entrevista | `docs/prd.md` com funcionalidades (F1, F2…) e fatiamento em marcos |
 | Backlog | agente, com a sua confirmação | milestones `M<n> · <nome>` e issues enxutas do marco atual e do seguinte |
 | Puxar | você | a label `agente` numa issue de backlog |
-| Triagem | agente | comentário de triagem; perguntas na issue se faltar informação |
+| Triagem | agente | comentário de triagem; perguntas na issue se faltar informação; no [atalho](#atalho), a spec curta e a label `spec-pronta` |
 | Spec | agente | `specs/SPEC-<nº>.md` na branch da issue e a label `spec-pronta` |
 | **Aprovar a spec** | **você** | a label `spec-aprovada` |
 | Implementação | agente | código e testes na branch, verificações registradas |
@@ -41,6 +42,13 @@ Os retângulos são etapas de agente, que você dispara com o comando. Os hexág
 Você pode rodar cada etapa do agente pelo comando dela, ou deixar o [`/fabrica:avancar`](comandos.md#fabricaavancar-número-da-issue) executar as etapas em sequência. Ele para sozinho onde a tabela diz "você".
 
 Quando algo dá errado, o agente para, comenta na issue e aplica `escalonado`. Veja o guia [Issue escalonada](guias/issue-escalonada.md).
+
+## Atalho
+Uma issue pequena e sem ambiguidade não precisa da etapa de spec. Quando a triagem vê que a issue é pequena, simples ou de documentação, sem perguntas e sem arquivos sensíveis, ela publica no próprio comentário uma **spec curta**, com o objetivo, os critérios de aceite e o nome da branch, e aplica `spec-pronta`.
+
+Os seus portões são os mesmos: você aprova a spec curta com `spec-aprovada`, e a issue segue para a implementação, a revisão e o merge como qualquer outra. Ela também conta para o limite de 3 em andamento.
+
+Para tirar uma issue do atalho, comente na issue antes de aprovar. O próximo passo passa a ser o `/fabrica:spec`, que escreve a spec completa levando o seu comentário em conta. O critério está na [triagem](../skills/triagem/SKILL.md), e a decisão, no [ADR 0004](adr/0004-atalho-da-triagem-com-spec-curta.md).
 
 ## Onde está o estado
 Não existe arquivo de estado. O estado de cada issue é lido de três lugares no GitHub:

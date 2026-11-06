@@ -3,7 +3,7 @@
 As decisões que dão forma à fábrica, e por que cada uma existe. Quando há ADR, ele traz o contexto completo.
 
 ## Você decide, os agentes executam
-A fábrica tem três gestos seus: puxar uma issue (aplicar `agente`), aprovar a spec (`spec-aprovada`) e fazer o merge. Os agentes nunca dão esses passos sozinhos. A spec aprovada é o contrato: a implementação e a revisão são conferidas contra ela, e uma mudança de escopo depois da aprovação volta para você.
+A fábrica tem três gestos seus: puxar uma issue (aplicar `agente`), aprovar a spec (`spec-aprovada`) e fazer o merge. Os agentes nunca dão esses passos sozinhos. A spec aprovada é o contrato: a implementação e a revisão são conferidas contra ela, e uma mudança de escopo depois da aprovação volta para você. Numa issue pequena, a spec pode ser a spec curta da triagem ([atalho](fluxo.md#atalho)), mas o gesto de aprovar continua seu: o atalho tira uma etapa do agente, não um portão ([ADR 0004](adr/0004-atalho-da-triagem-com-spec-curta.md)).
 
 ## `main` protegida
 A `main` é sempre estável e nunca recebe commit ou push direto. Toda mudança nasce numa branch e entra por PR com squash.

@@ -17,20 +17,21 @@ A spec aprovada é o contrato. Implemente o que ela pede, só o que ela pede, e 
 **`gh`:** rode `bash <diretório base desta skill>/../../scripts/check-gh.sh`. Se a linha não for `ok`, pare antes de ler ou escrever no GitHub, como diz [../setup/gh.md](../setup/gh.md).
 
 Pare e explique o motivo (no chat e, quando indicado, na issue) se algum destes falhar:
-- **Spec aprovada:** `gh issue view <nº> --json labels,comments` precisa mostrar `spec-aprovada`. Pegue a branch e o caminho da spec no comentário `<!-- fabrica:spec -->` mais recente.
+- **Spec aprovada:** `gh issue view <nº> --json labels,comments` precisa mostrar `spec-aprovada`. Pegue a spec e a branch pela regra da spec da issue de [estados.md](../status/estados.md): o comentário `<!-- fabrica:spec -->` mais recente ou, sem ele, a spec curta da triagem com `**Atalho:** sim`.
 - **Limite de trabalho em andamento:** toda issue aberta com `spec-aprovada` está em andamento, inclusive as que aguardam merge (a issue só fecha no merge). Conte com `gh issue list --label spec-aprovada --state open`. Se houver 3 ou mais além desta, pare: a fábrica só aceita 3 tarefas em andamento.
 - **Ambiente:** confira as ferramentas que o projeto exige (versões em `.nvmrc`, `packageManager`, `engines`, `CLAUDE.md` e na seção de riscos da spec). Se faltar alguma, pare e diga exatamente o que instalar. Não instale ferramentas do sistema por conta própria.
 
 ## 2. Preparar a branch
 - Se a issue tiver `escalonado`, é uma retomada depois de um bloqueio: leia o último comentário do agente e a resposta do usuário e remova a label (`gh issue edit <nº> --remove-label escalonado`).
-- `git fetch origin`, `git switch <branch>` e `git pull`. Se a `main` avançou desde a spec, faça `git rebase origin/main` e resolva conflitos simples; se o conflito mexer no escopo, pare e reporte.
+- `git fetch origin`, `git switch <branch>` e `git pull` (no atalho, se a branch ainda não existir, veja o item seguinte antes). Se a `main` avançou desde a spec, faça `git rebase origin/main` e resolva conflitos simples; se o conflito mexer no escopo, pare e reporte.
+- **Atalho:** se a branch não existir (local ou em `origin`), crie-a a partir da `main` atualizada (`git switch main && git pull && git switch -c <branch>`). Não há arquivo de spec: pule os dois itens seguintes.
 - Na spec, mude o status para `aprovada` e registre a data no histórico. Nos ADRs citados pela spec, mude o status de `proposto` para `aceito`.
 - Commit: `docs: marca spec da issue #<nº> como aprovada`.
 - Se a branch já tiver commits de implementação, é uma retomada depois de um ajuste da spec: eles continuam valendo. Leia o histórico da spec para ver o que mudou e implemente só a diferença.
 
 ## 3. Implementar
 - Leia a spec inteira, o `CLAUDE.md` e o código que será tocado antes de escrever.
-- Siga o desenho técnico da spec: os arquivos, interfaces e decisões descritos nela. Pequenos ajustes forçados pela realidade (uma API de biblioteca diferente da prevista, um nome de arquivo gerado pela ferramenta) são permitidos e vão para a seção "Desvios da spec" do PR. Se o desvio mudou o desenho técnico (arquivo, interface ou decisão) ou veio de um erro ou lacuna da spec, registre também uma lição com o gatilho `desvio`, um bloco por desvio ([../licao/formato.md](../licao/formato.md)). Desvios cosméticos não geram lição.
+- Siga o desenho técnico da spec: os arquivos, interfaces e decisões descritos nela. A spec curta do atalho não tem desenho técnico: siga os CAs, o "Fora do escopo" da issue e os arquivos prováveis da triagem. Pequenos ajustes forçados pela realidade (uma API de biblioteca diferente da prevista, um nome de arquivo gerado pela ferramenta) são permitidos e vão para a seção "Desvios da spec" do PR. Se o desvio mudou o desenho técnico (arquivo, interface ou decisão) ou veio de um erro ou lacuna da spec, registre também uma lição com o gatilho `desvio`, um bloco por desvio ([../licao/formato.md](../licao/formato.md)). Desvios cosméticos não geram lição.
 - **Documentação das bibliotecas:** antes de usar uma API de biblioteca cujo comportamento você não confirmou no código do próprio projeto, consulte a documentação da versão que o projeto usa, nesta ordem. Nesta etapa, esta ordem prevalece sobre qualquer regra geral que mande usar o Context7 sempre.
   1. **Versão:** leia a versão no manifesto do projeto (`package.json` ou equivalente). Se for uma faixa (ex.: `^16.0.0`), use a versão resolvida no lockfile ou no pacote instalado (ex.: `node_modules/<pacote>/package.json`).
   2. **Doc local:** se o pacote instalado trouxer documentação (ex.: `node_modules/next/dist/docs/`), consulte essa primeiro.

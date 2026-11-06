@@ -68,7 +68,7 @@ O PRD que já existe é a baseline: toda mudança passa por análise de impacto 
      - `gh issue list --state all --limit 1000 --json number,title,body,state,labels,milestone`;
      - `gh pr list --state all --limit 200 --json number,state,headRefName`.
 
-     Liste também os comentários `<!-- fabrica:spec -->` das issues afetadas, que trazem a branch.
+     Liste também os comentários `<!-- fabrica:spec -->` das issues afetadas, que trazem a branch, e, nas issues sem eles, os comentários de triagem com `**Atalho:** sim`, cuja spec curta traz a branch ([estados.md](../status/estados.md)).
    - **Ligação item → issue:** pela anotação ` · #<nº>` do fatiamento ou pelo marcador `<!-- fabrica:backlog item=<n> -->` no corpo.
    - **Relatório no chat:** uma linha por item afetado, com F, item, issue, marco, estado e ação, conforme a tabela:
 

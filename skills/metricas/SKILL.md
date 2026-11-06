@@ -24,7 +24,7 @@ Esta skill só lê. Ela não aplica labels, não comenta e não cria arquivo no 
   - **Issue:** `gh api repos/<repo>/issues/<nº>` → `created_at`, `closed_at` e `milestone.title`.
   - **Timeline:** `gh api repos/<repo>/issues/<nº>/timeline --paginate --slurp > <pasta>/tl-<nº>.json`. Confira que há um evento `labeled` com a label `agente`; sem ele, a issue não entra.
   - **Comentários:** `gh api repos/<repo>/issues/<nº>/comments --paginate --slurp > <pasta>/ci-<nº>.json`.
-  - **PR:** a branch está no comentário `<!-- fabrica:spec -->` mais recente (`**Branch:**`). Com ela, `gh pr list -R <repo> --head <branch> --state merged --json number` e os comentários do PR com `gh api repos/<repo>/issues/<nº do PR>/comments --paginate --slurp > <pasta>/cp-<nº>.json`.
+  - **PR:** a branch sai da regra da spec da issue de [estados.md](../status/estados.md): o `**Branch:**` do comentário `<!-- fabrica:spec -->` mais recente ou, no atalho, o da spec curta do comentário de triagem. Com ela, `gh pr list -R <repo> --head <branch> --state merged --json number` e os comentários do PR com `gh api repos/<repo>/issues/<nº do PR>/comments --paginate --slurp > <pasta>/cp-<nº>.json`.
 
 Rode as consultas independentes em paralelo.
 
@@ -44,7 +44,7 @@ Rode as consultas independentes em paralelo.
 - **Fila:** `com_o_agente` menos `trabalho_min`, só numa issue medida. Se der negativo, o que acontece quando uma etapa roda com um portão do usuário aplicado (como o `revisar` tratando pedidos com `pronto-revisao`), mostre `0min`.
 - **Contagens nos comentários:**
   - **Rodadas de triagem:** comentários da issue que começam com `<!-- fabrica:triagem -->`.
-  - **Rodadas de spec:** comentários da issue que começam com `<!-- fabrica:spec -->`.
+  - **Rodadas de spec:** comentários da issue que começam com `<!-- fabrica:spec -->`. A issue que passou pelo atalho, sem nenhum comentário de spec e com `**Atalho:** sim` na triagem, mostra `atalho` na coluna Spec.
   - **Respostas no PR:** comentários do PR que começam com `<!-- fabrica:revisar -->`.
   - **Lições:** blocos `**Lição · ` nos comentários que começam com `<!-- fabrica:licao`, na issue e no PR.
 - **Dado ausente** (sem comentário de spec, PR não encontrado, campo `null` do `durations.py`): mostre `—`, nunca zero.
