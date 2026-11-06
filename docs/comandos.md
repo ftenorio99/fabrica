@@ -31,7 +31,7 @@ Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de 
 - **Quando:** numa issue com `agente` que ainda não foi triada, ou depois de você responder as perguntas da triagem.
 - **O que faz:** classifica tipo, classe e tamanho, liga a issue ao PRD e às dependências e procura lacunas que só você pode responder.
 - **Lê:** a issue e os comentários, `CLAUDE.md`, `docs/prd.md`, specs e ADRs e o código que a issue deve tocar.
-- **Cria:** um comentário de triagem na issue, que sempre diz se a issue cabe no [atalho](fluxo.md#atalho) e por quê. No atalho, o comentário traz uma spec curta, com o objetivo, os critérios de aceite e o nome da branch, e a triagem aplica `spec-pronta`. Não escreve código nem cria a branch.
+- **Cria:** um comentário de triagem na issue, que sempre diz se a issue cabe no [atalho](fluxo.md#atalho) e por quê. No atalho, o comentário traz uma spec curta, com o objetivo, os critérios de aceite, o que fica fora do escopo e o nome da branch, e a triagem aplica `spec-pronta`. Não escreve código nem cria a branch.
 - **Labels:** aplica `precisa-info` quando há perguntas e a remove quando não há. No atalho, aplica `spec-pronta`. Junto com as perguntas, registra uma [lição](#fabricalicao-donoreponúmero-texto-da-lição) e aplica `licao`.
 - Detalhes: [`skills/triagem/SKILL.md`](../skills/triagem/SKILL.md).
 
@@ -56,7 +56,7 @@ Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de 
 ## `/fabrica:revisar <número da issue>`
 - **Quando:** chamada pela implementação, ou de novo depois que você comentar pedidos no PR.
 - **O que faz:** um subagente revisor confere a branch contra a spec, critério por critério. Os achados bloqueantes e importantes são corrigidos em até duas rodadas, e as sugestões vão listadas no PR para você decidir. Antes disso, trata os seus comentários no PR feitos depois do início da última revisão (os que chegam enquanto ela roda ficam para a próxima): corrige o que cabe na spec e escala o que mudaria um critério de aceite. Nunca faz merge.
-- **Lê:** a spec (no atalho, a spec curta da triagem e o "Fora do escopo" da issue), os ADRs que ela cita, o `CLAUDE.md`, o diff da branch contra a `main` e os seus comentários no PR.
+- **Lê:** a spec (no atalho, a spec curta da triagem, com a linha "Fora do escopo"), os ADRs que ela cita, o `CLAUDE.md`, o diff da branch contra a `main` e os seus comentários no PR.
 - **Cria:** o PR com a evidência de cada critério, ou atualiza a descrição de um PR que já existe, e um comentário no PR com o que foi feito em cada pedido seu.
 - **Labels:** aplica `pronto-revisao` e remove `escalonado`. Se sobrar pendência, ou se um pedido seu mudar a spec, aplica `escalonado` em vez de `pronto-revisao`; com pendência da revisão, o PR fica como rascunho.
 - **Lições:** registra uma na issue, com a label `licao`, quando escala por um pedido seu, quando o CI precisa de duas ou mais correções e para cada achado bloqueante ou importante que fica sem corrigir. Sugestões não geram lição.
