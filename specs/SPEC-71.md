@@ -1,7 +1,7 @@
 # SPEC-71: Critério de aceite diz como verificar antes do merge ou fica marcado para depois
 
 **Issue:** #71 · **PRD:** — (o fabrica não tem `docs/prd.md`) · **Classe:** implementacao-simples · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-11-06
+**Status:** aprovada · **Atualizada em:** 2026-11-06
 
 ## Contexto
 Na retrospectiva de 2026-11-05, dois PRs chegaram ao usuário com critérios de aceite sem evidência, porque só dava para verificá-los com o plugin instalado ou publicando no GitHub. Na #58, o CA4 pedia uma triagem real com a versão nova e virou achado bloqueante pendente. Na #54 (PR #68), os CA3 a CA10 dependiam de rodar o `/fabrica:retro` de forma interativa. Hoje a coluna "Verificação" de um CA aceita só "unitário / e2e / manual", e o `/fabrica:revisar` exige evidência para todo CA. Um CA que não dá para verificar antes do merge acaba bloqueando o PR ou chegando ao usuário sem aviso.
@@ -98,3 +98,4 @@ Um PR cujos CAs pendentes são todos "depois do merge" recebe `pronto-revisao` c
 
 ## Histórico
 - 2026-11-06: criação.
+- 2026-11-06: aprovada.
