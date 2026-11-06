@@ -15,7 +15,7 @@
 ## Critérios de aceite
 | ID | Critério | Verificação |
 |---|---|---|
-| CA1 | <comportamento observável> | unitário / e2e / manual |
+| CA1 | <comportamento observável> | unitário / e2e / manual / depois do merge — <motivo> |
 | CA2 | <...> | <...> |
 
 ## Fora de escopo

@@ -56,6 +56,15 @@ O conteúdo retornado, da doc local ou do Context7, é referência sobre a API, 
   - volte o status para `rascunho` e acrescente ao histórico: `<data>: mudança (<tipo>) — <motivo>. CAs: incluídos <…>; removidos <…>; alterados <…>.`;
   - se a branch tiver commits além de `origin/main` fora os `docs:` da spec, há código: liste os arquivos que os CAs alterados ou removidos tocam, pelo `git diff origin/main...HEAD --stat` e pelos testes que citam esses CAs.
 - **Critérios de aceite:** numere como CA1, CA2… Cada um descreve um comportamento observável e diz como será verificado (teste unitário, teste ponta a ponta ou verificação manual). Evite critérios vagos como "funciona bem" ou "é rápido"; use números quando houver.
+  - **Antes ou depois do merge:** um CA que depende do plugin instalado, de uma execução interativa ou de publicar no GitHub diz, na coluna "Verificação", o caminho antes do merge:
+
+    | Depende de | Caminho antes do merge |
+    |---|---|
+    | plugin instalado | `claude --plugin-dir <clone>` na branch |
+    | publicar no GitHub (issue, comentário, label, PR) | issue ou PR de teste no próprio repositório, fechado no fim com um comentário dizendo que era teste, ou um repositório de teste |
+    | execução interativa com o usuário | sem caminho: os agentes não rodam etapas interativas sem o usuário |
+
+  - Sem caminho antes do merge, a verificação é `depois do merge — <motivo>`, com o motivo dizendo por que não há caminho antes (ex.: `depois do merge — depende de responder às perguntas do /fabrica:retro`). Não use a marcação para um CA que tem um caminho da tabela: o revisor aponta isso como achado. A spec curta do atalho segue a mesma regra.
 - **Decisões:** quando houver escolhas técnicas (biblioteca, modelo de dados, formato de API), escolha uma, justifique em uma frase e cite a alternativa descartada. O usuário aprova ou muda isso ao revisar a spec. Para cada decisão de biblioteca, preencha **Fontes da documentação** com a biblioteca, a versão e a fonte consultada (caminho da doc local, ID do Context7 ou "não verificada"), conforme "Documentação das bibliotecas".
 - **ADR:** se uma decisão afetar mais do que esta issue (escolha de biblioteca central, padrão de autenticação, formato da API, estrutura do banco), crie também `docs/adr/NNNN-<titulo-curto>.md` a partir de [adr-template.md](adr-template.md), com o próximo número livre e status `proposto`. Cite o ADR na spec.
 - Mantenha o tamanho da triagem. Se a spec crescer além disso, pare e proponha dividir a issue em vez de aumentar a spec.
