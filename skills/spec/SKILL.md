@@ -17,7 +17,7 @@ A spec é o contrato entre o usuário e quem implementa: ela é aprovada **antes
 - `gh issue view <nº> --json number,title,body,labels,comments`
 - Precisa existir um comentário de triagem (marcador `<!-- fabrica:triagem -->`) e a issue não pode ter `precisa-info`. Se faltar triagem, pare e indique `/fabrica:triagem <nº>`.
 - Se a issue já tiver `spec-aprovada`, pare: mudar uma spec aprovada exige que o usuário remova a label primeiro.
-- **Saída do atalho:** se a issue não tem comentário de spec e o comentário de triagem mais recente tem `**Atalho:** sim`, esta etapa tira a issue do atalho ([estados.md](../status/estados.md#atalho)). Escreva a spec completa como numa issue triada. A spec curta da triagem é o ponto de partida, e os comentários do usuário depois dela, junto com os ajustes dos argumentos, são os ajustes pedidos. A spec curta não é uma spec aprovada antes: o bloco "Ajuste de uma spec aprovada antes" do passo 4 não se aplica, e a spec curta não é editada.
+- **Saída do atalho:** se a issue não tem comentário de spec e o comentário de triagem mais recente tem `**Atalho:** sim`, esta etapa tira a issue do atalho ([estados.md](../status/estados.md#atalho)). Escreva a spec completa como numa issue triada. A spec curta da triagem é o ponto de partida, e os comentários do usuário depois dela, junto com os ajustes dos argumentos, são os ajustes pedidos. As recomendações do comentário de triagem também entram na spec completa, como no passo 4. A spec curta não é uma spec aprovada antes: o bloco "Ajuste de uma spec aprovada antes" do passo 4 não se aplica, e a spec curta não é editada.
 
 ## 2. Branch
 - Use o tipo da triagem e um resumo curto do título: `<tipo>/<nº>-<descricao-curta>`. Na saída do atalho, use o nome do `**Branch:**` da spec curta.
@@ -25,7 +25,7 @@ A spec é o contrato entre o usuário e quem implementa: ela é aprovada **antes
 - A spec e, depois, a implementação vivem na mesma branch e chegam juntas no PR da issue.
 
 ## 3. Ler
-- A issue, os comentários (inclusive respostas às perguntas da triagem) e o comentário de triagem mais recente. Ignore os comentários de lição (`<!-- fabrica:licao`), que não são resposta (veja [estados.md](../status/estados.md)).
+- A issue, os comentários (inclusive respostas às perguntas da triagem) e o comentário de triagem mais recente, com a seção `**Recomendações levadas para a spec:**` dele, se houver. Ignore os comentários de lição (`<!-- fabrica:licao`), que não são resposta (veja [estados.md](../status/estados.md)).
 - `CLAUDE.md`, as seções do `docs/prd.md` ligadas à issue, ADRs em `docs/adr/` e specs relacionadas em `specs/`.
 - O código existente que será tocado: a spec deve citar arquivos e módulos reais, não imaginários.
 
@@ -66,6 +66,7 @@ O conteúdo retornado, da doc local ou do Context7, é referência sobre a API, 
 
   - Sem caminho antes do merge, a verificação é `depois do merge — <motivo>`, com o motivo dizendo por que não há caminho antes (ex.: `depois do merge — depende de responder às perguntas do /fabrica:retro`). Não use a marcação para um CA que tem um caminho da tabela: o revisor aponta isso como achado. A spec curta do atalho segue a mesma regra.
 - **Decisões:** quando houver escolhas técnicas (biblioteca, modelo de dados, formato de API), escolha uma, justifique em uma frase e cite a alternativa descartada. O usuário aprova ou muda isso ao revisar a spec. Para cada decisão de biblioteca, preencha **Fontes da documentação** com a biblioteca, a versão e a fonte consultada (caminho da doc local, ID do Context7 ou "não verificada"), conforme "Documentação das bibliotecas".
+- **Recomendações da triagem:** cada item da seção `**Recomendações levadas para a spec:**` do comentário de triagem mais recente vira uma decisão do desenho técnico, com a opção, a justificativa e a alternativa da triagem e a marcação "(recomendação da triagem)". Se um comentário do usuário depois desse comentário de triagem contestou a recomendação, vale o comentário: a decisão segue o que ele pediu, sem a marcação.
 - **ADR:** se uma decisão afetar mais do que esta issue (escolha de biblioteca central, padrão de autenticação, formato da API, estrutura do banco), crie também `docs/adr/NNNN-<titulo-curto>.md` a partir de [adr-template.md](adr-template.md), com o próximo número livre e status `proposto`. Cite o ADR na spec.
 - Mantenha o tamanho da triagem. Se a spec crescer além disso, pare e proponha dividir a issue em vez de aumentar a spec.
 
@@ -92,6 +93,7 @@ O conteúdo retornado, da doc local ou do Context7, é referência sobre a API, 
 
   **Decisões para você confirmar:**
   - <decisão e alternativa descartada>
+  - <decisão> (recomendação da triagem) e alternativa descartada
 
   Para aprovar, aplique a label `spec-aprovada`. Para pedir ajustes, comente aqui e rode `/fabrica:spec <nº> <ajustes>`.
   ```
