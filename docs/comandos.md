@@ -5,7 +5,7 @@ Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de 
 ## `/fabrica:prd [ideia do produto em uma frase]`
 - **Quando:** no início de um projeto, ou quando o escopo do produto mudar.
 - **O que faz:** conduz uma entrevista em rodadas (problema, objetivo, escopo, restrições, riscos) e escreve o PRD, com funcionalidades numeradas (F1, F2…) e um fatiamento em marcos `M<n>`.
-- **PRD que já existe:** é a baseline do produto. Antes de escrever, o `/fabrica:prd` classifica cada mudança (incluir, excluir ou alterar) e mostra o impacto nas issues do GitHub, com a ação indicada para cada uma. Você aceita, rejeita ou adia cada mudança, e só as aceitas entram no PRD. Todas, com o motivo, ficam registradas na tabela "Mudanças" do histórico.
+- **PRD que já existe:** é a baseline do produto. Antes de escrever, o `/fabrica:prd` classifica cada mudança (incluir, excluir ou alterar) e mostra o impacto nas issues do GitHub, com a ação indicada para cada uma. Para um item cuja issue foi fechada como "not planned", a ação indicada é reabri-la, se o item continua no PRD; a reabertura é sua. Você aceita, rejeita ou adia cada mudança, e só as aceitas entram no PRD. Todas, com o motivo, ficam registradas na tabela "Mudanças" do histórico.
 - **Lê:** `CLAUDE.md`, `README.md` e o que existir em `docs/`. Ao atualizar, lê também as issues e os PRs do repositório.
 - **Cria:** `docs/prd.md`, sem commit; oferece um PR na branch `docs/prd`. Ao criar o PRD, cria também as labels do repositório. Ao atualizar, não mexe em labels nem em issues.
 - **Labels:** não aplica labels em issues. Próximo passo, depois do merge: `/fabrica:backlog`.
@@ -13,7 +13,7 @@ Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de 
 
 ## `/fabrica:backlog`
 - **Quando:** depois do merge do PRD, quando o marco atual estiver perto de fechar ou quando o PRD mudar.
-- **O que faz:** compara o fatiamento do PRD com o GitHub e mostra um plano. Só aplica o que você confirmar.
+- **O que faz:** compara o fatiamento do PRD com o GitHub e mostra um plano. Só aplica o que você confirmar. Se você aplicar sem os possíveis pares, cada um ganha um comentário de recusa e não volta nas execuções seguintes; para desfazer a recusa, apague o comentário.
 - **Lê:** o `docs/prd.md` da `main` ou, com um PR `docs/backlog` aberto, o da branch desse PR com a `main` mesclada; as milestones e todas as issues do repositório.
 - **Cria:** as milestones `M<n> · <nome>`; issues enxutas, com o marcador `fabrica:backlog`, só para o marco atual e o seguinte; e um PR `docs/backlog` que anota no PRD o número de cada issue.
 - **Labels:** cria as issues com `enhancement`, se a label existir. Não aplica `agente`: puxar a issue é com você.
