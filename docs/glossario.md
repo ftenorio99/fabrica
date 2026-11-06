@@ -20,7 +20,7 @@
 
 **Limite de trabalho em andamento** — No máximo 3 issues abertas com `spec-aprovada` por repositório. Veja [Princípios](principios.md#limite-de-3-em-andamento).
 
-**Marcador** — Comentário HTML invisível, como `<!-- fabrica:triagem -->`, que abre cada comentário de agente. Os agentes usam a sua conta do GitHub, e o marcador é o que distingue o comentário deles do seu. O comentário de [lição](fluxo.md#lições-aprendidas) tem marcador próprio, `<!-- fabrica:licao -->`, e não conta como comentário de agente nem seu. Veja [Tudo no GitHub](principios.md#tudo-no-github).
+**Marcador** — Comentário HTML invisível, como `<!-- fabrica:triagem -->`, que abre cada comentário de agente. Os agentes usam a sua conta do GitHub, e o marcador é o que distingue o comentário deles do seu. O comentário de [lição](fluxo.md#lições-aprendidas) tem marcador próprio, `<!-- fabrica:licao -->`, e não conta como comentário de agente nem seu. A linha de custo, `<!-- fabrica:custo ... -->`, que as etapas deixam no fim do comentário, não é marcador: não abre o comentário nem muda o estado, só alimenta o [`/fabrica:metricas`](comandos.md#fabricametricas-repositório-período-período-de-comparação). Veja [Tudo no GitHub](principios.md#tudo-no-github).
 
 **Marco** — Grupo de itens do fatiamento, com título `M<n> · <nome>`, que vira uma milestone no GitHub. O marco atual é o primeiro que ainda tem issue aberta ou item sem issue. Veja [Fechar um marco](guias/fechar-marco.md).
 

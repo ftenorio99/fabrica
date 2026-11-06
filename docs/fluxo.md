@@ -43,10 +43,11 @@ Você pode rodar cada etapa do agente pelo comando dela, ou deixar o [`/fabrica:
 Quando algo dá errado, o agente para, comenta na issue e aplica `escalonado`. Veja o guia [Issue escalonada](guias/issue-escalonada.md).
 
 ## Onde está o estado
-Não existe arquivo de estado. O estado de cada issue é lido de três lugares no GitHub:
+Não existe arquivo de estado. O estado de cada issue é lido do GitHub:
 - as labels;
 - os comentários dos agentes, que começam com um marcador como `<!-- fabrica:spec -->`;
-- o PR da branch da issue.
+- o PR da branch da issue;
+- nas issues de backlog, a milestone `M<n>` e o marcador `<!-- fabrica:backlog item=<n> -->` no corpo, que dão o avanço por marco.
 
 A tabela completa de estados, com quem age e o próximo passo de cada um, fica em [`skills/status/estados.md`](../skills/status/estados.md). O `/fabrica:status` aplica essa tabela e mostra o quadro.
 

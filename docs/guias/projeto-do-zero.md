@@ -2,8 +2,9 @@
 
 Da ideia à primeira issue no fluxo.
 
-1. **Crie o repositório**, privado, e clone-o em `~/projetos/<nome>`:
+1. **Crie o repositório**, privado, e clone-o em `~/projetos/<nome>`. O `--clone` clona na pasta atual, então rode a partir de `~/projetos`:
    ```
+   cd ~/projetos
    gh repo create <nome> --private --clone
    ```
    O primeiro commit leva o `README.md` e o `.gitignore` da stack. Os hooks do git deixam passar o commit inicial e o primeiro push de um repositório novo.
