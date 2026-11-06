@@ -60,7 +60,7 @@ O revisor devolve, para cada critério de aceite, se está atendido e com qual e
 - Sugestões não são aplicadas nem geram lição: elas vão listadas no PR para o usuário decidir.
 
 ## 5. Abrir o PR
-Se já existir PR da branch (`gh pr view`), atualize a descrição em vez de abrir outro. Senão, `gh pr create`:
+Se já existir PR da branch (`gh pr view`), atualize a descrição em vez de abrir outro. Senão, `gh pr create --body-file <arquivo>`:
 
 - **Título:** `<tipo da triagem>: <descrição curta em português>`, no padrão do `CLAUDE.md` (vira a mensagem do squash).
 - **Corpo:**
