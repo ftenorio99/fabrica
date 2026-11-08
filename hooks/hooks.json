@@ -1,5 +1,5 @@
 {
-  "description": "Confere os hooks do git que bloqueiam commit e push na main/master e impede o Claude de desligá-los.",
+  "description": "Confere os hooks do git que bloqueiam commit e push na main/master e impede o Claude de desligá-los. Atualiza a statusline da fábrica, se instalada, quando a versão do plugin muda.",
   "hooks": {
     "SessionStart": [
       {
@@ -7,6 +7,11 @@
           {
             "type": "command",
             "command": "[ \"$(bash \"${CLAUDE_PLUGIN_ROOT}/scripts/setup-githooks.sh\" --check 2>/dev/null)\" != ausente ] || echo 'Os hooks do git da fábrica não estão instalados nesta máquina. Rode /fabrica:setup.'",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/scripts/setup-statusline.sh\" --check >/dev/null 2>&1 || true",
             "timeout": 15
           }
         ]

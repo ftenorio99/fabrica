@@ -22,10 +22,11 @@ No Claude Code:
 ```
 
 ## Configurar a máquina e o repositório
-Rode `/fabrica:setup` no clone de um projeto. Ele faz três coisas:
+Rode `/fabrica:setup` no clone de um projeto. Ele faz quatro coisas:
 - **`gh`:** confere se ele está instalado, autenticado e na versão mínima. Se estiver desatualizado, mostra como atualizar, sem instalar nada.
 - **Labels:** cria ou corrige as labels do fluxo no repositório. É seguro rodar de novo.
 - **Hooks do git:** na primeira vez em cada máquina, pede confirmação e instala os hooks globais que recusam commit e push na `main`. Veja [Princípios](principios.md#main-protegida).
+- **Statusline (opcional):** pergunta se você quer a statusline da fábrica no rodapé do Claude Code, com o repositório, a branch e a issue, o PR, quantas issues esperam você, o backlog, o contexto usado e os limites de 5 h e de 7 dias da assinatura. A contagem de issues é aproximada pelas labels; o quadro exato é o `/fabrica:status`.
 
 Num projeto novo, o `/fabrica:prd` já cria as labels ao terminar. Se o repositório ainda não existir no GitHub, rode `/fabrica:setup` depois do `gh repo create`.
 
@@ -35,7 +36,7 @@ Quando a fábrica ganhar uma versão nova (um PR mergeado neste repositório):
 /plugin marketplace update fabrica
 /reload-plugins
 ```
-Os hooks do git instalados na máquina se atualizam sozinhos na próxima sessão, quando a versão muda.
+Os hooks do git e a statusline instalados na máquina se atualizam sozinhos na próxima sessão, quando a versão muda.
 
 ## Onde rodar cada comando
 | Comando | Onde |
