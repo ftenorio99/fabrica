@@ -12,7 +12,7 @@ No Claude Code:
 /plugin marketplace add ftenorio99/fabrica
 /plugin install fabrica@fabrica
 ```
-A fábrica usa o `gh` autenticado, numa versão mínima definida em `scripts/check-gh.sh`. Depois, rode `/fabrica:setup` no clone de um projeto: ele confere o `gh`, cria as labels e instala os hooks do git. Para desenvolver a própria fábrica sem instalar: `claude --plugin-dir ~/projetos/fabrica`.
+A fábrica usa o `gh` autenticado, numa versão mínima definida em `scripts/check-gh.sh`. Depois, rode `/fabrica:setup` no clone de um projeto: ele confere o `gh`, cria as labels, instala os hooks do git e oferece a statusline da fábrica. Para desenvolver a própria fábrica sem instalar: `claude --plugin-dir ~/projetos/fabrica`.
 
 ## Manual
 O manual de uso está em [`docs/`](docs/README.md): primeiros passos, fluxo, comandos, princípios, solução de problemas, glossário e guias.

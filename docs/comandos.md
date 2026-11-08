@@ -21,9 +21,9 @@ Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de 
 
 ## `/fabrica:setup [<dono>/<repo>]`
 - **Quando:** num repositório sem as labels da fábrica, quando uma etapa avisar que falta uma label ou que o `gh` está desatualizado, ou quando a sessão avisar que os hooks do git não estão instalados.
-- **O que faz:** confere se o `gh` está instalado, autenticado e na versão mínima. Se ele estiver desatualizado, mostra como atualizar, sem instalar nada. Se estiver ausente ou sem login, para. Depois, cria ou corrige as labels do fluxo no repositório, sem mexer em outras. Na primeira vez em cada máquina, pede confirmação e instala os hooks do git que protegem a `main`.
-- **Lê:** a tabela de labels do [`estados.md`](../skills/status/estados.md) e o `core.hooksPath` global.
-- **Cria:** as labels no repositório e, com a sua confirmação, os hooks em `~/.config/fabrica/githooks/`.
+- **O que faz:** confere se o `gh` está instalado, autenticado e na versão mínima. Se ele estiver desatualizado, mostra como atualizar, sem instalar nada. Se estiver ausente ou sem login, para. Depois, cria ou corrige as labels do fluxo no repositório, sem mexer em outras. Na primeira vez em cada máquina, pede confirmação e instala os hooks do git que protegem a `main` e oferece a statusline da fábrica.
+- **Lê:** a tabela de labels do [`estados.md`](../skills/status/estados.md) e o `core.hooksPath` global e o `statusLine` do `~/.claude/settings.json`.
+- **Cria:** as labels no repositório e, com a sua confirmação, os hooks em `~/.config/fabrica/githooks/` e a statusline em `~/.config/fabrica/statusline.sh`.
 - **Labels:** não aplica labels em issues.
 - Detalhes: [`skills/setup/SKILL.md`](../skills/setup/SKILL.md).
 
