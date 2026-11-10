@@ -49,7 +49,7 @@ $check && mode=check
 
 SETUP_SANDBOX_CMD="bash $script_dir/setup-sandbox.sh --project $project" python3 -I - "$mode" "$project/.claude/settings.json" "$user_settings" \
   "$templates/sandbox-project.json" "$templates/sandbox-user.json" "$project" <<'PY'
-import json, os, re, shutil, subprocess, sys, tempfile
+import fnmatch, json, os, re, shutil, subprocess, sys, tempfile
 
 mode, project_path, user_path, project_tpl, user_tpl, project_root = sys.argv[1:7]
 SCALARS = {"enabled", "allowUnsandboxedCommands", "allowLocalBinding"}
@@ -83,6 +83,35 @@ def production_hosts(root):
             else:
                 warnings.append(f"linha inválida: {n}")
     return hosts
+
+
+DEV_ENV = (".env", ".env.local", ".env.development", ".env.test")
+
+
+def dev_env_denies(data):
+    """Regras Read(...) de permissions.deny que negam um .env de dev (ADR 0006).
+
+    Aproximação do casamento do Claude Code: tira os prefixos ./, **/ e //**/
+    e testa o resto contra os nomes; padrões de outra pasta não contam (#113).
+    """
+    perms = data.get("permissions") if isinstance(data, dict) else None
+    rules = perms.get("deny") if isinstance(perms, dict) else None
+    if not isinstance(rules, list):
+        return []
+    found = []
+    for rule in rules:
+        if not (isinstance(rule, str) and rule.startswith("Read(") and rule.endswith(")")):
+            continue
+        pattern = rule[5:-1]
+        for prefix in ("//**/", "**/", "./"):
+            if pattern.startswith(prefix):
+                pattern = pattern[len(prefix):]
+                break
+        if "/" in pattern:
+            continue
+        if any(fnmatch.fnmatchcase(name, pattern) for name in DEV_ENV):
+            found.append(rule)
+    return found
 
 
 def retire(data, missing):
@@ -168,6 +197,8 @@ project_data, project_exists, project_missing, project_changed = plan(
     project_path, project_tpl, production_hosts(project_root))
 for w in warnings:
     print(f"setup-sandbox: .fabrica/producao.txt: {w}", file=sys.stderr)
+for rule in dev_env_denies(project_data):
+    print(f"setup-sandbox: permissions.deny nega {rule}; o agente não vai ler os .env de dev no sandbox (ADR 0006)", file=sys.stderr)
 user_data, user_exists, user_missing, user_changed = plan(user_path, user_tpl)
 
 if mode == "check":
