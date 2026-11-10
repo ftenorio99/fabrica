@@ -1,5 +1,5 @@
 {
-  "description": "Confere os hooks do git que bloqueiam commit e push na main/master e impede o Claude de desligá-los. Atualiza a statusline da fábrica, se instalada, quando a versão do plugin muda.",
+  "description": "Confere os hooks do git que bloqueiam commit e push na main/master e impede o Claude de desligá-los. Recusa comandos Bash que citam os padrões de produção de .fabrica/producao.txt. Atualiza a statusline da fábrica, se instalada, quando a versão do plugin muda.",
   "hooks": {
     "SessionStart": [
       {
@@ -24,6 +24,11 @@
           {
             "type": "command",
             "command": "${CLAUDE_PLUGIN_ROOT}/hooks/protect-main.sh",
+            "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/protect-production.sh",
             "timeout": 15
           }
         ]
