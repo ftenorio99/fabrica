@@ -7,7 +7,7 @@ Leia as seções do corpo do PR nesta ordem, que não é a ordem em que elas apa
 1. **Para a sua revisão:** onde o agente pede atenção, como arquivos sensíveis, decisões e riscos.
 2. **Desvios da spec:** o que mudou em relação ao desenho aprovado, e por quê.
 3. **Revisão automática:** os achados que foram corrigidos e as **sugestões não aplicadas**, que são para você decidir.
-4. **Critérios de aceite:** a evidência de cada critério. "Implementado" sem teste ou comando não conta. Um CA com ⏳ foi marcado na spec como verificação depois do merge, com o motivo: ele não bloqueia o PR, e você o confere depois do merge, como diz "Para a sua revisão".
+4. **Critérios de aceite:** a evidência de cada critério. O detalhe, com o arquivo e a linha ou o teste e o comando de cada um e o que o revisor não conseguiu provar ("Não encontrado"), está na seção "Evidência por critério" do último comentário da revisão no PR. "Implementado" sem teste ou comando não conta. Um CA com ⏳ foi marcado na spec como verificação depois do merge, com o motivo: ele não bloqueia o PR, e você o confere depois do merge, como diz "Para a sua revisão".
 
 O `/fabrica:status` já resume esses pontos para cada PR que espera você.
 
