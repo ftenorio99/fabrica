@@ -49,6 +49,12 @@ Pare e explique o motivo (no chat e, quando indicado, na issue) se algum destes 
 
 ## 4. Verificar
 - Rode `make lint` e `make test` (e `make e2e` se a spec pedir). Conte como **uma rodada de verificação** cada vez que a implementação estiver pronta e você rodar os comandos.
+- **Limite do sandbox:** no Linux, o sandbox bloqueia o socket do Docker e o `localhost` da máquina, e nenhuma configuração os libera sem desmontar o isolamento ([ADR 0007](../../docs/adr/0007-verificacao-de-integracao-pelo-ci.md)). Uma falha cuja saída traz uma destas assinaturas não é falha da implementação:
+  - `docker.sock` junto com `permission denied`, `EACCES` ou `connect: operation not permitted`;
+  - `ECONNREFUSED` (ou `Connection refused`) para `127.0.0.1`, `::1` ou `localhost`;
+  - `Operation not permitted` ao criar um socket (`socket(AF_UNIX`).
+
+  Nesse caso, rode as partes da verificação que não dependem do bloqueio, quando o projeto as separa (ex.: o projeto `unit` do Vitest, o `typecheck`, o ESLint), e anote cada comando bloqueado como `<comando>: bloqueado pelo sandbox (<assinatura>)`. Essa é a **verificação pendente para o CI**, que vai para o `revisar`. Não escalone por ela. Um erro sem assinatura conta como falha, como abaixo. Se o mesmo comando falha com assinatura e com outro erro, vale o outro erro.
 - Se falhar, corrija e rode de novo. Depois de **duas rodadas de correção** ainda com falha, pare: comente na issue o comando, o erro resumido e o que já foi tentado, faça push do que existe, aplique `escalonado` (`gh issue edit <nº> --add-label escalonado`) e avise o usuário. Não siga para a revisão.
 - Se precisou de **duas ou mais rodadas de correção**, tenha passado ou escalado, registre uma lição com o gatilho `rodadas`, com os comandos, os erros e o que os resolveu ([../licao/formato.md](../licao/formato.md)). No escalonamento por rodadas, essa é a única lição: não registre também `escalonado`.
 - Execute cada verificação manual descrita na seção "Testes" da spec (por exemplo, introduzir um erro, conferir que o comando falha e reverter). Anote o comando e o resultado de cada uma; isso vai para o PR. Não execute os CAs marcados "depois do merge".
@@ -56,7 +62,7 @@ Pare e explique o motivo (no chat e, quando indicado, na issue) se algum destes 
 - `git push`.
 
 ## 5. Revisar
-Com tudo verde, feche a medição desta etapa: rode `python3 <diretório base desta skill>/../../scripts/stage-usage.py --stage implementar --since <início>` e guarde a linha que ele imprime. O `fim` dessa linha é o início do `revisar`, e serve de instante da coleta no passo 2 dele, sem um `date` novo. Depois, siga as instruções de [../revisar/SKILL.md](../revisar/SKILL.md) para a mesma issue, levando junto a linha de custo e as anotações de verificações manuais, CAs "depois do merge", desvios e APIs não verificadas. A linha do `implementar` vai na resposta `<!-- fabrica:revisar -->` do PR, antes da linha do `revisar`.
+Com tudo verde, ou verde com só a verificação pendente para o CI, feche a medição desta etapa: rode `python3 <diretório base desta skill>/../../scripts/stage-usage.py --stage implementar --since <início>` e guarde a linha que ele imprime. O `fim` dessa linha é o início do `revisar`, e serve de instante da coleta no passo 2 dele, sem um `date` novo. Depois, siga as instruções de [../revisar/SKILL.md](../revisar/SKILL.md) para a mesma issue, levando junto a linha de custo e as anotações de verificações manuais, CAs "depois do merge", desvios, APIs não verificadas e a verificação pendente para o CI, se houver. A linha do `implementar` vai na resposta `<!-- fabrica:revisar -->` do PR, antes da linha do `revisar`.
 
 ## Regras
 - Todo comentário seu, na issue ou no PR, começa com o marcador `<!-- fabrica:implementar -->` numa linha própria, exceto o comentário de lição, que segue [../licao/formato.md](../licao/formato.md). Os comentários do agente e do usuário saem da mesma conta do GitHub, e o marcador é o que os distingue (veja [estados.md](../status/estados.md)).
