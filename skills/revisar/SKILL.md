@@ -62,7 +62,7 @@ Chame o subagente `revisor` deste plugin (no Agent tool, `fabrica:revisor`). Se 
 Passe ao revisor:
 - o número da issue e o caminho da spec ou, no atalho, o link do comentário de triagem com a spec curta;
 - a branch e a base (`origin/main`);
-- as anotações da implementação: verificações manuais feitas e desvios da spec;
+- as anotações da implementação (verificações manuais feitas e desvios da spec), rotuladas como "afirmações do `implementar`, a conferir": o revisor só aceita como evidência o que ele mesmo encontra ou roda;
 - na retomada de uma verificação pedida ao usuário, o comando e a saída da resposta dele, com os CAs a que ela se refere;
 - com verificação pendente para o CI, os comandos bloqueados e o resultado do CI do head.
 
@@ -125,6 +125,7 @@ Se já existir PR da branch (`gh pr view`), inclusive o rascunho do passo 3, atu
 - **Resposta no PR:** comente no PR (`gh pr comment <nº do PR> --body-file <arquivo>`) com o marcador `<!-- fabrica:revisar -->`. Esse comentário vira a nova âncora do passo 2, então publique-o sempre que aplicar `pronto-revisao` e sempre que tratar pedidos, mesmo com rascunho ou escalado:
   - **instante da coleta:** logo abaixo do marcador, a linha `**Pedidos lidos até:** <instante da coleta do passo 2>`;
   - **sem pedidos:** uma linha, "PR pronto para a sua revisão", com o resumo da revisão automática;
+  - **evidência por critério:** quando esta execução rodou o revisor e aplica `pronto-revisao` ou deixa o PR em rascunho, acrescente a seção `### Evidência por critério`, com a tabela de critérios do revisor (ID, Atendido, Evidência) e a lista "Não encontrado" dele. A tabela do corpo do PR continua com o resumo. A resposta que só trata pedidos, sem nova rodada do revisor, não leva a seção;
   - **com pedidos:** uma linha por pedido, com o trecho e o que foi feito (commit, escalado ou não procede, com o motivo);
   - **chegaram durante esta rodada:** antes de publicar, colete de novo pelos mesmos caminhos do passo 2, aplicando os "Termos" do passo 2: só conta comentário do usuário no PR posterior ao instante da coleta, que aqui faz o papel da referência, com o mesmo critério de data (criação do comentário ou `submittedAt` da review). Esses pedidos não são tratados agora: cite cada um com um trecho numa seção "Chegaram durante esta rodada" e avise que ficam para o próximo `/fabrica:revisar`. Sem nenhum, omita a seção.
   - **linha de custo:** por último, logo antes de publicar, acrescente ao fim do arquivo do corpo a linha do `implementar`, se ele trouxe uma, e em seguida a desta execução: `python3 <diretório base desta skill>/../../scripts/stage-usage.py --stage revisar --since <instante da coleta> >> <arquivo>`. O script nunca falha: sem log da sessão, a linha sai com `tokens=nao-medido`. Só esta resposta no PR leva a linha; o comentário na issue com o link do PR e o de lição não levam.
