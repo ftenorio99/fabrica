@@ -195,6 +195,47 @@ check "#113 CA4 deny que não é lista: sem aviso nem erro" "ok " "$(run --check
 with_deny "$proj" '[]'
 check "#113 CA4 permissions que não é objeto: sem aviso nem erro" "ok " "$(run --check 2>"$tmp/err") $(cat "$tmp/err")"
 
+# #116: caminhos que o sandbox monta na raiz entram no .prettierignore.
+pi="$tmp/proj/.prettierignore"
+claude_mounted="/.claude/agents /.claude/commands /.claude/hooks /.claude/launch.json /.claude/loop.md /.claude/output-styles /.claude/routines /.claude/scheduled_tasks.json /.claude/settings.local.json /.claude/skills /.claude/workflows"
+mounted="/.bash_profile /.bashrc /.gitconfig /.gitmodules /.idea /.mcp.json /.profile /.ripgreprc /.vscode /.zprofile /.zshrc $claude_mounted"
+reset_env
+run >/dev/null
+check "#116 CA6 sem .prettierignore: --check ok" "ok" "$(run --check)"
+check "#116 CA6 sem .prettierignore: instalação não cria o arquivo" "ok não" "$(run) $([[ -e "$pi" ]] && echo sim || echo não)"
+git -C "$tmp/proj" init -q
+printf 'node_modules\ndist' >"$pi"
+check "#116 CA4 --check aponta os caminhos que faltam" "incompleto $(for p in $mounted; do printf 'prettierignore:%s ' "$p"; done | sed 's/ $//')" "$(run --check)"
+check "#116 CA4 --check não grava" "node_modules|dist" "$(paste -sd'|' "$pi")"
+check "#116 CA4 instala" "instalado" "$(run)"
+check "#116 CA4 bloco da fábrica depois das linhas do projeto" "node_modules|dist||# Caminhos que o sandbox do Claude Code monta no projeto (fabrica#116)|$(echo "$mounted" | tr ' ' '|')" "$(paste -sd'|' "$pi")"
+check "#116 CA4 --check depois" "ok" "$(run --check)"
+before="$(sha256sum "$pi")"
+check "#116 CA4 segunda instalação não muda nada" "ok $before" "$(run) $(sha256sum "$pi")"
+reset_env
+run >/dev/null
+git -C "$tmp/proj" init -q
+mkdir -p "$tmp/proj/.vscode" "$tmp/proj/.claude/skills/x"
+echo '{}' >"$tmp/proj/.vscode/settings.json"
+echo '# x' >"$tmp/proj/.claude/skills/x/SKILL.md"
+git -C "$tmp/proj" add .vscode/settings.json .claude/skills/x/SKILL.md
+printf '# do projeto\n.idea\n/.zshrc/\n' >"$pi"
+run >/dev/null
+check "#116 CA5 pula os versionados (inclusive em .claude/) e os que já estão, com ou sem barra" "/.bash_profile|/.bashrc|/.gitconfig|/.gitmodules|/.mcp.json|/.profile|/.ripgreprc|/.zprofile|$(echo "$claude_mounted" | sed 's| /.claude/skills||' | tr ' ' '|')" "$(sed -n '/fabrica#116/,$p' "$pi" | tail -n +2 | paste -sd'|')"
+check "#116 CA5 não repete o cabeçalho" "1" "$(grep -c 'fabrica#116' "$pi")"
+rm -f "$tmp/proj/.vscode/settings.json"
+git -C "$tmp/proj" rm -q --cached .vscode/settings.json
+run >/dev/null
+check "#116 CA5 caminho que deixou de ser versionado entra sem repetir o cabeçalho" "1 /.vscode" "$(grep -c 'fabrica#116' "$pi") $(tail -1 "$pi")"
+reset_env
+run >/dev/null
+printf 'dist\n' >"$pi"
+chmod 444 "$pi"
+out="$(run 2>"$tmp/err")"; code=$?
+chmod 644 "$pi"
+check "#116 CA6 escrita negada no .prettierignore: código 1" "1" "$code"
+check "#116 CA6 escrita negada no .prettierignore: aviso em stderr" "sim" "$([[ "$(cat "$tmp/err")" == "setup-sandbox: não consegui gravar $pi: "* ]] && echo sim || echo não)"
+
 # Opção desconhecida.
 bash "$setup" --xyz >/dev/null 2>&1
 check "opção desconhecida: código 1" "1" "$?"

@@ -39,7 +39,7 @@ Toda etapa e todo comando que lê a spec, a branch ou o PR de uma issue usa esta
 | 6 | `spec-pronta` sem `spec-aprovada`, com resposta nova ao marcador de spec ou, no atalho, sem comentário de spec, com resposta nova ao marcador de triagem | Ajuste da spec pedido | agente | `/fabrica:spec <nº> <ajustes>` |
 | 7 | `spec-pronta` sem `spec-aprovada` | Spec para aprovar | usuário | Revisar a spec e aplicar `spec-aprovada` ou comentar ajustes. No atalho, a spec é a spec curta da triagem, e comentar pede a spec completa. |
 | 8 | `spec-aprovada` e nenhum PR da branch | Em implementação | agente | `/fabrica:implementar <nº>` (se não houver `em-andamento` recente) |
-| 9 | PR em rascunho | Revisão automática com pendências | usuário | Ler os achados pendentes no PR e decidir. |
+| 9 | PR em rascunho | Revisão automática com pendências | usuário | Ler os achados pendentes no PR e decidir. Se o PR não lista achados pendentes e tem CAs com ⏳ "aguardando o CI", o `/fabrica:revisar` parou enquanto esperava o CI ([ADR 0007](../../docs/adr/0007-verificacao-de-integracao-pelo-ci.md)): retome com `/fabrica:revisar <nº>`. |
 | 10 | PR aberto com CI falhando | CI vermelho | agente | `/fabrica:revisar <nº>` |
 | 11 | PR aberto com review `CHANGES_REQUESTED` ou com pedido novo no PR. Com a conta do usuário, o caminho é o comentário: o GitHub não deixa o autor pedir mudanças no próprio PR; a review vale para PR aberto por outra conta, como um bot | Ajustes do PR pedidos | agente | `/fabrica:revisar <nº>` |
 | 12 | PR aberto sem `pronto-revisao` | Em revisão automática | agente | `/fabrica:revisar <nº>` (se não houver `em-andamento` recente) |

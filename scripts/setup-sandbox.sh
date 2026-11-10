@@ -114,6 +114,40 @@ def dev_env_denies(data):
     return found
 
 
+# Caminhos protegidos que o sandbox do Claude Code monta na raiz do projeto e
+# em .claude/, ilegíveis para os comandos; conferidos numa sessão aninhada do
+# Claude Code 2.1.322 (#116). Sem eles no .prettierignore, o `prettier --check .`
+# falha.
+MOUNTED = (".bash_profile", ".bashrc", ".gitconfig", ".gitmodules", ".idea", ".mcp.json",
+           ".profile", ".ripgreprc", ".vscode", ".zprofile", ".zshrc",
+           ".claude/agents", ".claude/commands", ".claude/hooks", ".claude/launch.json",
+           ".claude/loop.md", ".claude/output-styles", ".claude/routines",
+           ".claude/scheduled_tasks.json", ".claude/settings.local.json", ".claude/skills",
+           ".claude/workflows")
+PI_HEADER = "# Caminhos que o sandbox do Claude Code monta no projeto (fabrica#116)"
+
+
+def prettierignore_missing(root):
+    """Caminhos de MOUNTED que faltam no .prettierignore e não são versionados."""
+    path = os.path.join(root, ".prettierignore")
+    if not os.path.isfile(path):
+        return []
+    with open(path, encoding="utf-8", errors="replace") as fh:
+        present = {line.strip().strip("/") for line in fh}
+    missing = []
+    for name in MOUNTED:
+        if name in present:
+            continue
+        try:
+            tracked = subprocess.run(["git", "-C", root, "ls-files", "--", name],
+                                     capture_output=True, text=True, timeout=30).stdout.strip()
+        except (OSError, subprocess.SubprocessError):
+            tracked = ""
+        if not tracked:
+            missing.append(name)
+    return missing
+
+
 def retire(data, missing):
     files = data.get("sandbox", {}).get("credentials", {}).get("files")
     if not isinstance(files, list):
@@ -201,6 +235,9 @@ for rule in dev_env_denies(project_data):
     print(f"setup-sandbox: permissions.deny nega {rule}; o agente não vai ler os .env de dev no sandbox (ADR 0006)", file=sys.stderr)
 user_data, user_exists, user_missing, user_changed = plan(user_path, user_tpl)
 
+pi_missing = prettierignore_missing(project_root)
+project_missing += [f"prettierignore:/{name}" for name in pi_missing]
+
 if mode == "check":
     original = load(project_path) or {}
     items = []
@@ -257,5 +294,20 @@ if project_changed:
         if not ok:
             print(f"setup-sandbox: não consegui formatar {rel}; rode o prettier do projeto nele.", file=sys.stderr)
 
-print("instalado" if (user_changed or project_changed) else "ok")
+if pi_missing:
+    pi_path = os.path.join(project_root, ".prettierignore")
+    try:
+        with open(pi_path, encoding="utf-8", errors="replace") as fh:
+            text = fh.read()
+        add = "" if text.endswith("\n") or not text else "\n"
+        if PI_HEADER not in text:
+            add += ("\n" if text else "") + PI_HEADER + "\n"
+        add += "".join(f"/{name}\n" for name in pi_missing)
+        with open(pi_path, "a", encoding="utf-8") as fh:
+            fh.write(add)
+    except OSError as err:
+        print(f"setup-sandbox: não consegui gravar {pi_path}: {err.strerror}", file=sys.stderr)
+        sys.exit(1)
+
+print("instalado" if (user_changed or project_changed or pi_missing) else "ok")
 PY

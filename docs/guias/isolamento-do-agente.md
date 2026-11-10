@@ -51,7 +51,7 @@ Para desfazer, apague `/etc/apparmor.d/disable/bwrap-userns-restrict` e `/etc/ap
 O comando `/sandbox` do Claude Code mostra o estado e o que falta.
 
 ## Ligar num projeto
-1. Rode `/fabrica:setup` no projeto e confirme o passo **Sandbox**. Ele grava a base no `.claude/settings.json` do projeto e o mascaramento do token no `~/.claude/settings.json`, porque o Claude Code só aceita o mascaramento nesse escopo. Se o projeto tiver o Prettier instalado (`node_modules/.bin/prettier`), o setup formata com ele o `.claude/settings.json`, para o arquivo passar no lint do projeto.
+1. Rode `/fabrica:setup` no projeto e confirme o passo **Sandbox**. Ele grava a base no `.claude/settings.json` do projeto e o mascaramento do token no `~/.claude/settings.json`, porque o Claude Code só aceita o mascaramento nesse escopo. Se o projeto tiver o Prettier instalado (`node_modules/.bin/prettier`), o setup formata com ele o `.claude/settings.json`, para o arquivo passar no lint do projeto. Se o projeto tiver um `.prettierignore`, o setup acrescenta a ele os caminhos que o sandbox monta no projeto (veja [O que não roda no sandbox do Linux](#o-que-não-roda-no-sandbox-do-linux)).
 2. Faça commit do `.claude/settings.json` do projeto numa branch e abra o PR, como qualquer mudança.
 3. Abra uma sessão nova no projeto. O sandbox vale a partir dela.
 
@@ -114,6 +114,19 @@ Quando uma etapa falhar com erro de rede para um host que o projeto usa (ex.: a 
 ```
 
 As listas se somam entre o settings do usuário e o do projeto, e rodar o `/fabrica:setup` de novo mantém os domínios que você acrescentou. Libere só o host exato. Um curinga largo (como `*.github.com`) abre caminhos para tirar dados do projeto (como o `gist.github.com`).
+
+## O que não roda no sandbox do Linux
+No Linux, o sandbox bloqueia todo socket Unix, inclusive o do Docker, e cada comando tem um `localhost` próprio, que não alcança o banco da máquina. Por isso, o `make test` com banco e o `make e2e` não rodam nas etapas de agente. A fábrica não afrouxa o sandbox para isso: o socket do Docker dá controle da máquina inteira ([ADR 0007](../adr/0007-verificacao-de-integracao-pelo-ci.md)).
+
+O caminho é o CI do PR:
+- o `/fabrica:implementar` roda no sandbox o que cabe nele (lint, typecheck, testes sem banco) e anota como "verificação pendente para o CI" o comando que falhou só pelo limite do sandbox;
+- o `/fabrica:revisar` abre o PR em rascunho, espera o CI e passa o resultado ao revisor como evidência dos critérios de integração. Só com o CI verde ele tira o rascunho e aplica `pronto-revisao`.
+
+O projeto precisa de um workflow em `.github/workflows/` que dispare em `pull_request` e rode a verificação completa. Sem ele, a etapa escalona e pede a verificação a você.
+
+**Prettier:** o sandbox monta no projeto alguns caminhos protegidos, na raiz (`.bashrc`, `.vscode`, `.mcp.json` e outros) e em `.claude/` (`skills`, `agents`, `settings.local.json` e outros), ilegíveis para os comandos, e o `prettier --check .` falha neles. O `/fabrica:setup` acrescenta ao `.prettierignore` os que o projeto não versiona, num bloco comentado. Sem `.prettierignore` no projeto, ele não cria o arquivo.
+
+**Domínios do build:** se o build buscar algo na rede (ex.: o `next/font` baixa fontes do `fonts.googleapis.com` e do `fonts.gstatic.com`), libere esses hosts como em [Ampliar os domínios](#ampliar-os-domínios).
 
 ## Produção fora do alcance
 As etapas de agente só usam dev ou homologação ([ADR 0006](../adr/0006-producao-fora-do-alcance-do-agente.md)). A convenção é que os `.env` da máquina só tenham valores de dev ou de homologação, e que os segredos de produção fiquem no provedor (os secrets do deploy). Não deixe um `.env.production` real na máquina: o sandbox nega a leitura dele pelo Bash, mas a ferramenta Read do Claude Code não passa pelo sandbox.

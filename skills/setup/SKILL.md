@@ -60,6 +60,7 @@ O sandbox nativo do Claude Code isola os comandos Bash das sessões no projeto (
       - nega `~/.ssh`, o `.env.production`, o `.env.production.local`, `GH_TOKEN` e `GITHUB_TOKEN`. Os outros `.env` ficam legíveis, porque só têm valores de dev ou de homologação;
       - com itens `remover:credentials:<arquivo>`: remove os `deny` dos `.env` de dev e de teste que a fábrica gravava antes;
       - com itens `sandbox.network.deniedDomains:<domínio>`: bloqueia na rede os hosts de produção listados em `.fabrica/producao.txt`.
+    - **`.prettierignore` do projeto**, com itens `prettierignore:<caminho>`: acrescenta os caminhos que o sandbox monta no projeto (na raiz e em `.claude/`) e o projeto não versiona, para o `prettier --check .` rodar no sandbox ([ADR 0007](../../docs/adr/0007-verificacao-de-integracao-pelo-ci.md)).
     - **`~/.claude/settings.json`:** liga o `tlsTerminate` e mascara o token do `hosts.yml` e o cabeçalho do git em `~/.config/fabrica/git-auth.gitconfig`, que o proxy põe só nas requisições ao GitHub. O settings anterior fica em `~/.claude/settings.json.bak-fabrica-sandbox`, separado do backup da statusline.
 
     Diga que a mudança vale na próxima sessão aberta no projeto e que o que precisar sair do sandbox o usuário roda com `!` no prompt. Pergunte com o AskUserQuestion se ele quer instalar.
