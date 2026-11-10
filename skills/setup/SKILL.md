@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Confere se o gh está instalado, autenticado e na versão mínima da fábrica, cria ou corrige as labels da fábrica (agente, precisa-info, spec-pronta, spec-aprovada, escalonado, pronto-revisao, licao, em-andamento) num repositório do GitHub, conforme a tabela de estados.md, instala na máquina os hooks do git que bloqueiam commit e push na main e, se o usuário quiser, a statusline da fábrica. Use num repositório que ainda não tem as labels, quando uma etapa avisar que uma label não existe ou que o gh está desatualizado, ou quando avisarem que os hooks do git não estão instalados.
+description: Confere se o gh está instalado, autenticado e na versão mínima da fábrica, cria ou corrige as labels da fábrica (agente, precisa-info, spec-pronta, spec-aprovada, escalonado, pronto-revisao, licao, em-andamento) num repositório do GitHub, conforme a tabela de estados.md, instala na máquina os hooks do git que bloqueiam commit e push na main e, se o usuário quiser, liga o sandbox nativo do Claude Code no projeto e instala a statusline da fábrica. Use num repositório que ainda não tem as labels, quando uma etapa avisar que uma label não existe ou que o gh está desatualizado, quando avisarem que os hooks do git não estão instalados ou para isolar os agentes em sandbox num projeto.
 argument-hint: "[<dono>/<repo>]"
 disable-model-invocation: true
 ---
@@ -43,7 +43,30 @@ Rode `bash <diretório base>/../../scripts/check-gh.sh` e siga a linha que ele i
 - Com a confirmação, rode `bash <diretório base>/../../scripts/setup-githooks.sh`.
 - Se o script disser que já existe outro `core.hooksPath` global, mostre o valor e pergunte, com o AskUserQuestion, se o usuário quer trocar. Só com um sim rode de novo com `--force`.
 
-## 4. Statusline
+## 4. Sandbox
+O sandbox nativo do Claude Code isola os comandos Bash das sessões no projeto ([ADR 0005](../../docs/adr/0005-isolamento-do-agente-em-sandbox.md)): eles não escrevem fora do projeto, só alcançam os domínios liberados e não leem em claro o token do `gh`, as chaves SSH nem os `.env`.
+- **Dependências (Linux):**
+  - **`bwrap` e `socat`:** confira com `command -v bwrap socat`. Se faltar algum, mostre `sudo apt-get install bubblewrap socat` (ou `sudo dnf install bubblewrap socat`).
+  - **AppArmor:** se `sysctl -n kernel.apparmor_restrict_unprivileged_userns` imprimir `1` (Ubuntu 24.04 ou mais novo), o sandbox não sobe sem um perfil AppArmor que libere o `bwrap`. A dependência falta quando `/etc/apparmor.d/bwrap` não existe ou quando `/etc/apparmor.d/bwrap-userns-restrict` existe sem um link em `/etc/apparmor.d/disable/`. O perfil do Ubuntu tem o mesmo nome e vale no lugar do perfil do Claude Code. Nesses casos, mostre os comandos da seção "Dependências" do [guia](../../docs/guias/isolamento-do-agente.md#dependências).
+
+  Não rode `sudo`. Com alguma dependência faltando, não instale o sandbox, relate `faltam dependências: <lista>` e siga para o passo 5.
+- **Estado:** confira com `bash <diretório base>/../../scripts/setup-sandbox.sh --check`:
+  - `ok`: já está instalado. Não pergunte nada.
+  - `ausente` ou `incompleto <itens>`: explique o que muda.
+    - **`.claude/settings.json` do projeto:**
+      - liga o sandbox, sem saída para fora dele (`allowUnsandboxedCommands: false`);
+      - libera a escrita no cache do npm (`~/.npm`);
+      - libera os domínios do GitHub e do npm;
+      - nega `~/.ssh`, os `.env*`, `GH_TOKEN` e `GITHUB_TOKEN`.
+    - **`~/.claude/settings.json`:** liga o `tlsTerminate` e mascara o token do `hosts.yml` e o cabeçalho do git em `~/.config/fabrica/git-auth.gitconfig`, que o proxy põe só nas requisições ao GitHub. O settings anterior fica em `~/.claude/settings.json.bak-fabrica-sandbox`, separado do backup da statusline.
+
+    Diga que a mudança vale na próxima sessão aberta no projeto e que o que precisar sair do sandbox o usuário roda com `!` no prompt. Pergunte com o AskUserQuestion se ele quer instalar.
+- Com a confirmação, rode `bash <diretório base>/../../scripts/setup-sandbox.sh`. Se ele sair com código 2, a sessão já roda em sandbox: mostre a linha com `!` que o script imprimiu, para o usuário rodar no prompt.
+- **Cabeçalho do git:** confira com `bash <diretório base>/../../scripts/setup-git-auth.sh --check`. Se a resposta não for `ok`, o `git push` não funciona no sandbox. Explique que o script grava o token do `gh`, já codificado, em `~/.config/fabrica/git-auth.gitconfig` (permissão `600`) e inclui o arquivo no `~/.gitconfig`, e peça ao usuário para rodá-lo ele mesmo, com `! bash <diretório base>/../../scripts/setup-git-auth.sh`. Não o rode você: ele grava uma credencial. O usuário roda de novo sempre que o token do `gh` mudar.
+- **Token fine-grained:** o mascaramento não impede o vazamento do token pelo próprio GitHub ([ADR 0005](../../docs/adr/0005-isolamento-do-agente-em-sandbox.md)). Se `gh api -i /user` não trouxer o cabeçalho `github-authentication-token-expiration`, o token não é fine-grained: avise e remeta à seção "Token fine-grained" do [guia](../../docs/guias/isolamento-do-agente.md#token-fine-grained).
+- **Token no chaveiro:** se `~/.config/gh/hosts.yml` não tiver `oauth_token`, o token do `gh` está no chaveiro do sistema, e o `gh` não vai funcionar no sandbox. Avise e remeta à seção "Token no chaveiro" do [guia](../../docs/guias/isolamento-do-agente.md#token-no-chaveiro).
+
+## 5. Statusline
 - Confira com `bash <diretório base>/../../scripts/setup-statusline.sh --check`:
   - `ok` ou `atualizado <versão>`: já está instalada. Não pergunte nada.
   - `ausente`: explique que a statusline mostra no rodapé do Claude Code o repositório, a branch com o número da issue, o PR, quantas issues esperam o usuário (contagem aproximada pelas labels; o quadro exato é o `/fabrica:status`), o backlog, o contexto usado e os limites de 5 h e de 7 dias da assinatura. Diga que o script grava `statusLine` no `~/.claude/settings.json` e copia o script para `~/.config/fabrica/statusline.sh`. Pergunte com o AskUserQuestion se o usuário quer instalar.
@@ -55,10 +78,12 @@ Rode `bash <diretório base>/../../scripts/check-gh.sh` e siga a linha que ele i
 - `gh`: a linha do `check-gh.sh` (`ok 2.103.3`, `desatualizado 2.46.0 <mínima>` etc.) e, se não for `ok`, o que fazer.
 - Labels: o repositório alvo e a linha `ok <label>` de cada uma. Com erro, a mensagem do script e o que fazer (autenticar o `gh`, criar o repositório com `gh repo create`, passar `<dono>/<repo>`). Não tente criar as labels por outro caminho.
 - Hooks do git: o estado final (`instalados`, `já estavam instalados` ou `não instalados, a pedido do usuário`).
+- Sandbox: o estado final (`instalado`, `já estava instalado`, `não instalado, a pedido do usuário`, `faltam dependências: <lista>` ou a linha com `!` para o usuário rodar) e o aviso do token no chaveiro, se houver. Lembre que ele vale na próxima sessão aberta no projeto.
 - Statusline: o estado final (`instalada`, `já estava instalada`, `não instalada, a pedido do usuário` ou o erro do script). Lembre que ela aparece na próxima sessão.
 
 ## Regras
 - Não aplique nem remova labels em issues; o setup só garante que as labels existam no repositório.
 - Não instale nem atualize o `gh`, e não rode `sudo`.
 - Não instale os hooks do git sem a confirmação do usuário, e não edite o `~/.gitconfig` por outro caminho.
+- Não instale o sandbox sem a confirmação do usuário, e não edite o bloco `sandbox` dos settings por outro caminho.
 - Não instale nem troque a statusline sem a confirmação do usuário, e não edite o `statusLine` do settings por outro caminho.
