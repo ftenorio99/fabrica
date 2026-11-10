@@ -30,11 +30,13 @@ A triagem decide se a issue está pronta para virar spec. Ela não escreve códi
   Se a issue tocar arquivos sensíveis (autenticação, pagamentos, migrações de banco, `.github/`), a classe é sempre `implementacao-complexa` e a revisão humana é obrigatória.
 - **Tamanho**, em trabalho humano: `P` (até meio dia), `M` (até 1 dia), `G` (1 a 2 dias). Acima de 2 dias, proponha a divisão (passo 3).
 - **Dependências:** outras issues que precisam estar concluídas antes (`gh issue list --state open`).
+- **Interface:** `sim` quando a issue muda algo que o usuário final vê na tela (página, componente, estilo, texto da interface); `não` nos outros casos (back-end, CLI, documentação, CI, skills da fábrica). Na dúvida, `sim`: uma descrição de tela a mais custa menos que uma tela sem descrição. A spec usa o campo para criar o `docs/design.md` do projeto ([ADR 0009](../../docs/adr/0009-aprovacao-visual-sem-ferramenta-de-design.md)).
 - **Atalho:** a issue cabe no atalho quando atende a todas estas condições ([ADR 0004](../../docs/adr/0004-atalho-da-triagem-com-spec-curta.md)):
   - tamanho `P`;
   - classe `implementacao-simples` ou `documentacao`;
   - nenhuma lacuna (passo 3). As recomendações levadas para a spec não contam como lacuna;
   - nenhum arquivo sensível entre os arquivos prováveis (autenticação, pagamentos, migrações de banco, `.github/`).
+  - não é `Interface: sim` num projeto sem `docs/design.md`: a spec curta não cria o arquivo, que nasce no `/fabrica:spec`.
 
   Em cada rodada de triagem, avalie o critério de novo.
 
@@ -75,6 +77,7 @@ Publique um comentário na issue (`gh issue comment <nº> --body-file <arquivo>`
 | Tamanho | G |
 | PRD | F7 |
 | Depende de | #12 |
+| Interface | sim |
 | Arquivos prováveis | `src/...` |
 
 **Resumo:** <uma ou duas frases do que a issue pede, nas palavras da triagem>
