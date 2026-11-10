@@ -119,6 +119,33 @@ else
   bad "env-ilegivel" "crie um .env de teste no projeto antes de rodar"
 fi
 
+# Reflexão: o marcador mandado no corpo de uma requisição a um host liberado
+# não pode voltar trocado pelo valor real. O /markdown do GitHub devolve o texto.
+reflect() { # reflect <verificação> <arquivo> <regex do valor> <regex do real>
+  local marker
+  marker="$(grep -oE "$3" "$2" 2>/dev/null | head -1 | awk '{print $NF}')"
+  if [[ -z "$marker" ]]; then
+    bad "$1" "não encontrei o marcador em $2"
+    return
+  fi
+  # Fora do sandbox, o "marcador" é o valor real: não o mande para lugar nenhum.
+  if grep -Eq "$4" <<<"$marker"; then
+    bad "$1" "o valor em $2 está em claro; rode dentro do sandbox"
+    return
+  fi
+  local out
+  out="$(gh api -X POST /markdown -f text="x${marker}x" 2>&1)"
+  if grep -Eq "$4" <<<"$out"; then
+    bad "$1" "a resposta trouxe o valor real: o proxy troca o marcador no corpo"
+  elif grep -Fq "$marker" <<<"$out"; then
+    ok "$1"
+  else
+    bad "$1" "resposta inesperada: $(head -c 120 <<<"$out")"
+  fi
+}
+reflect "reflexao-token-gh" "$hosts" 'oauth_token:[[:space:]]*[^[:space:]]+' 'gh[opsu]_[A-Za-z0-9]{30,}|github_pat_'
+reflect "reflexao-git-auth" "$HOME/.config/fabrica/git-auth.gitconfig" 'Basic [^[:space:]]+' 'eC1hY2Nlc3MtdG9rZW46'
+
 # O fluxo continua funcionando.
 if login="$(gh api user -q .login 2>&1)"; then
   ok "gh-api-user ($login)"
@@ -134,7 +161,7 @@ else
 fi
 
 # O git push autentica pelo cabeçalho mascarado de ~/.config/fabrica/git-auth.gitconfig.
-auth_file="${XDG_CONFIG_HOME:-$HOME/.config}/fabrica/git-auth.gitconfig"
+auth_file="$HOME/.config/fabrica/git-auth.gitconfig"
 if grep -Eq 'Basic eC1hY2Nlc3MtdG9rZW46' "$auth_file" 2>/dev/null; then
   bad "token-no-git-auth" "o $auth_file tem o cabeçalho do token em claro"
 else

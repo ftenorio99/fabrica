@@ -9,10 +9,11 @@
 #   --check  não grava nada; imprime "ok", "ausente" ou "sem-include".
 set -euo pipefail
 
-dest_dir="${XDG_CONFIG_HOME:-$HOME/.config}/fabrica"
+# Caminho fixo, sem XDG_CONFIG_HOME: é o caminho que o mask de
+# templates/sandbox-user.json cobre. Em outro lugar, o agente leria o valor real.
+dest_dir="$HOME/.config/fabrica"
 dest="$dest_dir/git-auth.gitconfig"
 include="~/.config/fabrica/git-auth.gitconfig"
-[[ -n "${XDG_CONFIG_HOME:-}" ]] && include="$dest"
 
 fail() {
   echo "setup-git-auth: $*" >&2

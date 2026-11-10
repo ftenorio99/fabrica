@@ -24,6 +24,10 @@ check() { # check <descrição> <esperado> <obtido>
 # jq <arquivo> <expressão python sobre d>: imprime o resultado.
 jget() { python3 -I -c 'import json,sys; d=json.load(open(sys.argv[1])); print(eval(sys.argv[2]))' "$1" "$2"; }
 
+# Sem isto, o git config --global dos testes poderia cair no gitconfig real.
+unset GIT_CONFIG_GLOBAL GIT_CONFIG_SYSTEM GIT_CONFIG_COUNT
+export GIT_CONFIG_NOSYSTEM=1
+
 reset_env() {
   rm -rf "$tmp/home" "$tmp/proj"
   export HOME="$tmp/home" CLAUDE_CONFIG_DIR="$tmp/home/.claude"
