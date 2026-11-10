@@ -6,6 +6,10 @@
 # e as chaves que não são da fábrica ficam como estão.
 # Uso: scripts/setup-sandbox.sh [--check] [--project <dir>]
 #   --check  não grava nada; imprime "ok", "ausente" ou "incompleto <itens>".
+#            Os itens incluem "remover:credentials:<path>" para os deny de
+#            .env que a fábrica gravava antes da ADR 0006 e
+#            "network.deniedDomains:<domínio>" para os hosts de
+#            .fabrica/producao.txt que ainda não estão bloqueados.
 # Saída: 0 sucesso; 1 JSON inválido ou opção desconhecida; 2 escrita negada no
 # settings do usuário (a sessão já roda em sandbox).
 set -euo pipefail
@@ -44,12 +48,51 @@ mode=install
 $check && mode=check
 
 SETUP_SANDBOX_CMD="bash $script_dir/setup-sandbox.sh --project $project" python3 -I - "$mode" "$project/.claude/settings.json" "$user_settings" \
-  "$templates/sandbox-project.json" "$templates/sandbox-user.json" <<'PY'
-import json, os, shutil, sys, tempfile
+  "$templates/sandbox-project.json" "$templates/sandbox-user.json" "$project" <<'PY'
+import json, os, re, shutil, sys, tempfile
 
-mode, project_path, user_path, project_tpl, user_tpl = sys.argv[1:6]
+mode, project_path, user_path, project_tpl, user_tpl, project_root = sys.argv[1:7]
 SCALARS = {"enabled", "allowUnsandboxedCommands", "allowLocalBinding"}
 KEYED = {"files": "path", "envVars": "name"}
+# Entradas que a fábrica gravava antes da ADR 0006: o agente passou a ler os
+# .env de dev e de teste. Só saem quando idênticas às da fábrica.
+RETIRED = [{"path": p, "mode": "deny"} for p in (".env", ".env.local", ".env.development", ".env.test")]
+HOST = re.compile(r"^(\*\.)?[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*$")
+warnings = []
+
+
+def production_hosts(root):
+    """Hosts das linhas `host` de .fabrica/producao.txt; anota os avisos."""
+    path = os.path.join(root, ".fabrica", "producao.txt")
+    if not os.path.isfile(path):
+        return []
+    hosts = []
+    with open(path, encoding="utf-8", errors="replace") as fh:
+        for n, raw in enumerate(fh, 1):
+            line = raw.strip()
+            if not line or line.startswith("#"):
+                continue
+            kind, _, value = line.partition(" ")
+            value = value.strip()
+            if kind == "host" and HOST.match(value):
+                if value not in hosts:
+                    hosts.append(value)
+            elif kind == "texto" and value:
+                if len(value) < 4:
+                    warnings.append(f"padrão curto: {value}")
+            else:
+                warnings.append(f"linha inválida: {n}")
+    return hosts
+
+
+def retire(data, missing):
+    files = data.get("sandbox", {}).get("credentials", {}).get("files")
+    if not isinstance(files, list):
+        return
+    for entry in RETIRED:
+        while entry in files:
+            files.remove(entry)
+            missing.append(f"remover:credentials:{entry['path']}")
 
 
 def load(path):
@@ -103,7 +146,7 @@ def merge(dst, src, path, missing):
                 dst[key] = value
 
 
-def plan(path, tpl):
+def plan(path, tpl, hosts=None):
     data = load(path)
     exists = data is not None
     data = data or {}
@@ -111,13 +154,20 @@ def plan(path, tpl):
         template = json.load(fh)
     before = json.dumps(data, sort_keys=True)
     missing = []
+    if hosts is not None:
+        retire(data, missing)
+        if hosts:
+            template["sandbox"]["network"]["deniedDomains"] = hosts
     merge(data, template, "", missing)
     changed = json.dumps(data, sort_keys=True) != before
     return data, exists, missing, changed
 
 
 # Lê e valida os dois antes de gravar qualquer um.
-project_data, project_exists, project_missing, project_changed = plan(project_path, project_tpl)
+project_data, project_exists, project_missing, project_changed = plan(
+    project_path, project_tpl, production_hosts(project_root))
+for w in warnings:
+    print(f"setup-sandbox: .fabrica/producao.txt: {w}", file=sys.stderr)
 user_data, user_exists, user_missing, user_changed = plan(user_path, user_tpl)
 
 if mode == "check":

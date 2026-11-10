@@ -25,23 +25,11 @@
           "mode": "deny"
         },
         {
-          "path": ".env",
-          "mode": "deny"
-        },
-        {
-          "path": ".env.local",
-          "mode": "deny"
-        },
-        {
-          "path": ".env.development",
-          "mode": "deny"
-        },
-        {
-          "path": ".env.test",
-          "mode": "deny"
-        },
-        {
           "path": ".env.production",
+          "mode": "deny"
+        },
+        {
+          "path": ".env.production.local",
           "mode": "deny"
         }
       ],

@@ -48,7 +48,7 @@ check "CA1 projeto: sem exceção ao sandbox" "False" "$(jget "$proj" '"excluded
 check "CA1 usuário: mask do git-auth" "~/.config/fabrica/git-auth.gitconfig mask ['github.com']" "$(jget "$user" '" ".join(map(str,[(f:=d["sandbox"]["credentials"]["files"][1])["path"], f["mode"], f["injectHosts"]]))')"
 check "CA1 projeto: cache do npm gravável" "['~/.npm']" "$(jget "$proj" 'd["sandbox"]["filesystem"]["allowWrite"]')"
 check "CA1 projeto: allowLocalBinding" "True" "$(jget "$proj" 'd["sandbox"]["network"]["allowLocalBinding"]')"
-check "CA1 projeto: arquivos negados" "['~/.ssh', '.env', '.env.local', '.env.development', '.env.test', '.env.production']" "$(jget "$proj" '[f["path"] for f in d["sandbox"]["credentials"]["files"] if f["mode"]=="deny"]')"
+check "CA1 projeto: arquivos negados (#94 CA6: só os .env de produção)" "['~/.ssh', '.env.production', '.env.production.local']" "$(jget "$proj" '[f["path"] for f in d["sandbox"]["credentials"]["files"] if f["mode"]=="deny"]')"
 check "CA1 projeto: variáveis negadas" "['GH_TOKEN', 'GITHUB_TOKEN']" "$(jget "$proj" '[v["name"] for v in d["sandbox"]["credentials"]["envVars"] if v["mode"]=="deny"]')"
 check "CA1 usuário: tlsTerminate" "{}" "$(jget "$user" 'd["sandbox"]["network"]["tlsTerminate"]')"
 check "CA1 usuário: mask do hosts.yml" "mask ['api.github.com', 'github.com'] deny True" "$(jget "$user" '" ".join(map(str,[(f:=d["sandbox"]["credentials"]["files"][0])["mode"], f["injectHosts"], f["onExtractNoMatch"], f["maskDuplicates"]]))')"
@@ -107,6 +107,46 @@ for broken in proj user; do
   check "CA5 $broken inválido: mensagem" "setup-sandbox: JSON inválido em $target" "$err"
   check "CA5 $broken inválido: nada muda" "$hash_before" "$(sha256sum "$proj" "$user" | cut -d' ' -f1 | tr '\n' ' ')"
 done
+
+# #94 CA7: os deny de .env que a fábrica gravava saem; os do usuário ficam.
+reset_env
+run >/dev/null
+python3 -I -c '
+import json, sys
+p = sys.argv[1]; d = json.load(open(p)); f = d["sandbox"]["credentials"]["files"]
+for x in (".env", ".env.local", ".env.development", ".env.test"):
+    f.append({"path": x, "mode": "deny"})
+f.append({"path": ".env.local", "mode": "allow"})
+f.append({"path": ".env.test", "mode": "deny", "nota": "do usuário"})
+json.dump(d, open(p, "w"), indent=2)' "$proj"
+check "#94 CA7 --check aponta as entradas aposentadas" "incompleto remover:credentials:.env remover:credentials:.env.local remover:credentials:.env.development remover:credentials:.env.test" "$(run --check)"
+check "#94 CA7 instala" "instalado" "$(run)"
+check "#94 CA7 remove só as idênticas às da fábrica" "[('~/.ssh', 'deny'), ('.env.production', 'deny'), ('.env.production.local', 'deny'), ('.env.local', 'allow'), ('.env.test', 'deny')]" "$(jget "$proj" '[(f["path"], f["mode"]) for f in d["sandbox"]["credentials"]["files"]]')"
+check "#94 CA7 --check depois" "ok" "$(run --check)"
+
+# #94 CA8: hosts de .fabrica/producao.txt viram deniedDomains.
+reset_env
+run >/dev/null
+check "#94 CA8 sem producao.txt, sem deniedDomains" "False" "$(jget "$proj" '"deniedDomains" in d["sandbox"]["network"]')"
+mkdir -p "$tmp/proj/.fabrica"
+cat >"$tmp/proj/.fabrica/producao.txt" <<'TXT'
+# produção
+host db.prod.exemplo
+host *.api.exemplo
+host db.prod.exemplo
+texto sk_live_
+texto abc
+host dois hosts
+banco x
+TXT
+python3 -I -c 'import json,sys; p=sys.argv[1]; d=json.load(open(p)); d["sandbox"]["network"]["deniedDomains"]=["ja.estava.exemplo"]; json.dump(d,open(p,"w"),indent=2)' "$proj"
+check "#94 CA8 --check aponta os hosts que faltam" "incompleto sandbox.network.deniedDomains:db.prod.exemplo sandbox.network.deniedDomains:*.api.exemplo" "$(run --check 2>/dev/null)"
+check "#94 CA8 avisos em stderr" "setup-sandbox: .fabrica/producao.txt: padrão curto: abc|setup-sandbox: .fabrica/producao.txt: linha inválida: 7|setup-sandbox: .fabrica/producao.txt: linha inválida: 8" "$(run --check 2>&1 >/dev/null | paste -sd'|')"
+check "#94 CA8 instala" "instalado" "$(run 2>/dev/null)"
+check "#94 CA8 soma sem repetir e sem tirar" "['ja.estava.exemplo', 'db.prod.exemplo', '*.api.exemplo']" "$(jget "$proj" 'd["sandbox"]["network"]["deniedDomains"]')"
+check "#94 CA8 --check depois: ok, mesmo com avisos" "ok" "$(run --check 2>/dev/null)"
+check "#94 CA8 segunda instalação não muda nada" "ok" "$(run 2>/dev/null)"
+check "#94 CA8 usuário sem deniedDomains" "False" "$(jget "$user" '"deniedDomains" in d["sandbox"]["network"]')"
 
 # Opção desconhecida.
 bash "$setup" --xyz >/dev/null 2>&1
