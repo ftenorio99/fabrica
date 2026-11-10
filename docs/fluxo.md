@@ -32,8 +32,8 @@ Os retângulos são etapas de agente, que você dispara com o comando. Os hexág
 | PRD | você e o agente, em entrevista | `docs/prd.md` com funcionalidades (F1, F2…) e fatiamento em marcos |
 | Backlog | agente, com a sua confirmação | milestones `M<n> · <nome>` e issues enxutas do marco atual e do seguinte |
 | Puxar | você | a label `agente` numa issue de backlog |
-| Triagem | agente | comentário de triagem; perguntas na issue só para o que ela não sabe recomendar, e as recomendações seguem para a spec; no [atalho](#atalho), a spec curta e a label `spec-pronta` |
-| Spec | agente | `specs/SPEC-<nº>.md` na branch da issue e a label `spec-pronta` |
+| Triagem | agente | comentário de triagem, com o campo `Interface`; perguntas na issue só para o que ela não sabe recomendar, e as recomendações seguem para a spec; no [atalho](#atalho), a spec curta e a label `spec-pronta` |
+| Spec | agente | `specs/SPEC-<nº>.md` na branch da issue e a label `spec-pronta`; na primeira issue com interface, também o `docs/design.md` do projeto ([ADR 0009](adr/0009-aprovacao-visual-sem-ferramenta-de-design.md)) |
 | **Aprovar a spec** | **você** | a label `spec-aprovada`, que também confirma as recomendações que a triagem levou para a spec |
 | Implementação | agente | código e testes na branch, verificações registradas |
 | Revisão | agente | revisão contra a spec, PR com evidências e a label `pronto-revisao` |
