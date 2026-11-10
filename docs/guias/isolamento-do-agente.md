@@ -70,6 +70,27 @@ bash <clone do fabrica>/scripts/setup-git-auth.sh
 
 O script grava o arquivo com permissão `600` e acrescenta o `include.path` ao `~/.gitconfig`, se ainda não houver. Com um token velho no arquivo, o push falha também fora do sandbox: gere o arquivo de novo. Para tirar, apague o arquivo e rode `git config --global --unset include.path ~/.config/fabrica/git-auth.gitconfig`.
 
+## Token fine-grained
+O mascaramento impede o agente de ler o token e de mandá-lo a um host fora da lista. Ele não impede o vazamento pelo próprio GitHub. O proxy troca o marcador em qualquer parte da requisição a `api.github.com`, inclusive no corpo. Então um agente enganado pode postar o marcador num comentário, ou pedi-lo de volta (ex.: `POST /markdown`), e o GitHub grava ou devolve o token real. Com o cabeçalho do git, a rota parecida é um nome de branch no `git push`.
+
+Por isso, o token do `gh` precisa ser **fine-grained**, com o menor estrago possível se vazar:
+1. Em https://github.com/settings/personal-access-tokens/new, crie um token com:
+   - **Expiração:** 90 dias ou menos;
+   - **Repository access:** só os repositórios em que a fábrica trabalha (ex.: `fabrica` e `kairo`);
+   - **Permissões de repositório:**
+     - Contents, Issues, Pull requests e Workflows: leitura e escrita;
+     - Actions e Commit statuses: leitura;
+     - Metadata: leitura, que é obrigatória.
+2. Troque o login do `gh` pelo token novo, guardando-o no arquivo:
+
+   ```bash
+   gh auth login --with-token --insecure-storage   # cole o token e tecle Ctrl-D
+   ```
+3. Gere de novo o cabeçalho do git: `bash <clone do fabrica>/scripts/setup-git-auth.sh`.
+4. Repita os três passos quando o token expirar. O aceite confere a expiração (`token-com-expiracao`).
+
+O aceite mostra a reflexão como `aviso reflexao-token-gh`: é o risco aceito na ADR 0005, e não uma falha. Um repositório novo na fábrica precisa entrar no acesso do token.
+
 ## Token no chaveiro
 O `gh` pode guardar o token no chaveiro do sistema, e não no `hosts.yml`. Nesse caso, o sandbox não tem o que mascarar, e o `gh` falha dentro dele. Para saber, confira se o `~/.config/gh/hosts.yml` tem uma linha `oauth_token`. Sem ela, o token está no chaveiro.
 

@@ -136,7 +136,9 @@ reflect() { # reflect <verificação> <arquivo> <regex do valor> <regex do real>
   local out
   out="$(gh api -X POST /markdown -f text="x${marker}x" 2>&1)"
   if grep -Eq "$4" <<<"$out"; then
-    bad "$1" "a resposta trouxe o valor real: o proxy troca o marcador no corpo"
+    # Risco aceito (ADR 0005): o proxy troca o marcador em toda a requisição.
+    # O que limita o estrago é o token fine-grained, conferido abaixo.
+    printf 'aviso %s: %s\n' "$1" "o proxy troca o marcador também no corpo; o token vaza pelo próprio GitHub (risco aceito, ADR 0005)"
   elif grep -Fq "$marker" <<<"$out"; then
     ok "$1"
   else
@@ -145,6 +147,13 @@ reflect() { # reflect <verificação> <arquivo> <regex do valor> <regex do real>
 }
 reflect "reflexao-token-gh" "$hosts" 'oauth_token:[[:space:]]*[^[:space:]]+' 'gh[opsu]_[A-Za-z0-9]{30,}|github_pat_'
 reflect "reflexao-git-auth" "$HOME/.config/fabrica/git-auth.gitconfig" 'Basic [^[:space:]]+' 'eC1hY2Nlc3MtdG9rZW46'
+
+# O token do gh é fine-grained: o GitHub devolve a expiração dele num cabeçalho.
+if gh api -i /user 2>/dev/null | grep -qi '^github-authentication-token-expiration:'; then
+  ok "token-com-expiracao"
+else
+  bad "token-com-expiracao" "o token do gh não tem expiração; use um token fine-grained (docs/guias/isolamento-do-agente.md)"
+fi
 
 # O fluxo continua funcionando.
 if login="$(gh api user -q .login 2>&1)"; then

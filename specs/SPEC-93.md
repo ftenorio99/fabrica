@@ -182,6 +182,7 @@ O `/fabrica:setup` liga o sandbox nativo do Claude Code num projeto. Depois diss
 
 ## Riscos e dúvidas
 - **`git push` com o token mascarado:** confirmado na implementação, o proxy não troca o marcador dentro do Basic auth. O caminho ficou o cabeçalho pronto do `git-auth.gitconfig` (veja "Decisões").
+- **Reflexão do marcador (risco aceito):** o aceite mostrou que o proxy troca o marcador também no corpo das requisições a `api.github.com`. Um agente enganado pode obter o token pelo próprio GitHub (ex.: `POST /markdown`). O usuário aceitou esse risco em 2026-11-10, com a mitigação do token fine-grained: só os repositórios da fábrica e com expiração. O aceite mostra esse caso como `aviso reflexao-token-gh` e confere a expiração do token (`token-com-expiracao`).
 - **CA efêmera do `tlsTerminate`:** a documentação não diz como os comandos no sandbox passam a confiar na CA do proxy (`SSL_CERT_FILE`, `NODE_EXTRA_CA_CERTS` e `GIT_SSL_CAINFO` não são citados). O `gh api`, o `git push` e o `npm view` do CA10 cobrem os três clientes das etapas.
 - **`!` fora do sandbox:** a spec supõe que um comando rodado pelo usuário com `!` no prompt não passa pelo sandbox. O CA7 confere isso, com o usuário rodando `! touch ~/fabrica-sandbox-probe && rm ~/fabrica-sandbox-probe`. Se não for assim, o guia indica rodar o script num terminal comum.
 - **Domínio esquecido:** um domínio que falta na lista para a etapa no meio, com um erro de rede. O guia mostra como ler o erro e ampliar a lista no projeto.
@@ -191,3 +192,4 @@ O `/fabrica:setup` liga o sandbox nativo do Claude Code num projeto. Depois diss
 - 2026-11-09: criação.
 - 2026-11-10: aprovada.
 - 2026-11-10: mudança (alterar) na implementação, com decisão do usuário. Motivos: o proxy não troca o marcador no Basic auth do `git push`, o npm precisa gravar no cache e o Ubuntu 26.04 exige o ajuste do AppArmor. Entraram o `setup-git-auth.sh` e o `mask` do `git-auth.gitconfig`, o `allowWrite` do `~/.npm` e a checagem do AppArmor no setup. Os CAs não mudam.
+- 2026-11-10: mudança (alterar) na implementação, com decisão do usuário. Motivo: a reflexão do marcador pelo GitHub, encontrada pela revisão automática. Entraram o token fine-grained no guia e na ADR e, no aceite, a verificação `token-com-expiracao` e o aviso de reflexão. O CA9 passa a valer para a leitura direta do token, e não para o vazamento pelo próprio GitHub.
