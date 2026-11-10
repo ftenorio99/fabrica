@@ -1,7 +1,7 @@
 # SPEC-45: Design system versionado e campo de interface na triagem
 
 **Issue:** #45 · **PRD:** F7 (item 10 do fatiamento) · **Classe:** implementacao-simples · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-11-10
+**Status:** aprovada · **Atualizada em:** 2026-11-10
 
 ## Contexto
 A F7 do `docs/prd.md` pede aprovação visual: cada projeto com interface tem um design system versionado em `docs/design.md`. O fatiamento divide a F7 em dois itens: o item 10 (esta issue), com o design system e o campo de interface na triagem, e o item 11, com a descrição das telas na spec e os screenshots no PR, que depende do item 9 (CI com Playwright). Na triagem de 10/11 você escolheu dividir a issue e deixar o kairo como está. A decisão sobre o Impeccable (comentário de 10/11) entra na ADR desta issue, e o uso dele no fluxo fica para o item 11.
@@ -98,3 +98,4 @@ nenhum
 
 ## Histórico
 - 2026-11-10: criação.
+- 2026-11-10: aprovada.

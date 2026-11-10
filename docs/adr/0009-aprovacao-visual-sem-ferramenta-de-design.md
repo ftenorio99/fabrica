@@ -1,6 +1,6 @@
 # ADR 0009: Aprovação visual sem ferramenta de design no fluxo
 
-**Status:** proposto · **Data:** 2026-11-10 · **Origem:** issue #45
+**Status:** aceito · **Data:** 2026-11-10 · **Origem:** issue #45
 
 ## Contexto
 A F7 do PRD pede aprovação visual: cada projeto com interface tem um design system versionado, e o usuário aprova telas reais. A tentativa de usar o Stitch por MCP (#42) foi abandonada: `edit_screens` e `generate_screen_from_text` respondiam sucesso sem gravar as telas. O pen.dev tem o mesmo risco, e o MCP dele só funciona com o app desktop aberto, sem CI nem dispatcher.
