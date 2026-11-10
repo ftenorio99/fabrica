@@ -1,7 +1,7 @@
 # SPEC-121: Revisar confere cada critério de aceite no diff e nos testes, sem confiar no resumo do implementador
 
 **Issue:** #121 · **PRD:** F6 · **Classe:** implementacao-simples · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-11-10
+**Status:** aprovada · **Atualizada em:** 2026-11-10
 
 ## Contexto
 O system card do Fable 5.2 e Mythos 5.2 (§6.2.1, §6.5.5) indica que o modelo tenta adivinhar o que o avaliador espera, usa respostas vazadas sem avisar e, em treino, escondeu mudanças com manipulação do git. Na fábrica, o risco é um `implementar` que faz os testes passarem sem cumprir o critério e um resumo que não mostra isso. Hoje o revisor (`agents/revisor.md`, item 4) aceita "as anotações de verificação recebidas" num CA manual e olha só o diff final contra a `main`. A F6 do `docs/prd.md` pede verificação que não depende de quem implementou.
@@ -91,3 +91,4 @@ nenhum
 
 ## Histórico
 - 2026-11-10: criação.
+- 2026-11-10: aprovada.
