@@ -1,7 +1,7 @@
 # SPEC-93: Agente roda isolado em sandbox, com rede restrita e sem segredos em claro
 
 **Issue:** #93 · **PRD:** F1 (item 1 do fatiamento, M1) · **Classe:** implementacao-complexa · **Tamanho:** G
-**Status:** rascunho · **Atualizada em:** 2026-11-09
+**Status:** aprovada · **Atualizada em:** 2026-11-10
 
 ## Contexto
 As etapas da fábrica rodam na máquina do usuário. Hoje elas têm acesso a `~/.ssh`, ao token do `gh` em `~/.config/gh/hosts.yml` e aos `.env`, e só o git está protegido, pelos hooks da ADR 0002. O PRD pede, na F1, que o agente rode em sandbox, com o sistema de arquivos e a rede restritos e sem ler segredos em claro. Isso vale antes do dispatcher (restrição "F1 e F2 vêm antes do F4") e cobre o risco "injeção de prompt leva a exfiltração de credenciais ou a um comando destrutivo". Esta issue faz isso para a execução local, com o sandbox nativo do Claude Code. O job do dispatcher fica com a #106.
@@ -172,3 +172,4 @@ O `/fabrica:setup` liga o sandbox nativo do Claude Code num projeto. Depois diss
 
 ## Histórico
 - 2026-11-09: criação.
+- 2026-11-10: aprovada.
