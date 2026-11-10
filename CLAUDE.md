@@ -18,6 +18,7 @@ Este repositório é a fábrica de software pessoal, empacotada como plugin do C
 - O `description` do frontmatter diz o que a skill faz e quando usar; é ele que decide quando a skill é acionada.
 - Material de apoio (templates, exemplos) fica ao lado do `SKILL.md`, na pasta da skill, e é referenciado pelo caminho relativo.
 - Cada skill aplica e remove as labels da sua etapa, conforme a tabela de labels em `skills/status/estados.md`. Ao mudar o fluxo (labels, marcadores, etapas), atualize essa máquina de estados no mesmo PR.
+- O argumento de uma etapa de agente é só o número da issue ou do PR. O texto da issue, do PR e dos comentários a etapa lê com `gh`, nunca pelo argumento ([ADR 0008](docs/adr/0008-texto-externo-fora-do-prompt.md)).
 - PR que muda comportamento de uma skill, label, estado ou comando atualiza o manual em `docs/` no mesmo PR. O manual explica e remete às skills; não copie regras nem tabelas delas.
 
 ## Testando localmente

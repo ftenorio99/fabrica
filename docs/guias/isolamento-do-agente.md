@@ -128,6 +128,12 @@ O projeto precisa de um workflow em `.github/workflows/` que dispare em `pull_re
 
 **Domínios do build:** se o build buscar algo na rede (ex.: o `next/font` baixa fontes do `fonts.googleapis.com` e do `fonts.gstatic.com`), libere esses hosts como em [Ampliar os domínios](#ampliar-os-domínios).
 
+## Texto de issue e PR fora do prompt
+O texto de uma issue, de um PR ou de um comentário pode vir de qualquer pessoa, e o modelo tende a obedecer instruções plantadas em texto que chega no turno do usuário. O que chega como resultado de ferramenta ele trata como não confiável ([ADR 0008](../adr/0008-texto-externo-fora-do-prompt.md)). Por isso:
+- **Etapas:** o prompt de uma etapa de agente leva só o comando e o número, como `/fabrica:spec 42`. A etapa lê a issue, os comentários e o PR com `gh`. Os ajustes da spec, por exemplo, vêm dos comentários da issue, não do argumento.
+- **Dispatcher:** o workflow não põe `${{ github.event.issue.body }}`, `${{ github.event.issue.title }}`, `${{ github.event.comment.body }}` nem outro texto do evento no prompt nem num `run:`. Num `run:`, esse texto também abre caminho para injeção de comando no shell. Do evento, o workflow usa só o número e o tipo.
+- **Uso manual:** o que você digita no chat é seu e pode ir no argumento, como `/fabrica:spec 42 troque o CA3`. Não cole ali o texto de um comentário de outra pessoa.
+
 ## Produção fora do alcance
 As etapas de agente só usam dev ou homologação ([ADR 0006](../adr/0006-producao-fora-do-alcance-do-agente.md)). A convenção é que os `.env` da máquina só tenham valores de dev ou de homologação, e que os segredos de produção fiquem no provedor (os secrets do deploy). Não deixe um `.env.production` real na máquina: o sandbox nega a leitura dele pelo Bash, mas a ferramenta Read do Claude Code não passa pelo sandbox.
 

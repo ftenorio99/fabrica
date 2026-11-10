@@ -21,6 +21,9 @@ As etapas de agente só usam dev ou homologação. Os `.env` da máquina só tê
 
 Cada projeto lista em `.fabrica/producao.txt` os hosts e os literais de produção. Um hook do plugin recusa o comando que os cita, e o sandbox bloqueia os hosts na rede, para pegar o que escapa do texto. Como na `main` protegida, o hook cobre o erro inocente, e a barreira de verdade é a outra. Detalhes no [ADR 0006](adr/0006-producao-fora-do-alcance-do-agente.md) e no [guia](guias/isolamento-do-agente.md#produção-fora-do-alcance).
 
+## Texto de issue e PR fora do prompt
+O agente recebe só o comando e o número da issue, e lê o texto da issue, do PR e dos comentários com `gh`. Esse texto pode vir de outras pessoas, e o modelo o trata como não confiável quando ele chega como resultado de ferramenta, mas tende a obedecê-lo quando ele vem colado no prompt. Vale para as etapas e para o dispatcher. Detalhes no [ADR 0008](adr/0008-texto-externo-fora-do-prompt.md) e no [guia](guias/isolamento-do-agente.md#texto-de-issue-e-pr-fora-do-prompt).
+
 ## Limite de 3 em andamento
 No máximo 3 issues com `spec-aprovada` ficam abertas ao mesmo tempo em cada repositório, contando as que aguardam merge. Trabalho parado no meio custa mais que trabalho não começado: é PR para revisar, branch para rebasear e contexto para recuperar. O `/fabrica:implementar` recusa começar a quarta, e o `/fabrica:status` alerta.
 
