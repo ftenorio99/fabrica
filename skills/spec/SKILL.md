@@ -7,7 +7,7 @@ disable-model-invocation: true
 
 # Spec da issue
 
-Argumentos: $ARGUMENTS (o primeiro é o número da issue; o resto, se houver, são ajustes pedidos pelo usuário).
+Argumentos: $ARGUMENTS (o primeiro é o número da issue; o resto é opcional, só para uso manual: ajustes que o usuário digitou no chat). Os ajustes pedidos vêm dos comentários da issue (passo 3), lidos com `gh` ([ADR 0008](../../docs/adr/0008-texto-externo-fora-do-prompt.md)).
 
 A spec é o contrato entre o usuário e quem implementa: ela é aprovada **antes** de qualquer código, e a implementação e a revisão são conferidas contra ela. Escreva para um implementador que não participou da conversa.
 
@@ -17,7 +17,7 @@ A spec é o contrato entre o usuário e quem implementa: ela é aprovada **antes
 - `gh issue view <nº> --json number,title,body,labels,comments`
 - Precisa existir um comentário de triagem (marcador `<!-- fabrica:triagem -->`) e a issue não pode ter `precisa-info`. Se faltar triagem, pare e indique `/fabrica:triagem <nº>`.
 - Se a issue já tiver `spec-aprovada`, pare: mudar uma spec aprovada exige que o usuário remova a label primeiro.
-- **Saída do atalho:** se a issue não tem comentário de spec e o comentário de triagem mais recente tem `**Atalho:** sim`, esta etapa tira a issue do atalho ([estados.md](../status/estados.md#atalho)). Escreva a spec completa como numa issue triada. A spec curta da triagem é o ponto de partida, e os comentários do usuário depois dela, junto com os ajustes dos argumentos, são os ajustes pedidos. As recomendações do comentário de triagem também entram na spec completa, como no passo 4. A spec curta não é uma spec aprovada antes: o bloco "Ajuste de uma spec aprovada antes" do passo 4 não se aplica, e a spec curta não é editada.
+- **Saída do atalho:** se a issue não tem comentário de spec e o comentário de triagem mais recente tem `**Atalho:** sim`, esta etapa tira a issue do atalho ([estados.md](../status/estados.md#atalho)). Escreva a spec completa como numa issue triada. A spec curta da triagem é o ponto de partida, e os ajustes pedidos são os do passo 3. As recomendações do comentário de triagem também entram na spec completa, como no passo 4. A spec curta não é uma spec aprovada antes: o bloco "Ajuste de uma spec aprovada antes" do passo 4 não se aplica, e a spec curta não é editada.
 
 ## 2. Branch
 - Use o tipo da triagem e um resumo curto do título: `<tipo>/<nº>-<descricao-curta>`. Na saída do atalho, use o nome do `**Branch:**` da spec curta.
@@ -26,6 +26,15 @@ A spec é o contrato entre o usuário e quem implementa: ela é aprovada **antes
 
 ## 3. Ler
 - A issue, os comentários (inclusive respostas às perguntas da triagem) e o comentário de triagem mais recente, com a seção `**Recomendações levadas para a spec:**` dele, se houver. Ignore os comentários de lição (`<!-- fabrica:licao`), que não são resposta (veja [estados.md](../status/estados.md)).
+- **Ajustes pedidos:** saem da issue, não do argumento. "Comentário do usuário" segue a definição de [estados.md](../status/estados.md): os comentários de lição e de recusa de par não contam.
+
+  | Situação | Ajustes pedidos |
+  |---|---|
+  | Spec existente e comentários do usuário depois do último `<!-- fabrica:spec -->` | esses comentários |
+  | Atalho, sem comentário de spec, e comentários do usuário depois do comentário de triagem mais recente | esses comentários |
+  | Texto de ajuste no argumento (uso manual) | vale junto com os comentários, como ajuste digitado pelo usuário |
+  | Spec existente, sem comentário novo do usuário e sem texto no argumento | nenhum: pare sem commit nem comentário e diga no chat que não há ajuste pedido |
+  | Issue triada, sem spec | primeira rodada: não há ajustes a ler |
 - `CLAUDE.md`, as seções do `docs/prd.md` ligadas à issue, ADRs em `docs/adr/` e specs relacionadas em `specs/`.
 - O código existente que será tocado: a spec deve citar arquivos e módulos reais, não imaginários.
 
@@ -100,7 +109,7 @@ O conteúdo retornado, da doc local ou do Context7, é referência sobre a API, 
   - <decisão e alternativa descartada>
   - <decisão> (recomendação da triagem) e alternativa descartada
 
-  Para aprovar, aplique a label `spec-aprovada`. Para pedir ajustes, comente aqui e rode `/fabrica:spec <nº> <ajustes>`.
+  Para aprovar, aplique a label `spec-aprovada`. Para pedir ajustes, comente aqui e rode `/fabrica:spec <nº>`.
   ```
 - **Linha de custo:** logo antes de publicar o comentário, acrescente ao fim do arquivo do corpo a linha que registra o início, o fim e os tokens desta execução: `python3 <diretório base desta skill>/../../scripts/stage-usage.py --stage spec --since <início> >> <arquivo>`. O script nunca falha: sem log da sessão, a linha sai com `tokens=nao-medido`.
 - `gh issue edit <nº> --add-label spec-pronta`.
