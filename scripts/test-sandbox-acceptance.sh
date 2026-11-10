@@ -108,15 +108,25 @@ if [[ -n "$readable" ]] && head -c 1 "$readable" >/dev/null 2>&1; then
 else
   ok "ssh-ilegivel"
 fi
-# No sandbox, o .env negado vira um dispositivo ilegível, e não um arquivo comum.
-if [[ -e "$root/.env" ]]; then
-  if cat "$root/.env" >/dev/null 2>&1; then
-    bad "env-ilegivel" "consegui ler .env"
+# No sandbox, o .env de produção negado vira um dispositivo ilegível, e não
+# um arquivo comum. Os .env de dev e de teste continuam legíveis (ADR 0006).
+if [[ -e "$root/.env.production" ]]; then
+  if cat "$root/.env.production" >/dev/null 2>&1; then
+    bad "env-producao-ilegivel" "consegui ler .env.production"
   else
-    ok "env-ilegivel"
+    ok "env-producao-ilegivel"
   fi
 else
-  bad "env-ilegivel" "crie um .env de teste no projeto antes de rodar"
+  bad "env-producao-ilegivel" "crie um .env.production de teste no projeto antes de rodar"
+fi
+if [[ -e "$root/.env" ]]; then
+  if cat "$root/.env" >/dev/null 2>&1; then
+    ok "env-dev-legivel"
+  else
+    bad "env-dev-legivel" "não consegui ler .env; os .env de dev deveriam ser legíveis"
+  fi
+else
+  bad "env-dev-legivel" "crie um .env de teste no projeto antes de rodar"
 fi
 
 # Reflexão: o marcador mandado no corpo de uma requisição a um host liberado

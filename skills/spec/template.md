@@ -40,6 +40,9 @@
 ## Testes
 <Como cada critério será testado: quais testes unitários e ponta a ponta, e o que cada um confere. Comandos: `make test`, `make e2e`.>
 
+## Passos de produção
+<O que precisa rodar em produção (migração, seed, troca de chave, ajuste de dado) para esta issue valer lá, um por linha, como item para o runbook executado pelo usuário. Nenhum CA depende deles. Sem passo de produção: "nenhum".>
+
 ## Riscos e dúvidas
 - <O que pode dar errado na implementação, ou "nenhum relevante".>
 

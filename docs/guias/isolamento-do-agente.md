@@ -7,7 +7,7 @@ O sandbox vale para os comandos Bash das sessões abertas no projeto e para os p
 - **Arquivos:** os comandos escrevem só no projeto, na pasta temporária e no cache do npm (`~/.npm`). O cache é compartilhado entre os projetos, e um agente enganado poderia gravar nele um pacote adulterado. O `npm ci` confere o hash de cada pacote pelo lockfile. O `.claude/settings.json` do projeto continua protegido, mesmo estando dentro do projeto. O estrago que um comando fizer dentro do projeto o git recupera.
 - **Rede:** só os domínios liberados respondem. A base é a do GitHub (`github.com`, `api.github.com`, `codeload.github.com`, `uploads.github.com` e `*.githubusercontent.com`) e o `registry.npmjs.org`. O servidor local (`allowLocalBinding`) continua liberado, para o servidor de dev e o Playwright.
 - **Segredos:**
-  - `~/.ssh` e os `.env*` do projeto não podem ser lidos;
+  - `~/.ssh`, o `.env.production` e o `.env.production.local` do projeto não podem ser lidos. Os outros `.env` (`.env`, `.env.local`, `.env.development` e `.env.test`) só têm valores de dev ou de homologação e ficam legíveis, para os testes e as migrações locais (veja "Produção fora do alcance");
   - `GH_TOKEN` e `GITHUB_TOKEN` chegam vazias;
   - o token do `gh` em `~/.config/gh/hosts.yml` aparece como um marcador, e o proxy do sandbox põe o token real só nas requisições a `api.github.com` e `github.com`;
   - o cabeçalho do `git push` em `~/.config/fabrica/git-auth.gitconfig` também aparece como marcador, e o proxy põe o valor real só nas requisições a `github.com` (veja "Git push").
@@ -115,8 +115,31 @@ Quando uma etapa falhar com erro de rede para um host que o projeto usa (ex.: a 
 
 As listas se somam entre o settings do usuário e o do projeto, e rodar o `/fabrica:setup` de novo mantém os domínios que você acrescentou. Libere só o host exato. Um curinga largo (como `*.github.com`) abre caminhos para tirar dados do projeto (como o `gist.github.com`).
 
+## Produção fora do alcance
+As etapas de agente só usam dev ou homologação ([ADR 0006](../adr/0006-producao-fora-do-alcance-do-agente.md)). A convenção é que os `.env` da máquina só tenham valores de dev ou de homologação, e que os segredos de produção fiquem no provedor (os secrets do deploy). Não deixe um `.env.production` real na máquina: o sandbox nega a leitura dele pelo Bash, mas a ferramenta Read do Claude Code não passa pelo sandbox.
+
+Para o agente não alcançar produção por engano, liste os padrões de produção em `.fabrica/producao.txt`, na raiz do repositório, e faça commit por PR:
+
+```
+# Banco e API de produção
+host db.meuapp.com
+host *.prod.meuapp.com
+texto sk_live_
+texto PROD_DATABASE_URL
+```
+
+- **`host <domínio>`:** o hook do plugin recusa o comando Bash que cita o domínio, e o `/fabrica:setup` copia o domínio para `sandbox.network.deniedDomains` do projeto, que vale mesmo para um host liberado em `allowedDomains`. Aceita o curinga `*.` no início.
+- **`texto <literal>`:** só o hook, para prefixos de chave, nomes de variáveis e trechos de URL. Literais com menos de 4 caracteres são ignorados.
+- Linhas vazias e começadas com `#` são ignoradas. A comparação ignora maiúsculas e é por trecho literal, sem expressão regular.
+
+O hook lê o arquivo da branch e o da `main` no `origin`. Apagar uma linha numa branch não libera o comando até o merge, que é seu. Depois de mudar as linhas `host`, rode o `/fabrica:setup` de novo para atualizar o `deniedDomains`.
+
+Se o hook barrar um comando legítimo (um `grep` que cita o nome da variável, por exemplo), rode-o você mesmo com `!` no prompt, ou deixe o padrão mais específico.
+
+Projetos que ligaram o sandbox antes da ADR 0006 têm `deny` em `.env`, `.env.local`, `.env.development` e `.env.test`. O `--check` do setup mostra `remover:credentials:<arquivo>`, e confirmar o passo **Sandbox** remove essas entradas.
+
 ## Rodar o teste de aceite
-Numa sessão aberta no projeto, com o sandbox ligado e um `.env` de teste na raiz (ex.: `TESTE=1`), peça ao agente para rodar:
+Numa sessão aberta no projeto, com o sandbox ligado, um `.env` e um `.env.production` de teste na raiz (ex.: `TESTE=1`), peça ao agente para rodar:
 
 ```bash
 bash <clone do fabrica>/scripts/test-sandbox-acceptance.sh
@@ -125,7 +148,7 @@ bash <clone do fabrica>/scripts/test-sandbox-acceptance.sh
 Cada linha sai como `ok <verificação>` ou `falha <verificação>: <motivo>`:
 - escrita fora do projeto e no `.claude/settings.json`;
 - rede fora da lista;
-- token, `~/.ssh` e `.env` em claro;
+- token, `~/.ssh` e `.env.production` em claro, e o `.env` de dev legível;
 - `gh api user`, `npm view` e o `git push` de uma branch `test/sandbox-*`, apagada no fim. Use `--remote <nome>` para fazer o push em outro remote que não o `origin`.
 
 Rode o teste de novo quando o Claude Code mudar o sandbox nas notas de versão, porque o `tlsTerminate`, que o mascaramento usa, ainda é experimental.

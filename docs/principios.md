@@ -16,6 +16,11 @@ Duas ressalvas:
 
 Dentro do Claude Code, um hook do plugin impede o Claude de desligar essa proteção com `--no-verify` ou mexendo no `core.hooksPath`. A proteção cobre erros e comandos inocentes, não sabotagem; essa fronteira está no [ADR 0002](adr/0002-protecao-da-main-por-hooks-do-git.md).
 
+## Produção fora do alcance do agente
+As etapas de agente só usam dev ou homologação. Os `.env` da máquina só têm valores de dev ou de homologação, e os segredos de produção ficam no provedor. O que precisa rodar em produção (uma migração, um ajuste de dado) vira um passo do runbook, que você executa.
+
+Cada projeto lista em `.fabrica/producao.txt` os hosts e os literais de produção. Um hook do plugin recusa o comando que os cita, e o sandbox bloqueia os hosts na rede, para pegar o que escapa do texto. Como na `main` protegida, o hook cobre o erro inocente, e a barreira de verdade é a outra. Detalhes no [ADR 0006](adr/0006-producao-fora-do-alcance-do-agente.md) e no [guia](guias/isolamento-do-agente.md#produção-fora-do-alcance).
+
 ## Limite de 3 em andamento
 No máximo 3 issues com `spec-aprovada` ficam abertas ao mesmo tempo em cada repositório, contando as que aguardam merge. Trabalho parado no meio custa mais que trabalho não começado: é PR para revisar, branch para rebasear e contexto para recuperar. O `/fabrica:implementar` recusa começar a quarta, e o `/fabrica:status` alerta.
 
