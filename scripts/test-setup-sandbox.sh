@@ -67,7 +67,7 @@ cat >"$user" <<'EOF'
 {"statusLine": {"type": "command", "command": "/x/statusline.sh"}, "theme": "dark"}
 EOF
 cp "$user" "$tmp/user-antes.json"
-run >/dev/null
+run >/dev/null 2>&1
 check "CA2 preserva permissions.deny do projeto" "['Read(.env)', 'Read(//**/.ssh/**)']" "$(jget "$proj" 'd["permissions"]["deny"]')"
 check "CA2 soma domínios sem repetir" "['api.github.com', 'example.org', 'github.com', 'codeload.github.com', 'uploads.github.com', '*.githubusercontent.com', 'registry.npmjs.org']" "$(jget "$proj" 'd["sandbox"]["network"]["allowedDomains"]')"
 check "CA2 preserva statusLine e theme do usuário" "/x/statusline.sh dark" "$(jget "$user" 'd["statusLine"]["command"]+" "+d["theme"]')"
@@ -76,7 +76,7 @@ check "CA2 .bak-fabrica-sandbox igual ao settings anterior" "igual" "$(cmp -s "$
 # CA3: segunda execução não muda nada; domínio acrescentado pelo repositório fica.
 python3 -I -c 'import json,sys; p=sys.argv[1]; d=json.load(open(p)); d["sandbox"]["network"]["allowedDomains"].append("api.stripe.com"); json.dump(d,open(p,"w"),indent=2)' "$proj"
 hash_before="$(sha256sum "$proj" "$user" | cut -d' ' -f1 | tr '\n' ' ')"
-out="$(run)"
+out="$(run 2>/dev/null)"
 hash_after="$(sha256sum "$proj" "$user" | cut -d' ' -f1 | tr '\n' ' ')"
 check "CA3 segunda execução responde ok" "ok" "$out"
 check "CA3 segunda execução não muda os arquivos" "$hash_before" "$hash_after"
@@ -85,11 +85,11 @@ check "CA3 domínio do repositório continua" "True" "$(jget "$proj" '"api.strip
 # CA4: incompleto quando falta ou diverge uma chave; --check não grava.
 python3 -I -c 'import json,sys; p=sys.argv[1]; d=json.load(open(p)); d["sandbox"]["enabled"]=False; d["sandbox"]["network"]["allowedDomains"].remove("registry.npmjs.org"); json.dump(d,open(p,"w"),indent=2)' "$proj"
 hash_before="$(sha256sum "$proj" "$user" | cut -d' ' -f1 | tr '\n' ' ')"
-check "CA4 --check incompleto" "incompleto enabled=false sandbox.network.allowedDomains:registry.npmjs.org" "$(run --check)"
+check "CA4 --check incompleto" "incompleto enabled=false sandbox.network.allowedDomains:registry.npmjs.org" "$(run --check 2>/dev/null)"
 check "CA4 --check não grava" "$hash_before" "$(sha256sum "$proj" "$user" | cut -d' ' -f1 | tr '\n' ' ')"
 python3 -I -c 'import json,sys; p=sys.argv[1]; d=json.load(open(p)); d["sandbox"]["credentials"]["files"][0]["mode"]="allow"; json.dump(d,open(p,"w"),indent=2)' "$user"
-check "CA4 --check aponta credencial divergente" "incompleto enabled=false sandbox.network.allowedDomains:registry.npmjs.org credentials:~/.config/gh/hosts.yml" "$(run --check)"
-run >/dev/null
+check "CA4 --check aponta credencial divergente" "incompleto enabled=false sandbox.network.allowedDomains:registry.npmjs.org credentials:~/.config/gh/hosts.yml" "$(run --check 2>/dev/null)"
+run >/dev/null 2>&1
 check "CA4 instalar corrige o escalar" "True" "$(jget "$proj" 'd["sandbox"]["enabled"]')"
 check "CA4 instalar não duplica a credencial existente" "1" "$(jget "$user" 'sum(f["path"].endswith("hosts.yml") for f in d["sandbox"]["credentials"]["files"])')"
 
@@ -171,6 +171,29 @@ reset_env
 out="$(run 2>"$tmp/err")"
 check "#112 CA2 sem prettier: instala sem aviso" "instalado " "$out $(cat "$tmp/err")"
 check "#112 CA2 sem prettier: lista aberta como antes" "1" "$(grep -c '"allowWrite": \[$' "$proj")"
+
+# #113: aviso quando o permissions.deny do projeto nega os .env de dev.
+with_deny() { # with_deny <lista JSON>: grava o permissions.deny no projeto
+  mkdir -p "$tmp/proj/.claude"
+  python3 -I -c 'import json,sys; p=sys.argv[1]
+try: d=json.load(open(p))
+except FileNotFoundError: d={}
+d["permissions"]=json.loads(sys.argv[2]); json.dump(d,open(p,"w"),indent=2)' "$proj" "$2"
+}
+msg() { echo "setup-sandbox: permissions.deny nega $1; o agente não vai ler os .env de dev no sandbox (ADR 0006)"; }
+reset_env
+run >/dev/null
+with_deny "$proj" '{"deny": ["Read(.env)", "Read(.env*)", "Read(**/.env)", "Read(.env.production)", "Read(.env.*.local)", "Read(//**/.ssh/**)", "Read(src/.env)", "Bash(rm:*)"]}'
+check "#113 CA1 --check avisa uma linha por regra" "$(msg 'Read(.env)')|$(msg 'Read(.env*)')|$(msg 'Read(**/.env)')" "$(run --check 2>&1 >/dev/null | paste -sd'|')"
+check "#113 CA3 --check continua ok" "ok" "$(run --check 2>/dev/null)"
+check "#113 CA1 instalação também avisa" "3" "$(run 2>&1 >/dev/null | grep -c 'permissions.deny nega')"
+check "#113 CA3 permissions.deny intacto" "8" "$(jget "$proj" 'len(d["permissions"]["deny"])')"
+with_deny "$proj" '{"deny": ["Read(.env.production)", "Read(.env.*.local)", "Read(//**/.ssh/**)", "Read(src/.env)"]}'
+check "#113 CA2 regras que não pegam os .env de dev: sem aviso" "" "$(run --check 2>&1 >/dev/null)"
+with_deny "$proj" '{"deny": "Read(.env)"}'
+check "#113 CA4 deny que não é lista: sem aviso nem erro" "ok " "$(run --check 2>"$tmp/err") $(cat "$tmp/err")"
+with_deny "$proj" '[]'
+check "#113 CA4 permissions que não é objeto: sem aviso nem erro" "ok " "$(run --check 2>"$tmp/err") $(cat "$tmp/err")"
 
 # Opção desconhecida.
 bash "$setup" --xyz >/dev/null 2>&1
