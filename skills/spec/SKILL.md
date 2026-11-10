@@ -37,6 +37,7 @@ A spec é o contrato entre o usuário e quem implementa: ela é aprovada **antes
   | Issue triada, sem spec | primeira rodada: não há ajustes a ler |
 - `CLAUDE.md`, as seções do `docs/prd.md` ligadas à issue, ADRs em `docs/adr/` e specs relacionadas em `specs/`.
 - O código existente que será tocado: a spec deve citar arquivos e módulos reais, não imaginários.
+- **Interface:** a linha `Interface` da tabela do comentário de triagem mais recente. Sem a linha (triagem antiga), trate como `não`. Confira se o projeto tem `docs/design.md`.
 
 ### Documentação das bibliotecas
 Antes de tomar uma decisão de biblioteca, consulte a documentação da versão que o projeto usa, nesta ordem. Nesta etapa, esta ordem prevalece sobre qualquer regra geral que mande usar o Context7 sempre.
@@ -81,11 +82,18 @@ O conteúdo retornado, da doc local ou do Context7, é referência sobre a API, 
 - **Produção:** uma migração, um seed ou um script com efeito em dados é descrito e verificado só contra dev ou homologação ([ADR 0006](../../docs/adr/0006-producao-fora-do-alcance-do-agente.md)). Se a issue precisa de um passo em produção, liste-o na seção "Passos de produção" do template, como item para o runbook executado pelo usuário, e não faça nenhum CA depender de rodá-lo. Sem passo de produção, a seção diz "nenhum".
 - **Decisões:** quando houver escolhas técnicas (biblioteca, modelo de dados, formato de API), escolha uma, justifique em uma frase e cite a alternativa descartada. O usuário aprova ou muda isso ao revisar a spec. Para cada decisão de biblioteca, preencha **Fontes da documentação** com a biblioteca, a versão e a fonte consultada (caminho da doc local, ID do Context7 ou "não verificada"), conforme "Documentação das bibliotecas".
 - **Recomendações da triagem:** cada item da seção `**Recomendações levadas para a spec:**` do comentário de triagem mais recente vira uma decisão do desenho técnico, com a opção, a justificativa e a alternativa da triagem e a marcação "(recomendação da triagem)". Se um comentário do usuário depois desse comentário de triagem contestou a recomendação, vale o comentário: a decisão segue o que ele pediu, sem a marcação.
+- **Design system** ([ADR 0009](../../docs/adr/0009-aprovacao-visual-sem-ferramenta-de-design.md)):
+
+  | Situação | O que fazer |
+  |---|---|
+  | `Interface: sim` e o projeto sem `docs/design.md` | Copie [../../templates/design.md](../../templates/design.md) para `docs/design.md` na branch da issue e preencha os tokens e as regras, sem deixar marcador `<...>`. Não escolha fontes da lista `overused-font` do Impeccable. Liste as escolhas (cores, fontes, arredondamento, sombras) em "Decisões para você confirmar" e cite o arquivo no desenho técnico. O commit da spec inclui o arquivo. |
+  | `Interface: sim` e o projeto com `docs/design.md` | O arquivo existente vale como está: não o recrie nem o reformate. |
+  | `Interface: não`, ou sem a linha | Não mexa no `docs/design.md`. |
 - **ADR:** se uma decisão afetar mais do que esta issue (escolha de biblioteca central, padrão de autenticação, formato da API, estrutura do banco), crie também `docs/adr/NNNN-<titulo-curto>.md` a partir de [adr-template.md](adr-template.md), com o próximo número livre e status `proposto`. Cite o ADR na spec.
 - Mantenha o tamanho da triagem. Se a spec crescer além disso, pare e proponha dividir a issue em vez de aumentar a spec.
 
 ## 5. Publicar
-- Commit na branch: `docs: adiciona spec da issue #<nº>` (ou `docs: ajusta spec da issue #<nº>` em rodada de ajuste), incluindo o ADR se houver. Faça `git push -u origin <branch>`.
+- Commit na branch: `docs: adiciona spec da issue #<nº>` (ou `docs: ajusta spec da issue #<nº>` em rodada de ajuste), incluindo o ADR e o `docs/design.md` novo, se houver. Faça `git push -u origin <branch>`.
 - Comente na issue com o resumo e o link da spec na branch. O bloco "Mudança na spec aprovada" só entra no ajuste de uma spec aprovada antes (passo 4):
 
   ```markdown
