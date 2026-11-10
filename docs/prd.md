@@ -86,9 +86,9 @@ Itens de 1 a 2 dias de trabalho humano, agrupados por marco e em ordem de depend
 - **8.** Dispatcher instalado num projeto pelo `/fabrica:setup`, com o workflow e o guia dos secrets, e ligado no kairo (F4) · depende de 5, 6, 7 · #108
 
 ### M3 · Verificação (F6, F7, F8)
-- **9.** CI do PR sobe o app e o banco no job e roda o Playwright, e a spec pede casos adversariais nos CAs de ponta a ponta (F6) · depende de 8
+- **9.** CI do PR sobe o app e o banco no job e roda o Playwright, e a spec pede casos adversariais nos CAs de ponta a ponta (F6) · depende de 8 · #128
 - **10.** Design system versionado por projeto (`docs/design.md`) e campo de interface na triagem (F7) · #45
-- **11.** Spec descreve as telas, e a implementação anexa screenshots no celular e no computador ao PR (F7) · depende de 9, 10
+- **11.** Spec descreve as telas, e a implementação anexa screenshots no celular e no computador ao PR (F7) · depende de 9, 10 · #129
 - **12.** Runbook de lançamento gerado numa issue com checklist antes da primeira ida para produção (F8) · depende de 2, 3 · #96
 
 ## Histórico
