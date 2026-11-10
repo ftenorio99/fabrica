@@ -2,6 +2,7 @@
   "sandbox": {
     "enabled": true,
     "allowUnsandboxedCommands": false,
+    "excludedCommands": ["git push", "git push *"],
     "network": {
       "allowedDomains": [
         "github.com",

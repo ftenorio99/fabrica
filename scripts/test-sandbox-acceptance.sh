@@ -2,26 +2,16 @@
 # Teste de aceite do sandbox (ADR 0005). Rode pelo Bash do agente, numa sessão
 # do Claude Code aberta num projeto com o sandbox instalado (/fabrica:setup).
 # Fora do sandbox, as verificações de bloqueio falham, como devem. Não é um
-# teste de unidade: ele faz git push de uma branch test/sandbox-*, apagada no fim.
+# teste de unidade: ele lê os segredos da máquina para conferir que não os vê.
 # Imprime "ok <verificação>" ou "falha <verificação>: <motivo>", uma por linha,
 # e sai com 1 se alguma falhar.
-# Uso: scripts/test-sandbox-acceptance.sh [--remote <nome>]
+# Uso: scripts/test-sandbox-acceptance.sh
 set -uo pipefail
 
-remote=origin
-while [[ $# -gt 0 ]]; do
-  case $1 in
-    --remote)
-      remote="${2:?--remote precisa de um nome}"
-      shift
-      ;;
-    *)
-      echo "test-sandbox-acceptance: opção desconhecida: $1" >&2
-      exit 1
-      ;;
-  esac
-  shift
-done
+if [[ $# -gt 0 ]]; then
+  echo "test-sandbox-acceptance: opção desconhecida: $1" >&2
+  exit 1
+fi
 
 root="$(git rev-parse --show-toplevel 2>/dev/null)" || {
   echo "test-sandbox-acceptance: rode dentro de um repositório git." >&2
@@ -126,19 +116,15 @@ else
   grep -q oauth_token "$hosts" 2>/dev/null || hint=" O token não está no hosts.yml: veja docs/guias/isolamento-do-agente.md."
   bad "gh-api-user" "$(head -1 <<<"$login").$hint"
 fi
-branch="test/sandbox-$(date -u +%Y%m%d%H%M%S)"
-push_err="$(mktemp)"
-if git push -q "$remote" "HEAD:refs/heads/$branch" 2>"$push_err"; then
-  ok "git-push"
-  git push -q "$remote" --delete "$branch" 2>/dev/null || bad "git-push-limpeza" "apague a branch $branch em $remote"
-else
-  bad "git-push" "$(head -1 "$push_err")"
-fi
-rm -f "$push_err"
 if version="$(npm view npm version 2>/dev/null)" && [[ -n "$version" ]]; then
   ok "npm-view ($version)"
 else
   bad "npm-view" "npm view npm version falhou"
 fi
+
+# O git push roda fora do sandbox (excludedCommands) só quando é a chamada
+# inteira do Bash; dentro deste script, ele continuaria no sandbox. Confira-o
+# com duas chamadas diretas, como diz o guia.
+echo "lembrete: confira o git push com chamadas diretas (docs/guias/isolamento-do-agente.md)"
 
 [[ $failures -eq 0 ]]

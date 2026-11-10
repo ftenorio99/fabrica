@@ -11,6 +11,7 @@ O sandbox vale para os comandos Bash das sessões abertas no projeto e para os p
   - `GH_TOKEN` e `GITHUB_TOKEN` chegam vazias;
   - o token do `gh` em `~/.config/gh/hosts.yml` aparece como um marcador, e o proxy do sandbox põe o token real só nas requisições a `api.github.com` e `github.com`.
 - **Sem saída:** o agente não pode repetir fora do sandbox um comando barrado (`allowUnsandboxedCommands: false`). O que precisa sair dele você roda com `!` no prompt.
+- **`git push`:** é a única exceção (`excludedCommands`). O git manda o token em Basic auth, codificado em base64, e o proxy não consegue trocar o marcador ali dentro. Por isso, o `git push` roda fora do sandbox, com o token posto pelo `gh auth git-credential`, sem passar pelo agente. A exceção vale só quando o `git push` é a chamada inteira do Bash: `cd x && git push` ou um `git push` dentro de um script continuam no sandbox e falham. Fora do sandbox, o `git push` alcança qualquer host, e por isso o agente poderia mandar o código do repositório para outro remote.
 
 O sandbox não cobre o WebFetch, que segue as regras de permissão, nem o tráfego do próprio Claude Code com a API.
 
@@ -87,7 +88,14 @@ Cada linha sai como `ok <verificação>` ou `falha <verificação>: <motivo>`:
 - escrita fora do projeto e no `.claude/settings.json`;
 - rede fora da lista;
 - token, `~/.ssh` e `.env` em claro;
-- `gh api user`, `git push` (de uma branch `test/sandbox-*`, apagada no fim) e `npm view`.
+- `gh api user` e `npm view`.
+
+O `git push` não entra no script, porque dentro dele continuaria no sandbox. Confira-o com duas chamadas diretas do agente:
+
+```bash
+git push origin HEAD:refs/heads/test/sandbox-probe
+git push origin --delete test/sandbox-probe
+```
 
 Rode o teste de novo quando o Claude Code mudar o sandbox nas notas de versão, porque o `tlsTerminate`, que o mascaramento usa, ainda é experimental.
 

@@ -54,7 +54,8 @@ O sandbox nativo do Claude Code isola os comandos Bash das sessões no projeto (
   - `ok`: já está instalado. Não pergunte nada.
   - `ausente` ou `incompleto <itens>`: explique o que muda.
     - **`.claude/settings.json` do projeto:**
-      - liga o sandbox, sem saída para fora dele (`allowUnsandboxedCommands: false`);
+      - liga o sandbox, sem saída para fora dele (`allowUnsandboxedCommands: false`), exceto o `git push`;
+      - libera a escrita no cache do npm (`~/.npm`);
       - libera os domínios do GitHub e do npm;
       - nega `~/.ssh`, os `.env*`, `GH_TOKEN` e `GITHUB_TOKEN`.
     - **`~/.claude/settings.json`:** liga o `tlsTerminate` e mascara o token do `hosts.yml`, que o proxy põe só nas requisições ao GitHub. O settings anterior fica em `~/.claude/settings.json.bak-fabrica`.
