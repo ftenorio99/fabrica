@@ -47,7 +47,7 @@ Rode `bash <diretório base>/../../scripts/check-gh.sh` e siga a linha que ele i
 O sandbox nativo do Claude Code isola os comandos Bash das sessões no projeto ([ADR 0005](../../docs/adr/0005-isolamento-do-agente-em-sandbox.md)): eles não escrevem fora do projeto, só alcançam os domínios liberados e não leem em claro o token do `gh`, as chaves SSH nem os `.env`.
 - **Dependências (Linux):**
   - **`bwrap` e `socat`:** confira com `command -v bwrap socat`. Se faltar algum, mostre `sudo apt-get install bubblewrap socat` (ou `sudo dnf install bubblewrap socat`).
-  - **AppArmor:** se `sysctl -n kernel.apparmor_restrict_unprivileged_userns` imprimir `1` (Ubuntu 24.04 ou mais novo), o sandbox não sobe sem um perfil AppArmor que libere o `bwrap`. Se `/etc/apparmor.d/bwrap` não existir, mostre os comandos da seção "Dependências" do [guia](../../docs/guias/isolamento-do-agente.md#dependências).
+  - **AppArmor:** se `sysctl -n kernel.apparmor_restrict_unprivileged_userns` imprimir `1` (Ubuntu 24.04 ou mais novo), o sandbox não sobe sem um perfil AppArmor que libere o `bwrap`. A dependência falta quando `/etc/apparmor.d/bwrap` não existe ou quando `/etc/apparmor.d/bwrap-userns-restrict` existe sem um link em `/etc/apparmor.d/disable/`. O perfil do Ubuntu tem o mesmo nome e vale no lugar do perfil do Claude Code. Nesses casos, mostre os comandos da seção "Dependências" do [guia](../../docs/guias/isolamento-do-agente.md#dependências).
 
   Não rode `sudo`. Com alguma dependência faltando, não instale o sandbox, relate `faltam dependências: <lista>` e siga para o passo 5.
 - **Estado:** confira com `bash <diretório base>/../../scripts/setup-sandbox.sh --check`:

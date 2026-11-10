@@ -56,7 +56,7 @@ fi
 # Abre o settings em modo de acréscimo, sem escrever nada, só se ele existe.
 if [[ ! -f "$root/.claude/settings.json" ]]; then
   bad "settings-do-projeto-protegido" "o projeto não tem .claude/settings.json; rode /fabrica:setup"
-elif : >>"$root/.claude/settings.json" 2>/dev/null; then
+elif { : >>"$root/.claude/settings.json"; } 2>/dev/null; then
   bad "settings-do-projeto-protegido" "consegui abrir .claude/settings.json para escrita"
 else
   ok "settings-do-projeto-protegido"
@@ -100,12 +100,15 @@ if [[ "$token" =~ gh[opsu]_[A-Za-z0-9]{30,}|github_pat_ ]]; then
 else
   ok "gh-auth-token"
 fi
-if ls "$HOME/.ssh" >/dev/null 2>&1 && [[ -d "$HOME/.ssh" ]]; then
-  bad "ssh-ilegivel" "consegui listar ~/.ssh"
+# No sandbox, o ~/.ssh negado aparece vazio; fora dele, as chaves são legíveis.
+readable="$(find "$HOME/.ssh" -maxdepth 1 -type f -readable -print -quit 2>/dev/null)"
+if [[ -n "$readable" ]] && head -c 1 "$readable" >/dev/null 2>&1; then
+  bad "ssh-ilegivel" "consegui ler $readable"
 else
   ok "ssh-ilegivel"
 fi
-if [[ -f "$root/.env" ]]; then
+# No sandbox, o .env negado vira um dispositivo ilegível, e não um arquivo comum.
+if [[ -e "$root/.env" ]]; then
   if cat "$root/.env" >/dev/null 2>&1; then
     bad "env-ilegivel" "consegui ler .env"
   else

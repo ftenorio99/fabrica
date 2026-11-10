@@ -13,6 +13,9 @@
       ],
       "allowLocalBinding": true
     },
+    "filesystem": {
+      "allowWrite": ["~/.npm"]
+    },
     "credentials": {
       "files": [
         { "path": "~/.ssh", "mode": "deny" },

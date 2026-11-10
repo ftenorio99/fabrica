@@ -4,7 +4,7 @@ Este guia é para quando você quer deixar os agentes rodando sozinhos num proje
 
 ## O que o sandbox protege
 O sandbox vale para os comandos Bash das sessões abertas no projeto e para os processos filhos deles:
-- **Arquivos:** os comandos escrevem só no projeto e na pasta temporária. O `.claude/settings.json` do projeto continua protegido, mesmo estando dentro do projeto. O estrago que um comando fizer dentro do projeto o git recupera.
+- **Arquivos:** os comandos escrevem só no projeto, na pasta temporária e no cache do npm (`~/.npm`). O `.claude/settings.json` do projeto continua protegido, mesmo estando dentro do projeto. O estrago que um comando fizer dentro do projeto o git recupera.
 - **Rede:** só os domínios liberados respondem. A base é a do GitHub (`github.com`, `api.github.com`, `codeload.github.com`, `uploads.github.com` e `*.githubusercontent.com`) e o `registry.npmjs.org`. O servidor local (`allowLocalBinding`) continua liberado, para o servidor de dev e o Playwright.
 - **Segredos:**
   - `~/.ssh` e os `.env*` do projeto não podem ser lidos;
@@ -35,6 +35,17 @@ profile bwrap /usr/bin/bwrap flags=(unconfined) {
 EOF
 sudo systemctl reload apparmor
 ```
+
+No Ubuntu 26.04, o sistema já traz o `/etc/apparmor.d/bwrap-userns-restrict`. Ele define um perfil com o mesmo nome, `bwrap`, carregado depois do perfil acima. Esse perfil põe os processos filhos do `bwrap` num perfil `unpriv_bwrap`, que barra os namespaces aninhados de que o sandbox precisa, e o erro continua. Desligue-o e recarregue o perfil do Claude Code:
+
+```bash
+sudo ln -s /etc/apparmor.d/bwrap-userns-restrict /etc/apparmor.d/disable/
+sudo apparmor_parser -R /etc/apparmor.d/bwrap-userns-restrict
+sudo apparmor_parser -r /etc/apparmor.d/bwrap
+sudo aa-status | grep -i bwrap   # deve listar bwrap, sem unpriv_bwrap
+```
+
+Para desfazer, apague `/etc/apparmor.d/disable/bwrap-userns-restrict` e `/etc/apparmor.d/bwrap` e rode `sudo apparmor_parser -r /etc/apparmor.d/bwrap-userns-restrict`.
 
 O comando `/sandbox` do Claude Code mostra o estado e o que falta.
 
