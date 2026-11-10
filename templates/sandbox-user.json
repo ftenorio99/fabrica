@@ -1,0 +1,19 @@
+{
+  "sandbox": {
+    "network": {
+      "tlsTerminate": {}
+    },
+    "credentials": {
+      "files": [
+        {
+          "path": "~/.config/gh/hosts.yml",
+          "mode": "mask",
+          "extract": "oauth_token:\\s*(\\S+)",
+          "maskDuplicates": true,
+          "onExtractNoMatch": "deny",
+          "injectHosts": ["api.github.com", "github.com"]
+        }
+      ]
+    }
+  }
+}

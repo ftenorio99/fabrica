@@ -1,0 +1,31 @@
+{
+  "sandbox": {
+    "enabled": true,
+    "allowUnsandboxedCommands": false,
+    "network": {
+      "allowedDomains": [
+        "github.com",
+        "api.github.com",
+        "codeload.github.com",
+        "uploads.github.com",
+        "*.githubusercontent.com",
+        "registry.npmjs.org"
+      ],
+      "allowLocalBinding": true
+    },
+    "credentials": {
+      "files": [
+        { "path": "~/.ssh", "mode": "deny" },
+        { "path": ".env", "mode": "deny" },
+        { "path": ".env.local", "mode": "deny" },
+        { "path": ".env.development", "mode": "deny" },
+        { "path": ".env.test", "mode": "deny" },
+        { "path": ".env.production", "mode": "deny" }
+      ],
+      "envVars": [
+        { "name": "GH_TOKEN", "mode": "deny" },
+        { "name": "GITHUB_TOKEN", "mode": "deny" }
+      ]
+    }
+  }
+}
