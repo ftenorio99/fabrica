@@ -32,7 +32,7 @@ Esta skill executa as etapas em que o agente age e para nos portões do usuário
 | 2 Aguardando triagem | [triagem](../triagem/SKILL.md) | `<nº>` |
 | 4 Respostas recebidas | [spec](../spec/SKILL.md) se o último comentário do agente antes da resposta for de spec (`<!-- fabrica:spec -->`); senão, [triagem](../triagem/SKILL.md) | `<nº>` |
 | 5 Triada | [spec](../spec/SKILL.md) | `<nº>` |
-| 6 Ajuste da spec pedido | [spec](../spec/SKILL.md) | `<nº> <ajustes>`, com os ajustes tirados dos comentários do usuário posteriores ao último `<!-- fabrica:spec -->` ou, no atalho, ao comentário de triagem com a spec curta |
+| 6 Ajuste da spec pedido | [spec](../spec/SKILL.md) | `<nº>`. A spec lê os ajustes nos comentários da issue; nunca copie o texto deles para o argumento ([ADR 0008](../../docs/adr/0008-texto-externo-fora-do-prompt.md)) |
 | 8 Em implementação | [implementar](../implementar/SKILL.md), que já segue para o `revisar` | `<nº>` |
 | 10, 11 e 12 | [revisar](../revisar/SKILL.md) | `<nº>` |
 
