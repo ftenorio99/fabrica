@@ -81,11 +81,15 @@ Por isso, o token do `gh` precisa ser **fine-grained**, com o menor estrago poss
      - Contents, Issues, Pull requests e Workflows: leitura e escrita;
      - Actions e Commit statuses: leitura;
      - Metadata: leitura, que é obrigatória.
-2. Troque o login do `gh` pelo token novo, guardando-o no arquivo:
+2. Troque o login do `gh` pelo token novo, guardando-o no arquivo. Faça o `logout` antes: o `gh` dá preferência ao token do chaveiro do sistema, e um login sem ele deixa o token antigo valendo fora do sandbox.
 
    ```bash
+   gh auth logout --hostname github.com
    gh auth login --with-token --insecure-storage   # cole o token e tecle Ctrl-D
+   gh auth status   # deve dizer "(.../hosts.yml)" e não "(keyring)"
    ```
+
+   Depois, revogue o token antigo: em https://github.com/settings/applications, *Authorized OAuth Apps* → **GitHub CLI** → *Revoke*.
 3. Gere de novo o cabeçalho do git: `bash <clone do fabrica>/scripts/setup-git-auth.sh`.
 4. Repita os três passos quando o token expirar. O aceite confere a expiração (`token-com-expiracao`).
 

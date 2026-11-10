@@ -58,7 +58,7 @@ O sandbox nativo do Claude Code isola os comandos Bash das sessões no projeto (
       - libera a escrita no cache do npm (`~/.npm`);
       - libera os domínios do GitHub e do npm;
       - nega `~/.ssh`, os `.env*`, `GH_TOKEN` e `GITHUB_TOKEN`.
-    - **`~/.claude/settings.json`:** liga o `tlsTerminate` e mascara o token do `hosts.yml` e o cabeçalho do git em `~/.config/fabrica/git-auth.gitconfig`, que o proxy põe só nas requisições ao GitHub. O settings anterior fica em `~/.claude/settings.json.bak-fabrica`.
+    - **`~/.claude/settings.json`:** liga o `tlsTerminate` e mascara o token do `hosts.yml` e o cabeçalho do git em `~/.config/fabrica/git-auth.gitconfig`, que o proxy põe só nas requisições ao GitHub. O settings anterior fica em `~/.claude/settings.json.bak-fabrica-sandbox`, separado do backup da statusline.
 
     Diga que a mudança vale na próxima sessão aberta no projeto e que o que precisar sair do sandbox o usuário roda com `!` no prompt. Pergunte com o AskUserQuestion se ele quer instalar.
 - Com a confirmação, rode `bash <diretório base>/../../scripts/setup-sandbox.sh`. Se ele sair com código 2, a sessão já roda em sandbox: mostre a linha com `!` que o script imprimiu, para o usuário rodar no prompt.

@@ -54,7 +54,7 @@ check "CA1 usuário: tlsTerminate" "{}" "$(jget "$user" 'd["sandbox"]["network"]
 check "CA1 usuário: mask do hosts.yml" "mask ['api.github.com', 'github.com'] deny True" "$(jget "$user" '" ".join(map(str,[(f:=d["sandbox"]["credentials"]["files"][0])["mode"], f["injectHosts"], f["onExtractNoMatch"], f["maskDuplicates"]]))')"
 check "CA1 usuário: extract" 'oauth_token:\s*(\S+)' "$(jget "$user" 'd["sandbox"]["credentials"]["files"][0]["extract"]')"
 check "CA1 usuário: path" "~/.config/gh/hosts.yml" "$(jget "$user" 'd["sandbox"]["credentials"]["files"][0]["path"]')"
-check "CA1 sem .bak-fabrica quando o settings não existia" "não" "$([[ -f "$user.bak-fabrica" ]] && echo sim || echo não)"
+check "CA1 sem .bak-fabrica-sandbox quando o settings não existia" "não" "$([[ -f "$user.bak-fabrica-sandbox" ]] && echo sim || echo não)"
 check "CA4 --check depois de instalar" "ok" "$(run --check)"
 
 # CA2: settings existentes são preservados.
@@ -71,7 +71,7 @@ run >/dev/null
 check "CA2 preserva permissions.deny do projeto" "['Read(.env)', 'Read(//**/.ssh/**)']" "$(jget "$proj" 'd["permissions"]["deny"]')"
 check "CA2 soma domínios sem repetir" "['api.github.com', 'example.org', 'github.com', 'codeload.github.com', 'uploads.github.com', '*.githubusercontent.com', 'registry.npmjs.org']" "$(jget "$proj" 'd["sandbox"]["network"]["allowedDomains"]')"
 check "CA2 preserva statusLine e theme do usuário" "/x/statusline.sh dark" "$(jget "$user" 'd["statusLine"]["command"]+" "+d["theme"]')"
-check "CA2 .bak-fabrica igual ao settings anterior" "igual" "$(cmp -s "$user.bak-fabrica" "$tmp/user-antes.json" && echo igual || echo diferente)"
+check "CA2 .bak-fabrica-sandbox igual ao settings anterior" "igual" "$(cmp -s "$user.bak-fabrica-sandbox" "$tmp/user-antes.json" && echo igual || echo diferente)"
 
 # CA3: segunda execução não muda nada; domínio acrescentado pelo repositório fica.
 python3 -I -c 'import json,sys; p=sys.argv[1]; d=json.load(open(p)); d["sandbox"]["network"]["allowedDomains"].append("api.stripe.com"); json.dump(d,open(p,"w"),indent=2)' "$proj"
@@ -132,6 +132,15 @@ chmod +x "$tmp/bin/gh"
 gitauth="$script_dir/setup-git-auth.sh"
 auth_file="$HOME/.config/fabrica/git-auth.gitconfig"
 check "git-auth --check sem nada" "ausente" "$(PATH="$tmp/bin:$PATH" bash "$gitauth" --check)"
+# gh lê um token que não é o do hosts.yml (chaveiro): recusa e não grava.
+mkdir -p "$HOME/.config/gh"
+printf 'github.com:\n    oauth_token: github_pat_OUTRO\n    user: x\n' >"$HOME/.config/gh/hosts.yml"
+err="$(PATH="$tmp/bin:$PATH" bash "$gitauth" 2>&1 >/dev/null)"
+code=$?
+check "git-auth recusa token fora do hosts.yml: código 1" "1" "$code"
+check "git-auth recusa token fora do hosts.yml: mensagem" "sim" "$([[ "$err" == *"não é o do"*"hosts.yml"* ]] && echo sim || echo não)"
+check "git-auth recusa token fora do hosts.yml: não grava" "não" "$([[ -e "$auth_file" ]] && echo sim || echo não)"
+printf 'github.com:\n    oauth_token: gho_FAKETOKEN123\n    user: x\n' >"$HOME/.config/gh/hosts.yml"
 PATH="$tmp/bin:$PATH" bash "$gitauth" >/dev/null
 check "git-auth grava com permissão 600" "600" "$(stat -c %a "$auth_file")"
 expected="$(printf 'x-access-token:gho_FAKETOKEN123' | base64 | tr -d '\n')"

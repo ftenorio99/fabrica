@@ -24,7 +24,7 @@ O `/fabrica:setup` liga o sandbox nativo do Claude Code num projeto. Depois diss
    - a entrada `mask` de `~/.config/gh/hosts.yml`, com `extract` do `oauth_token`, `maskDuplicates: true`, `onExtractNoMatch: "deny"` e `injectHosts` em `api.github.com` e `github.com`;
    - a entrada `mask` de `~/.config/fabrica/git-auth.gitconfig`, com `extract` do valor depois de `Basic`, e `injectHosts` só em `github.com`.
 
-   Antes de mudar, ele guarda o settings anterior em `~/.claude/settings.json.bak-fabrica`, como a statusline.
+   Antes de mudar, ele guarda o settings anterior em `~/.claude/settings.json.bak-fabrica-sandbox`, separado do `.bak-fabrica` da statusline, para que um não sobrescreva o outro.
 4. O usuário roda, fora do sandbox, `scripts/setup-git-auth.sh`. Ele grava em `~/.config/fabrica/git-auth.gitconfig`, com permissão `600`, o cabeçalho `Authorization: Basic` do token do `gh` para `https://github.com/` e inclui o arquivo no `~/.gitconfig`. O agente não roda esse script, porque ele grava uma credencial. O usuário o roda de novo quando o token mudar.
 5. Na sessão seguinte, aberta no projeto, os comandos Bash rodam no sandbox:
    - escrever ou apagar fora do projeto e da pasta temporária falha;
@@ -48,7 +48,7 @@ O `/fabrica:setup` liga o sandbox nativo do Claude Code num projeto. Depois diss
 | ID | Critério | Verificação |
 |---|---|---|
 | CA1 | `setup-sandbox.sh`, num projeto e num `HOME` vazios, cria o `.claude/settings.json` do projeto com o bloco de base do item 2 e o `~/.claude/settings.json` com o bloco do item 3, com as chaves exatas deste documento. | unitário — `scripts/test-setup-sandbox.sh`, com `HOME` e projeto temporários |
-| CA2 | Com settings já existentes (ex.: o `permissions.deny` do kairo e uma `statusLine`), o script preserva todas as chaves que não são da fábrica, guarda o `~/.claude/settings.json.bak-fabrica` antes de mudar o arquivo do usuário e não repete itens das listas. | unitário — `scripts/test-setup-sandbox.sh` |
+| CA2 | Com settings já existentes (ex.: o `permissions.deny` do kairo e uma `statusLine`), o script preserva todas as chaves que não são da fábrica, guarda o `~/.claude/settings.json.bak-fabrica-sandbox` antes de mudar o arquivo do usuário e não repete itens das listas. | unitário — `scripts/test-setup-sandbox.sh` |
 | CA3 | A segunda execução não muda nenhum arquivo (mesmo hash). Um domínio acrescentado pelo repositório antes dela continua na lista. | unitário — `scripts/test-setup-sandbox.sh` |
 | CA4 | `--check` imprime `ausente` sem bloco da fábrica, `ok` com os dois blocos completos e `incompleto <itens>` quando falta ou diverge uma chave, e não grava nada. | unitário — `scripts/test-setup-sandbox.sh` |
 | CA5 | Com JSON inválido em qualquer um dos dois arquivos, o script sai com código 1, imprime a mensagem da tabela e não muda nenhum dos dois. | unitário — `scripts/test-setup-sandbox.sh` |
@@ -193,3 +193,4 @@ O `/fabrica:setup` liga o sandbox nativo do Claude Code num projeto. Depois diss
 - 2026-11-10: aprovada.
 - 2026-11-10: mudança (alterar) na implementação, com decisão do usuário. Motivos: o proxy não troca o marcador no Basic auth do `git push`, o npm precisa gravar no cache e o Ubuntu 26.04 exige o ajuste do AppArmor. Entraram o `setup-git-auth.sh` e o `mask` do `git-auth.gitconfig`, o `allowWrite` do `~/.npm` e a checagem do AppArmor no setup. Os CAs não mudam.
 - 2026-11-10: mudança (alterar) na implementação, com decisão do usuário. Motivo: a reflexão do marcador pelo GitHub, encontrada pela revisão automática. Entraram o token fine-grained no guia e na ADR e, no aceite, a verificação `token-com-expiracao` e o aviso de reflexão. O CA9 passa a valer para a leitura direta do token, e não para o vazamento pelo próprio GitHub.
+- 2026-11-10: ajuste na verificação do CA6. Motivo: o backup do sandbox sobrescrevia o da statusline. O backup passa a ser `~/.claude/settings.json.bak-fabrica-sandbox`. O `setup-git-auth.sh` passa a recusar o token quando o `gh` o lê de um lugar que não é o `hosts.yml`, como o chaveiro do sistema.

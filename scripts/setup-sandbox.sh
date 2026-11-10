@@ -138,7 +138,7 @@ if mode == "check":
 def write(path, data, backup):
     os.makedirs(os.path.dirname(path), exist_ok=True)
     if backup and os.path.exists(path):
-        shutil.copy2(path, path + ".bak-fabrica")
+        shutil.copy2(path, path + ".bak-fabrica-sandbox")
     fd, tmp = tempfile.mkstemp(dir=os.path.dirname(path), prefix=".settings.")
     with os.fdopen(fd, "w") as fh:
         json.dump(data, fh, indent=2, ensure_ascii=False)

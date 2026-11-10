@@ -46,6 +46,16 @@ fi
 command -v gh >/dev/null || fail "o gh não está instalado."
 token="$(gh auth token 2>/dev/null)" || fail "o gh não devolveu um token. Rode gh auth login."
 [[ -n "$token" ]] || fail "o gh não devolveu um token. Rode gh auth login."
+# O token tem de ser o do hosts.yml, o mesmo que o sandbox mascara. Se o gh
+# lê outro (do chaveiro do sistema, que tem preferência), o cabeçalho do git
+# levaria esse outro token, em geral o antigo e amplo.
+hosts="$HOME/.config/gh/hosts.yml"
+file_token="$(sed -n 's/^[[:space:]]*oauth_token:[[:space:]]*//p' "$hosts" 2>/dev/null | head -1)"
+if [[ "$file_token" != "$token" ]]; then
+  unset token file_token
+  fail "o gh usa um token que não é o do $hosts (em geral, o do chaveiro do sistema). Rode gh auth logout e gh auth login --with-token --insecure-storage com o token fine-grained, e depois este script de novo. Nada foi gravado."
+fi
+unset file_token
 basic="$(printf 'x-access-token:%s' "$token" | base64 | tr -d '\n')"
 unset token
 
