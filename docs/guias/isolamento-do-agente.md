@@ -51,7 +51,7 @@ Para desfazer, apague `/etc/apparmor.d/disable/bwrap-userns-restrict` e `/etc/ap
 O comando `/sandbox` do Claude Code mostra o estado e o que falta.
 
 ## Ligar num projeto
-1. Rode `/fabrica:setup` no projeto e confirme o passo **Sandbox**. Ele grava a base no `.claude/settings.json` do projeto e o mascaramento do token no `~/.claude/settings.json`, porque o Claude Code só aceita o mascaramento nesse escopo.
+1. Rode `/fabrica:setup` no projeto e confirme o passo **Sandbox**. Ele grava a base no `.claude/settings.json` do projeto e o mascaramento do token no `~/.claude/settings.json`, porque o Claude Code só aceita o mascaramento nesse escopo. Se o projeto tiver o Prettier instalado (`node_modules/.bin/prettier`), o setup formata com ele o `.claude/settings.json`, para o arquivo passar no lint do projeto.
 2. Faça commit do `.claude/settings.json` do projeto numa branch e abra o PR, como qualquer mudança.
 3. Abra uma sessão nova no projeto. O sandbox vale a partir dela.
 
