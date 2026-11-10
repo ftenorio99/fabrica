@@ -1,6 +1,6 @@
 # ADR 0006: Produção fora do alcance do agente
 
-**Status:** proposto · **Data:** 2026-11-10 · **Origem:** issue #94
+**Status:** aceito · **Data:** 2026-11-10 · **Origem:** issue #94
 
 ## Contexto
 A F2 do PRD pede que as etapas de agente nunca alcancem o banco nem os serviços de produção, e que o que é de produção vire passo de um runbook executado pelo usuário (F8). O sandbox da [ADR 0005](0005-isolamento-do-agente-em-sandbox.md) restringe a rede a uma lista de domínios, mas não sabe quais hosts de cada projeto são de produção. Ele também nega a leitura de todos os `.env*`, o que impede os testes e as migrações locais dos projetos que carregam o ambiente de dev pelo `.env`, como o kairo.

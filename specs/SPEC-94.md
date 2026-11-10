@@ -1,7 +1,7 @@
 # SPEC-94: Etapas de agente só usam credenciais de dev ou homologação, nunca de produção
 
 **Issue:** #94 · **PRD:** F2 (item 2 do fatiamento, M1) · **Classe:** implementacao-complexa · **Tamanho:** G
-**Status:** rascunho · **Atualizada em:** 2026-11-10
+**Status:** aprovada · **Atualizada em:** 2026-11-10
 
 ## Contexto
 A F2 do PRD pede que as etapas de agente nunca alcancem o banco nem os serviços de produção, e que o que é de produção vire passo de um runbook executado pelo usuário. Junto com a F1 (#93, ADR 0005), isso precisa valer antes do dispatcher (restrição "F1 e F2 vêm antes do F4"). Hoje nada impede um comando Bash de citar a URL do banco de produção. Além disso, o sandbox da #93 nega a leitura de todos os `.env*`, o que quebra os projetos que carregam o ambiente de dev pelo `.env` (no kairo, o `Makefile` faz `-include .env` e o `drizzle.config.ts` lê `DATABASE_URL`). Na triagem, o usuário escolheu a saída: o agente lê os `.env` de dev e de teste, e só os de produção ficam negados.
@@ -135,3 +135,4 @@ O passo **Sandbox** do `/fabrica:setup` explica as duas mudanças novas (remover
 
 ## Histórico
 - 2026-11-10: criação.
+- 2026-11-10: aprovada.
