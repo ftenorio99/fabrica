@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# Prepara o git push por HTTPS dentro do sandbox (ADR 0005). Grava em
+# ~/.config/fabrica/git-auth.gitconfig o cabeçalho Authorization: Basic do token
+# do gh, já codificado, e inclui esse arquivo no ~/.gitconfig. No sandbox, o
+# valor aparece mascarado e o proxy põe o real só nas requisições a github.com.
+# Rode você mesmo, fora do sandbox (no prompt do Claude Code, com "!"), na
+# primeira vez e sempre que o token do gh mudar.
+# Uso: scripts/setup-git-auth.sh [--check]
+#   --check  não grava nada; imprime "ok", "ausente" ou "sem-include".
+set -euo pipefail
+
+dest_dir="${XDG_CONFIG_HOME:-$HOME/.config}/fabrica"
+dest="$dest_dir/git-auth.gitconfig"
+include="~/.config/fabrica/git-auth.gitconfig"
+[[ -n "${XDG_CONFIG_HOME:-}" ]] && include="$dest"
+
+fail() {
+  echo "setup-git-auth: $*" >&2
+  exit 1
+}
+
+check=false
+for arg in "$@"; do
+  case $arg in
+    --check) check=true ;;
+    *) fail "opção desconhecida: $arg. Uso: setup-git-auth.sh [--check]" ;;
+  esac
+done
+
+has_include() {
+  git config --global --get-all include.path 2>/dev/null | grep -Fxq -e "$include" -e "$dest"
+}
+
+if $check; then
+  if ! grep -q '^[[:space:]]*extraheader = Authorization: Basic ' "$dest" 2>/dev/null; then
+    echo ausente
+  elif ! has_include; then
+    echo sem-include
+  else
+    echo ok
+  fi
+  exit 0
+fi
+
+command -v gh >/dev/null || fail "o gh não está instalado."
+token="$(gh auth token 2>/dev/null)" || fail "o gh não devolveu um token. Rode gh auth login."
+[[ -n "$token" ]] || fail "o gh não devolveu um token. Rode gh auth login."
+basic="$(printf 'x-access-token:%s' "$token" | base64 | tr -d '\n')"
+unset token
+
+mkdir -p "$dest_dir"
+tmp="$(umask 077 && mktemp "$dest.XXXXXX")"
+printf '[http "https://github.com/"]\n\textraheader = Authorization: Basic %s\n' "$basic" >"$tmp"
+chmod 600 "$tmp"
+mv "$tmp" "$dest"
+unset basic
+
+has_include || git config --global --add include.path "$include"
+echo "gravado $dest"

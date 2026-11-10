@@ -11,11 +11,14 @@ O Claude Code tem um sandbox nativo para os comandos Bash, com lista de domínio
 O `/fabrica:setup` liga o sandbox nativo por projeto e grava as configurações em dois lugares:
 - **`.claude/settings.json` do projeto:**
   - `enabled` e `allowUnsandboxedCommands: false`;
-  - o `git push` em `excludedCommands`, porque o proxy não troca o marcador no Basic auth do git (decisão do usuário na implementação, em 2026-11-10);
   - a escrita no cache do npm (`~/.npm`);
   - os domínios de base;
   - `deny` em `~/.ssh`, nos `.env*` e em `GH_TOKEN` e `GITHUB_TOKEN`.
-- **`~/.claude/settings.json` do usuário:** o `tlsTerminate` e o `mask` do token do `gh`, posto pelo proxy só em `api.github.com` e `github.com`.
+- **`~/.claude/settings.json` do usuário:** o `tlsTerminate` e dois `mask`:
+  - o do token do `gh`, posto pelo proxy só em `api.github.com` e `github.com`;
+  - o do cabeçalho `Authorization: Basic` do git, posto só em `github.com`.
+
+O proxy só troca um marcador que aparece literalmente na requisição. Por isso, o git não usa o token do `hosts.yml`, que ele codificaria em base64, e sim um cabeçalho já codificado. Esse cabeçalho fica em `~/.config/fabrica/git-auth.gitconfig`, incluído no `~/.gitconfig` e gerado pelo `scripts/setup-git-auth.sh`, que o usuário roda fora do sandbox. Assim, o `git push` roda dentro do sandbox, sem exceção.
 
 O que precisa sair do sandbox o usuário roda com `!` no prompt.
 
@@ -26,6 +29,8 @@ O que precisa sair do sandbox o usuário roda com `!` no prompt.
 | `gh` em `excludedCommands` | O `gh` sai do sandbox, e `gh auth token` devolve o token em claro. |
 | Token fine-grained em claro no sandbox | O agente ainda lê o token, o que contraria a F1. |
 | Tudo no settings do usuário | Liga o sandbox em todas as sessões da máquina, inclusive fora dos projetos da fábrica. |
+| `git push` em `excludedCommands` | O `git push` executa comandos locais (`--receive-pack`), e fora do sandbox eles leriam os segredos. Testado e descartado na implementação. |
+| Cabeçalho do git por variável de ambiente no `env` do settings | O `protect-main.sh` barra as variáveis de configuração do git, porque elas podem desligar os hooks do git. |
 | `git push` pelo usuário, com `!` | Seguro, mas o `/fabrica:avancar` deixa de andar sozinho: spec, implementação e revisão fazem push. |
 | `git push` só no dispatcher | Deixa o fluxo local sem push no sandbox até o runner (#106). |
 | `claude --settings` só no `/fabrica:avancar` | Depende de lembrar da flag e deixa sem proteção a sessão interativa no mesmo projeto. |
@@ -40,4 +45,5 @@ O que precisa sair do sandbox o usuário roda com `!` no prompt.
 - **Token no chaveiro do sistema:** o `gh` não funciona no sandbox enquanto o token estiver lá. O guia mostra como guardá-lo no `hosts.yml`.
 - **Dependências:** o `bubblewrap` e o `socat` passam a ser dependências da fábrica no Linux, e o `tlsTerminate`, experimental, passa a ser uma dependência do fluxo. O aceite (`scripts/test-sandbox-acceptance.sh`) roda de novo quando o Claude Code muda o sandbox.
 - **WebFetch:** continua fora do sandbox e é controlado só pelas regras de permissão.
-- **`git push`:** sai do sandbox e alcança qualquer host. Um agente enganado poderia mandar o código do repositório para outro remote, mas não os segredos, que ele não lê. Restringir os remotes no `pre-push` dos hooks da fábrica fica para uma issue própria.
+- **Token do `gh` novo:** o usuário precisa gerar de novo o `git-auth.gitconfig`. Enquanto o arquivo tiver o valor velho, o push falha, dentro e fora do sandbox.
+- **Cache do npm:** o `~/.npm` fica gravável e é compartilhado entre os projetos. O `npm ci` confere o hash dos pacotes pelo lockfile.

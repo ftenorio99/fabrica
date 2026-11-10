@@ -40,7 +40,8 @@ check "CA1 instala" "instalado" "$(run)"
 check "CA1 projeto: enabled" "True" "$(jget "$proj" 'd["sandbox"]["enabled"]')"
 check "CA1 projeto: allowUnsandboxedCommands" "False" "$(jget "$proj" 'd["sandbox"]["allowUnsandboxedCommands"]')"
 check "CA1 projeto: domínios" "['github.com', 'api.github.com', 'codeload.github.com', 'uploads.github.com', '*.githubusercontent.com', 'registry.npmjs.org']" "$(jget "$proj" 'd["sandbox"]["network"]["allowedDomains"]')"
-check "CA1 projeto: git push fora do sandbox" "['git push', 'git push *']" "$(jget "$proj" 'd["sandbox"]["excludedCommands"]')"
+check "CA1 projeto: sem exceção ao sandbox" "False" "$(jget "$proj" '"excludedCommands" in d["sandbox"]')"
+check "CA1 usuário: mask do git-auth" "~/.config/fabrica/git-auth.gitconfig mask ['github.com']" "$(jget "$user" '" ".join(map(str,[(f:=d["sandbox"]["credentials"]["files"][1])["path"], f["mode"], f["injectHosts"]]))')"
 check "CA1 projeto: cache do npm gravável" "['~/.npm']" "$(jget "$proj" 'd["sandbox"]["filesystem"]["allowWrite"]')"
 check "CA1 projeto: allowLocalBinding" "True" "$(jget "$proj" 'd["sandbox"]["network"]["allowLocalBinding"]')"
 check "CA1 projeto: arquivos negados" "['~/.ssh', '.env', '.env.local', '.env.development', '.env.test', '.env.production']" "$(jget "$proj" '[f["path"] for f in d["sandbox"]["credentials"]["files"] if f["mode"]=="deny"]')"
@@ -86,7 +87,7 @@ python3 -I -c 'import json,sys; p=sys.argv[1]; d=json.load(open(p)); d["sandbox"
 check "CA4 --check aponta credencial divergente" "incompleto enabled=false sandbox.network.allowedDomains:registry.npmjs.org credentials:~/.config/gh/hosts.yml" "$(run --check)"
 run >/dev/null
 check "CA4 instalar corrige o escalar" "True" "$(jget "$proj" 'd["sandbox"]["enabled"]')"
-check "CA4 instalar não duplica a credencial existente" "1" "$(jget "$user" 'len(d["sandbox"]["credentials"]["files"])')"
+check "CA4 instalar não duplica a credencial existente" "1" "$(jget "$user" 'sum(f["path"].endswith("hosts.yml") for f in d["sandbox"]["credentials"]["files"])')"
 
 # CA5: JSON inválido em qualquer um dos dois não grava nada.
 for broken in proj user; do
@@ -117,6 +118,26 @@ chmod u+w "$tmp/home/.claude"
 check "escrita negada: código 2" "2" "$code"
 check "escrita negada: indica o comando com !" "sim" "$([[ "$err" == *"! bash "*"setup-sandbox.sh --project $tmp/proj"* ]] && echo sim || echo não)"
 check "escrita negada: projeto não é gravado" "não" "$([[ -f "$proj" ]] && echo sim || echo não)"
+
+# setup-git-auth.sh: cabeçalho do git, com um gh falso e HOME temporário.
+reset_env
+unset XDG_CONFIG_HOME
+mkdir -p "$tmp/bin"
+printf '#!/usr/bin/env bash\necho gho_FAKETOKEN123\n' >"$tmp/bin/gh"
+chmod +x "$tmp/bin/gh"
+gitauth="$script_dir/setup-git-auth.sh"
+auth_file="$HOME/.config/fabrica/git-auth.gitconfig"
+check "git-auth --check sem nada" "ausente" "$(PATH="$tmp/bin:$PATH" bash "$gitauth" --check)"
+PATH="$tmp/bin:$PATH" bash "$gitauth" >/dev/null
+check "git-auth grava com permissão 600" "600" "$(stat -c %a "$auth_file")"
+expected="$(printf 'x-access-token:gho_FAKETOKEN123' | base64 | tr -d '\n')"
+check "git-auth grava o Basic do token" "extraheader = Authorization: Basic $expected" "$(sed -n 's/^[[:space:]]*//; /extraheader/p' "$auth_file")"
+check "git-auth inclui o arquivo no ~/.gitconfig" "~/.config/fabrica/git-auth.gitconfig" "$(git config --global --get-all include.path)"
+PATH="$tmp/bin:$PATH" bash "$gitauth" >/dev/null
+check "git-auth não repete o include" "1" "$(git config --global --get-all include.path | wc -l)"
+check "git-auth --check depois de gravar" "ok" "$(PATH="$tmp/bin:$PATH" bash "$gitauth" --check)"
+git config --global --unset-all include.path
+check "git-auth --check sem o include" "sem-include" "$(PATH="$tmp/bin:$PATH" bash "$gitauth" --check)"
 
 echo
 echo "$((total - failures))/$total"

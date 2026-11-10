@@ -11,7 +11,20 @@
           "extract": "oauth_token:\\s*(\\S+)",
           "maskDuplicates": true,
           "onExtractNoMatch": "deny",
-          "injectHosts": ["api.github.com", "github.com"]
+          "injectHosts": [
+            "api.github.com",
+            "github.com"
+          ]
+        },
+        {
+          "path": "~/.config/fabrica/git-auth.gitconfig",
+          "mode": "mask",
+          "extract": "Basic\\s+(\\S+)",
+          "maskDuplicates": true,
+          "onExtractNoMatch": "deny",
+          "injectHosts": [
+            "github.com"
+          ]
         }
       ]
     }

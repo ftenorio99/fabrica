@@ -157,7 +157,11 @@ if user_changed:
         )
         sys.exit(2)
 if project_changed:
-    write(project_path, project_data, backup=False)
+    try:
+        write(project_path, project_data, backup=False)
+    except OSError as err:
+        print(f"setup-sandbox: não consegui gravar {project_path}: {err.strerror}", file=sys.stderr)
+        sys.exit(1)
 
 print("instalado" if (user_changed or project_changed) else "ok")
 PY

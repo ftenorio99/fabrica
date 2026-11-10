@@ -2,7 +2,6 @@
   "sandbox": {
     "enabled": true,
     "allowUnsandboxedCommands": false,
-    "excludedCommands": ["git push", "git push *"],
     "network": {
       "allowedDomains": [
         "github.com",
@@ -15,20 +14,46 @@
       "allowLocalBinding": true
     },
     "filesystem": {
-      "allowWrite": ["~/.npm"]
+      "allowWrite": [
+        "~/.npm"
+      ]
     },
     "credentials": {
       "files": [
-        { "path": "~/.ssh", "mode": "deny" },
-        { "path": ".env", "mode": "deny" },
-        { "path": ".env.local", "mode": "deny" },
-        { "path": ".env.development", "mode": "deny" },
-        { "path": ".env.test", "mode": "deny" },
-        { "path": ".env.production", "mode": "deny" }
+        {
+          "path": "~/.ssh",
+          "mode": "deny"
+        },
+        {
+          "path": ".env",
+          "mode": "deny"
+        },
+        {
+          "path": ".env.local",
+          "mode": "deny"
+        },
+        {
+          "path": ".env.development",
+          "mode": "deny"
+        },
+        {
+          "path": ".env.test",
+          "mode": "deny"
+        },
+        {
+          "path": ".env.production",
+          "mode": "deny"
+        }
       ],
       "envVars": [
-        { "name": "GH_TOKEN", "mode": "deny" },
-        { "name": "GITHUB_TOKEN", "mode": "deny" }
+        {
+          "name": "GH_TOKEN",
+          "mode": "deny"
+        },
+        {
+          "name": "GITHUB_TOKEN",
+          "mode": "deny"
+        }
       ]
     }
   }

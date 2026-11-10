@@ -4,14 +4,14 @@ Este guia é para quando você quer deixar os agentes rodando sozinhos num proje
 
 ## O que o sandbox protege
 O sandbox vale para os comandos Bash das sessões abertas no projeto e para os processos filhos deles:
-- **Arquivos:** os comandos escrevem só no projeto, na pasta temporária e no cache do npm (`~/.npm`). O `.claude/settings.json` do projeto continua protegido, mesmo estando dentro do projeto. O estrago que um comando fizer dentro do projeto o git recupera.
+- **Arquivos:** os comandos escrevem só no projeto, na pasta temporária e no cache do npm (`~/.npm`). O cache é compartilhado entre os projetos, e um agente enganado poderia gravar nele um pacote adulterado. O `npm ci` confere o hash de cada pacote pelo lockfile. O `.claude/settings.json` do projeto continua protegido, mesmo estando dentro do projeto. O estrago que um comando fizer dentro do projeto o git recupera.
 - **Rede:** só os domínios liberados respondem. A base é a do GitHub (`github.com`, `api.github.com`, `codeload.github.com`, `uploads.github.com` e `*.githubusercontent.com`) e o `registry.npmjs.org`. O servidor local (`allowLocalBinding`) continua liberado, para o servidor de dev e o Playwright.
 - **Segredos:**
   - `~/.ssh` e os `.env*` do projeto não podem ser lidos;
   - `GH_TOKEN` e `GITHUB_TOKEN` chegam vazias;
-  - o token do `gh` em `~/.config/gh/hosts.yml` aparece como um marcador, e o proxy do sandbox põe o token real só nas requisições a `api.github.com` e `github.com`.
-- **Sem saída:** o agente não pode repetir fora do sandbox um comando barrado (`allowUnsandboxedCommands: false`). O que precisa sair dele você roda com `!` no prompt.
-- **`git push`:** é a única exceção (`excludedCommands`). O git manda o token em Basic auth, codificado em base64, e o proxy não consegue trocar o marcador ali dentro. Por isso, o `git push` roda fora do sandbox, com o token posto pelo `gh auth git-credential`, sem passar pelo agente. A exceção vale só quando o `git push` é a chamada inteira do Bash: `cd x && git push` ou um `git push` dentro de um script continuam no sandbox e falham. Fora do sandbox, o `git push` alcança qualquer host, e por isso o agente poderia mandar o código do repositório para outro remote.
+  - o token do `gh` em `~/.config/gh/hosts.yml` aparece como um marcador, e o proxy do sandbox põe o token real só nas requisições a `api.github.com` e `github.com`;
+  - o cabeçalho do `git push` em `~/.config/fabrica/git-auth.gitconfig` também aparece como marcador, e o proxy põe o valor real só nas requisições a `github.com` (veja "Git push").
+- **Sem saída:** o agente não pode repetir fora do sandbox um comando barrado (`allowUnsandboxedCommands: false`), e nenhum comando é exceção. O que precisa sair do sandbox você roda com `!` no prompt.
 
 O sandbox não cobre o WebFetch, que segue as regras de permissão, nem o tráfego do próprio Claude Code com a API.
 
@@ -57,10 +57,23 @@ O comando `/sandbox` do Claude Code mostra o estado e o que falta.
 
 Se a sessão em que você rodou o setup já estiver em sandbox, o script não consegue gravar o settings do usuário. Ele imprime uma linha começando com `!`: cole essa linha no prompt, para ela rodar fora do sandbox.
 
+## Git push
+O git manda o token em Basic auth, codificado em base64, e o proxy só troca um marcador que aparece literalmente na requisição. Com o token do `hosts.yml`, o marcador some dentro do base64, e o push falha com `Invalid username or token`.
+
+Por isso, o cabeçalho vai pronto num arquivo próprio, `~/.config/fabrica/git-auth.gitconfig`, incluído no seu `~/.gitconfig`. No sandbox, o git lê o marcador e manda `Authorization: Basic <marcador>`, e o proxy troca o marcador pelo valor real. Fora do sandbox, o git usa o valor real, e o push continua funcionando como antes.
+
+Gere o arquivo, fora do sandbox, na primeira vez e sempre que o token do `gh` mudar (depois de um `gh auth login` ou `gh auth refresh`):
+
+```bash
+bash <clone do fabrica>/scripts/setup-git-auth.sh
+```
+
+O script grava o arquivo com permissão `600` e acrescenta o `include.path` ao `~/.gitconfig`, se ainda não houver. Com um token velho no arquivo, o push falha também fora do sandbox: gere o arquivo de novo. Para tirar, apague o arquivo e rode `git config --global --unset include.path ~/.config/fabrica/git-auth.gitconfig`.
+
 ## Token no chaveiro
 O `gh` pode guardar o token no chaveiro do sistema, e não no `hosts.yml`. Nesse caso, o sandbox não tem o que mascarar, e o `gh` falha dentro dele. Para saber, confira se o `~/.config/gh/hosts.yml` tem uma linha `oauth_token`. Sem ela, o token está no chaveiro.
 
-Para o `gh` funcionar no sandbox, o token precisa ir para o `hosts.yml` (`gh auth login --insecure-storage`). Fora do sandbox, qualquer processo seu pode ler esse arquivo, como já pode ler o chaveiro da sessão. Dentro do sandbox, o agente vê só o marcador.
+Para o `gh` funcionar no sandbox, o token precisa ir para o `hosts.yml` (`gh auth login --insecure-storage`). Fora do sandbox, qualquer processo seu pode ler esse arquivo e o `git-auth.gitconfig`, como já pode ler o chaveiro da sessão. Dentro do sandbox, o agente vê só os marcadores.
 
 ## Ampliar os domínios
 Quando uma etapa falhar com erro de rede para um host que o projeto usa (ex.: a API de um serviço de pagamento em modo de teste), acrescente o domínio no `.claude/settings.json` do projeto:
@@ -88,14 +101,7 @@ Cada linha sai como `ok <verificação>` ou `falha <verificação>: <motivo>`:
 - escrita fora do projeto e no `.claude/settings.json`;
 - rede fora da lista;
 - token, `~/.ssh` e `.env` em claro;
-- `gh api user` e `npm view`.
-
-O `git push` não entra no script, porque dentro dele continuaria no sandbox. Confira-o com duas chamadas diretas do agente:
-
-```bash
-git push origin HEAD:refs/heads/test/sandbox-probe
-git push origin --delete test/sandbox-probe
-```
+- `gh api user`, `npm view` e o `git push` de uma branch `test/sandbox-*`, apagada no fim. Use `--remote <nome>` para fazer o push em outro remote que não o `origin`.
 
 Rode o teste de novo quando o Claude Code mudar o sandbox nas notas de versão, porque o `tlsTerminate`, que o mascaramento usa, ainda é experimental.
 

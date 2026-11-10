@@ -54,14 +54,15 @@ O sandbox nativo do Claude Code isola os comandos Bash das sessões no projeto (
   - `ok`: já está instalado. Não pergunte nada.
   - `ausente` ou `incompleto <itens>`: explique o que muda.
     - **`.claude/settings.json` do projeto:**
-      - liga o sandbox, sem saída para fora dele (`allowUnsandboxedCommands: false`), exceto o `git push`;
+      - liga o sandbox, sem saída para fora dele (`allowUnsandboxedCommands: false`);
       - libera a escrita no cache do npm (`~/.npm`);
       - libera os domínios do GitHub e do npm;
       - nega `~/.ssh`, os `.env*`, `GH_TOKEN` e `GITHUB_TOKEN`.
-    - **`~/.claude/settings.json`:** liga o `tlsTerminate` e mascara o token do `hosts.yml`, que o proxy põe só nas requisições ao GitHub. O settings anterior fica em `~/.claude/settings.json.bak-fabrica`.
+    - **`~/.claude/settings.json`:** liga o `tlsTerminate` e mascara o token do `hosts.yml` e o cabeçalho do git em `~/.config/fabrica/git-auth.gitconfig`, que o proxy põe só nas requisições ao GitHub. O settings anterior fica em `~/.claude/settings.json.bak-fabrica`.
 
     Diga que a mudança vale na próxima sessão aberta no projeto e que o que precisar sair do sandbox o usuário roda com `!` no prompt. Pergunte com o AskUserQuestion se ele quer instalar.
 - Com a confirmação, rode `bash <diretório base>/../../scripts/setup-sandbox.sh`. Se ele sair com código 2, a sessão já roda em sandbox: mostre a linha com `!` que o script imprimiu, para o usuário rodar no prompt.
+- **Cabeçalho do git:** confira com `bash <diretório base>/../../scripts/setup-git-auth.sh --check`. Se a resposta não for `ok`, o `git push` não funciona no sandbox. Explique que o script grava o token do `gh`, já codificado, em `~/.config/fabrica/git-auth.gitconfig` (permissão `600`) e inclui o arquivo no `~/.gitconfig`, e peça ao usuário para rodá-lo ele mesmo, com `! bash <diretório base>/../../scripts/setup-git-auth.sh`. Não o rode você: ele grava uma credencial. O usuário roda de novo sempre que o token do `gh` mudar.
 - **Token no chaveiro:** se `~/.config/gh/hosts.yml` não tiver `oauth_token`, o token do `gh` está no chaveiro do sistema, e o `gh` não vai funcionar no sandbox. Avise e remeta à seção "Token no chaveiro" do [guia](../../docs/guias/isolamento-do-agente.md#token-no-chaveiro).
 
 ## 5. Statusline

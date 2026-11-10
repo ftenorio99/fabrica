@@ -11,28 +11,32 @@ O `/fabrica:setup` liga o sandbox nativo do Claude Code num projeto. Depois diss
 
 ## Comportamento esperado
 1. O usuário roda `/fabrica:setup` num projeto. O passo novo **Sandbox** confere as dependências e o estado (`scripts/setup-sandbox.sh --check`):
-   - **Dependências:** sem o `bwrap` ou o `socat` no `PATH`, o setup mostra `sudo apt-get install bubblewrap socat` (ou o `dnf` equivalente), não roda `sudo` e não instala o sandbox. Os outros passos do setup continuam.
+   - **Dependências:** sem o `bwrap` ou o `socat` no `PATH`, o setup mostra `sudo apt-get install bubblewrap socat` (ou o `dnf` equivalente), não roda `sudo` e não instala o sandbox. Os outros passos do setup continuam. Com o `sysctl` `kernel.apparmor_restrict_unprivileged_userns` em `1`, o setup também exige o perfil `/etc/apparmor.d/bwrap` e o `bwrap-userns-restrict` do Ubuntu desligado, e remete aos comandos do guia.
    - **`ok`:** o sandbox já está instalado. O setup não pergunta nada.
    - **`ausente` ou `incompleto <o que falta>`:** o setup explica o que muda (os itens 2 e 3) e pede confirmação com o AskUserQuestion.
 2. Com a confirmação, o script grava no `.claude/settings.json` do projeto o bloco `sandbox` de base:
    - `enabled: true` e `allowUnsandboxedCommands: false`;
    - os domínios de base em `network.allowedDomains` e `network.allowLocalBinding: true`;
+   - `filesystem.allowWrite` no cache do npm (`~/.npm`);
    - `credentials` com `deny` em `~/.ssh` e nos `.env*` do projeto, e nas variáveis `GH_TOKEN` e `GITHUB_TOKEN`.
 3. Também com a confirmação, o script grava no `~/.claude/settings.json` do usuário o que só vale nesse escopo:
    - `sandbox.network.tlsTerminate: {}`;
-   - a entrada `mask` de `~/.config/gh/hosts.yml`, com `extract` do `oauth_token`, `maskDuplicates: true`, `onExtractNoMatch: "deny"` e `injectHosts` em `api.github.com` e `github.com`.
+   - a entrada `mask` de `~/.config/gh/hosts.yml`, com `extract` do `oauth_token`, `maskDuplicates: true`, `onExtractNoMatch: "deny"` e `injectHosts` em `api.github.com` e `github.com`;
+   - a entrada `mask` de `~/.config/fabrica/git-auth.gitconfig`, com `extract` do valor depois de `Basic`, e `injectHosts` só em `github.com`.
 
    Antes de mudar, ele guarda o settings anterior em `~/.claude/settings.json.bak-fabrica`, como a statusline.
-4. Na sessão seguinte, aberta no projeto, os comandos Bash rodam no sandbox:
+4. O usuário roda, fora do sandbox, `scripts/setup-git-auth.sh`. Ele grava em `~/.config/fabrica/git-auth.gitconfig`, com permissão `600`, o cabeçalho `Authorization: Basic` do token do `gh` para `https://github.com/` e inclui o arquivo no `~/.gitconfig`. O agente não roda esse script, porque ele grava uma credencial. O usuário o roda de novo quando o token mudar.
+5. Na sessão seguinte, aberta no projeto, os comandos Bash rodam no sandbox:
    - escrever ou apagar fora do projeto e da pasta temporária falha;
    - um domínio fora da lista falha;
    - o `gh` e o `git push` funcionam com o token posto pelo proxy, que o comando nunca vê.
-5. Para ampliar a lista, o repositório acrescenta domínios no próprio `.claude/settings.json`. Rodar o setup de novo mantém os domínios e as entradas acrescentados, porque as listas são somadas e não substituídas.
+6. Para ampliar a lista, o repositório acrescenta domínios no próprio `.claude/settings.json`. Rodar o setup de novo mantém os domínios e as entradas acrescentados, porque as listas são somadas e não substituídas.
 
 **Casos de borda:**
 
 | Situação | Comportamento |
 |---|---|
+| O `git-auth.gitconfig` falta ou tem um token velho | O `git push` falha no sandbox, e com o token velho também fora dele. O `setup-git-auth.sh --check` responde `ausente` ou `sem-include`, e o teste de aceite indica o script. |
 | `.claude/settings.json` do projeto ou `~/.claude/settings.json` não existe | O script cria o arquivo só com o bloco da fábrica. |
 | Algum desses arquivos tem JSON inválido | O script não grava nada em nenhum dos dois, imprime `setup-sandbox: JSON inválido em <arquivo>` e sai com código 1. |
 | Já existe bloco `sandbox`, de outra origem ou da fábrica | O script soma as listas sem repetir e preserva as chaves que não são da fábrica. Nas chaves escalares da fábrica (`enabled`, `allowUnsandboxedCommands`, `allowLocalBinding`), ele grava o valor da fábrica e lista no `--check` as que divergiam (`incompleto enabled=false`). |
@@ -66,7 +70,8 @@ O `/fabrica:setup` liga o sandbox nativo do Claude Code num projeto. Depois diss
 **Arquivos e módulos:**
 - `scripts/setup-sandbox.sh` (novo): instala, com `--check`, o bloco de base no projeto e o bloco do usuário. A mescla de JSON é feita em Python (`python3 -I`), que já é dependência da fábrica (`stage-usage.py`).
 - `templates/sandbox-project.json` e `templates/sandbox-user.json` (novos): os dois blocos da fábrica, lidos pelo script. São a fonte única das chaves.
-- `scripts/test-setup-sandbox.sh` (novo): os testes dos CA1 a CA5, no estilo dos `scripts/test-*.sh`.
+- `scripts/setup-git-auth.sh` (novo): grava o `git-auth.gitconfig` e o `include.path` no `~/.gitconfig`, com `--check` (`ok`, `ausente` ou `sem-include`).
+- `scripts/test-setup-sandbox.sh` (novo): os testes dos CA1 a CA5 e os do `setup-git-auth.sh`, no estilo dos `scripts/test-*.sh`.
 - `scripts/test-sandbox-acceptance.sh` (novo): as verificações dos CA7 a CA10. Imprime `ok <verificação>` ou `falha <verificação>: <motivo>`, uma por linha, e sai com 1 se alguma falhar.
 - `skills/setup/SKILL.md`: o passo novo **Sandbox**, entre os hooks do git e a statusline, e a linha dele no "Responder".
 - `docs/adr/0005-isolamento-do-agente-em-sandbox.md` (novo), `docs/guias/isolamento-do-agente.md` (novo), `docs/README.md`, `docs/comandos.md`, `.claude-plugin/plugin.json`, `CLAUDE.md` (a linha dos testes em `scripts/`).
@@ -83,6 +88,7 @@ O `/fabrica:setup` liga o sandbox nativo do Claude Code num projeto. Depois diss
       "allowedDomains": ["github.com", "api.github.com", "codeload.github.com", "uploads.github.com", "*.githubusercontent.com", "registry.npmjs.org"],
       "allowLocalBinding": true
     },
+    "filesystem": { "allowWrite": ["~/.npm"] },
     "credentials": {
       "files": [
         { "path": "~/.ssh", "mode": "deny" },
@@ -115,6 +121,14 @@ O `/fabrica:setup` liga o sandbox nativo do Claude Code num projeto. Depois diss
           "maskDuplicates": true,
           "onExtractNoMatch": "deny",
           "injectHosts": ["api.github.com", "github.com"]
+        },
+        {
+          "path": "~/.config/fabrica/git-auth.gitconfig",
+          "mode": "mask",
+          "extract": "Basic\\s+(\\S+)",
+          "maskDuplicates": true,
+          "onExtractNoMatch": "deny",
+          "injectHosts": ["github.com"]
         }
       ]
     }
@@ -142,6 +156,9 @@ O `/fabrica:setup` liga o sandbox nativo do Claude Code num projeto. Depois diss
 - **Domínios de base:** `github.com`, `api.github.com`, `codeload.github.com`, `uploads.github.com`, `*.githubusercontent.com` e `registry.npmjs.org`, com `allowLocalBinding` ligado (recomendação da triagem). A triagem citava também os hosts do Claude Code, mas eles saem da lista: o sandbox vale só para os comandos Bash e os filhos deles, e não para o tráfego do próprio Claude Code com a API. A lista começa vazia e é somada entre os escopos, e por isso cada repositório amplia a dele no próprio settings. Alternativa descartada: `*.github.com`, que libera hosts que as etapas não usam (ex.: `gist.github.com`, uma rota de exfiltração).
 - **`allowUnsandboxedCommands: false`:** sem isso, um comando barrado pelo sandbox pode ser repetido fora dele, depois de uma permissão. No `/fabrica:avancar`, em auto mode, quem dá essa permissão é o classificador, e uma injeção de prompt poderia pedi-la. O que precisa sair do sandbox (gravar o settings do usuário, instalar os hooks do git) o usuário roda com `!` no prompt. Alternativa descartada: manter o padrão (`true`), que deixa a saída do sandbox à mercê do classificador.
 - **Verificação 1 do aceite:** escrever ou apagar fora do projeto falha (recomendação da triagem). O sandbox nativo libera a escrita no diretório do projeto. Alternativa descartada: a worktree descartável, que vai para "Fora de escopo".
+- **`git push` por um cabeçalho pronto:** o proxy só troca um marcador que aparece literalmente na requisição, e o git codifica em base64 a senha do Basic auth. Por isso, o `git push` usa um cabeçalho já codificado, mascarado à parte, e roda dentro do sandbox (decisão do usuário na implementação, em 2026-11-10). Alternativas descartadas:
+  - `git push` em `excludedCommands`: o `git push --receive-pack=<cmd>` executa comandos fora do sandbox, como mostrou a revisão automática;
+  - o push pelo usuário, com `!`: o `/fabrica:avancar` pararia a cada push.
 - **Mescla em Python:** `python3 -I`, já usado pelo `stage-usage.py`, soma listas e preserva as chaves sem depender do `jq`, que o setup trata como opcional (falta do `jq` só desliga a statusline). Alternativa descartada: o `jq`.
 
 **Fontes da documentação:**
@@ -164,7 +181,7 @@ O `/fabrica:setup` liga o sandbox nativo do Claude Code num projeto. Depois diss
 - CA6 e CA11: verificação manual descrita no PR.
 
 ## Riscos e dúvidas
-- **`git push` com o token mascarado:** o `git push` por HTTPS manda o token em Basic auth, codificado em base64. A documentação não diz se o proxy troca o marcador dentro desse cabeçalho. O CA10 testa isso de verdade. Se falhar, a implementação para e registra o resultado na issue, em vez de liberar o `git push` por `excludedCommands`: essa troca abriria uma saída do sandbox e precisa da sua decisão.
+- **`git push` com o token mascarado:** confirmado na implementação, o proxy não troca o marcador dentro do Basic auth. O caminho ficou o cabeçalho pronto do `git-auth.gitconfig` (veja "Decisões").
 - **CA efêmera do `tlsTerminate`:** a documentação não diz como os comandos no sandbox passam a confiar na CA do proxy (`SSL_CERT_FILE`, `NODE_EXTRA_CA_CERTS` e `GIT_SSL_CAINFO` não são citados). O `gh api`, o `git push` e o `npm view` do CA10 cobrem os três clientes das etapas.
 - **`!` fora do sandbox:** a spec supõe que um comando rodado pelo usuário com `!` no prompt não passa pelo sandbox. O CA7 confere isso, com o usuário rodando `! touch ~/fabrica-sandbox-probe && rm ~/fabrica-sandbox-probe`. Se não for assim, o guia indica rodar o script num terminal comum.
 - **Domínio esquecido:** um domínio que falta na lista para a etapa no meio, com um erro de rede. O guia mostra como ler o erro e ampliar a lista no projeto.
@@ -173,3 +190,4 @@ O `/fabrica:setup` liga o sandbox nativo do Claude Code num projeto. Depois diss
 ## Histórico
 - 2026-11-09: criação.
 - 2026-11-10: aprovada.
+- 2026-11-10: mudança (alterar) na implementação, com decisão do usuário. Motivos: o proxy não troca o marcador no Basic auth do `git push`, o npm precisa gravar no cache e o Ubuntu 26.04 exige o ajuste do AppArmor. Entraram o `setup-git-auth.sh` e o `mask` do `git-auth.gitconfig`, o `allowWrite` do `~/.npm` e a checagem do AppArmor no setup. Os CAs não mudam.

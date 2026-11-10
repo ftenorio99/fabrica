@@ -23,7 +23,7 @@ Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de 
 - **Quando:** num repositório sem as labels da fábrica, quando uma etapa avisar que falta uma label ou que o `gh` está desatualizado, quando a sessão avisar que os hooks do git não estão instalados ou para isolar os agentes num projeto.
 - **O que faz:** confere se o `gh` está instalado, autenticado e na versão mínima. Se ele estiver desatualizado, mostra como atualizar, sem instalar nada. Se estiver ausente ou sem login, para. Depois, cria ou corrige as labels do fluxo no repositório, sem mexer em outras. Na primeira vez em cada máquina, pede confirmação e instala os hooks do git que protegem a `main`. Também oferece ligar o sandbox do Claude Code no projeto, que impede os comandos dos agentes de escrever fora dele, de sair para domínios não liberados e de ler segredos em claro ([guia](guias/isolamento-do-agente.md)), e a statusline da fábrica.
 - **Lê:** a tabela de labels do [`estados.md`](../skills/status/estados.md) e o `core.hooksPath` global e o `statusLine` e o bloco `sandbox` do `~/.claude/settings.json` e do `.claude/settings.json` do projeto.
-- **Cria:** as labels no repositório e, com a sua confirmação, os hooks em `~/.config/fabrica/githooks/` o bloco `sandbox` nos dois settings e a statusline em `~/.config/fabrica/statusline.sh`.
+- **Cria:** as labels no repositório e, com a sua confirmação, os hooks em `~/.config/fabrica/githooks/`, o bloco `sandbox` nos dois settings e a statusline em `~/.config/fabrica/statusline.sh`.
 - **Labels:** não aplica labels em issues.
 - Detalhes: [`skills/setup/SKILL.md`](../skills/setup/SKILL.md).
 

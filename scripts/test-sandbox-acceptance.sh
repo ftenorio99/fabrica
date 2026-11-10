@@ -2,16 +2,27 @@
 # Teste de aceite do sandbox (ADR 0005). Rode pelo Bash do agente, numa sessão
 # do Claude Code aberta num projeto com o sandbox instalado (/fabrica:setup).
 # Fora do sandbox, as verificações de bloqueio falham, como devem. Não é um
-# teste de unidade: ele lê os segredos da máquina para conferir que não os vê.
+# teste de unidade: ele lê os segredos da máquina para conferir que não os vê e
+# faz git push de uma branch test/sandbox-*, apagada no fim.
 # Imprime "ok <verificação>" ou "falha <verificação>: <motivo>", uma por linha,
 # e sai com 1 se alguma falhar.
-# Uso: scripts/test-sandbox-acceptance.sh
+# Uso: scripts/test-sandbox-acceptance.sh [--remote <nome>]
 set -uo pipefail
 
-if [[ $# -gt 0 ]]; then
-  echo "test-sandbox-acceptance: opção desconhecida: $1" >&2
-  exit 1
-fi
+remote=origin
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    --remote)
+      remote="${2:?--remote precisa de um nome}"
+      shift
+      ;;
+    *)
+      echo "test-sandbox-acceptance: opção desconhecida: $1" >&2
+      exit 1
+      ;;
+  esac
+  shift
+done
 
 root="$(git rev-parse --show-toplevel 2>/dev/null)" || {
   echo "test-sandbox-acceptance: rode dentro de um repositório git." >&2
@@ -122,9 +133,23 @@ else
   bad "npm-view" "npm view npm version falhou"
 fi
 
-# O git push roda fora do sandbox (excludedCommands) só quando é a chamada
-# inteira do Bash; dentro deste script, ele continuaria no sandbox. Confira-o
-# com duas chamadas diretas, como diz o guia.
-echo "lembrete: confira o git push com chamadas diretas (docs/guias/isolamento-do-agente.md)"
+# O git push autentica pelo cabeçalho mascarado de ~/.config/fabrica/git-auth.gitconfig.
+auth_file="${XDG_CONFIG_HOME:-$HOME/.config}/fabrica/git-auth.gitconfig"
+if grep -Eq 'Basic eC1hY2Nlc3MtdG9rZW46' "$auth_file" 2>/dev/null; then
+  bad "token-no-git-auth" "o $auth_file tem o cabeçalho do token em claro"
+else
+  ok "token-no-git-auth"
+fi
+branch="test/sandbox-$(date -u +%Y%m%d%H%M%S)"
+push_err="$(mktemp)"
+if git push -q "$remote" "HEAD:refs/heads/$branch" 2>"$push_err"; then
+  ok "git-push"
+  git push -q "$remote" --delete "$branch" 2>/dev/null || bad "git-push-limpeza" "apague a branch $branch em $remote"
+else
+  hint=""
+  [[ -e "$auth_file" ]] || hint=" Falta o $auth_file: rode scripts/setup-git-auth.sh fora do sandbox."
+  bad "git-push" "$(head -1 "$push_err").$hint"
+fi
+rm -f "$push_err"
 
 [[ $failures -eq 0 ]]
