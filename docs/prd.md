@@ -74,22 +74,22 @@ O próprio usuário, dono dos repositórios, desenvolvedor e único revisor. Ele
 Itens de 1 a 2 dias de trabalho humano, agrupados por marco e em ordem de dependência dentro de cada marco. O número do item é fixo: não renumere; item novo recebe o próximo número livre.
 
 ### M1 · Segurança antes da automação (F1, F2, F3)
-- **1.** Isolamento do `/fabrica:avancar` local em sandbox, com domínios liberados, ADR e teste de aceite (F1)
-- **2.** Regra e hook de credenciais só de dev ou homologação nas etapas de agente (F2)
-- **3.** Bloqueio de ação externa com checklist e retomada pelo `/fabrica:avancar` (F3)
+- **1.** Isolamento do `/fabrica:avancar` local em sandbox, com domínios liberados, ADR e teste de aceite (F1) · #93
+- **2.** Regra e hook de credenciais só de dev ou homologação nas etapas de agente (F2) · #94
+- **3.** Bloqueio de ação externa com checklist e retomada pelo `/fabrica:avancar` (F3) · #95
 
 ### M2 · Primeiro loop (F4, F5, F1)
-- **4.** Estudo do dispatcher: claude-code-action, runner e autenticação, com ADR (F4) · depende de 1
-- **5.** Workflow que roda a etapa de agente quando a label `agente` é aplicada, validado num repositório de teste (F4) · depende de 2, 4
-- **6.** Isolamento do job do dispatcher, com token fine-grained e domínios liberados (F1) · depende de 1, 4
-- **7.** Retomada por evento: resposta, `spec-aprovada`, comentário no PR e checklist concluída disparam a etapa seguinte, sem cascata (F5) · depende de 3, 5
-- **8.** Dispatcher instalado num projeto pelo `/fabrica:setup`, com o workflow e o guia dos secrets, e ligado no kairo (F4) · depende de 5, 6, 7
+- **4.** Estudo do dispatcher: claude-code-action, runner e autenticação, com ADR (F4) · depende de 1 · #99
+- **5.** Workflow que roda a etapa de agente quando a label `agente` é aplicada, validado num repositório de teste (F4) · depende de 2, 4 · #105
+- **6.** Isolamento do job do dispatcher, com token fine-grained e domínios liberados (F1) · depende de 1, 4 · #106
+- **7.** Retomada por evento: resposta, `spec-aprovada`, comentário no PR e checklist concluída disparam a etapa seguinte, sem cascata (F5) · depende de 3, 5 · #107
+- **8.** Dispatcher instalado num projeto pelo `/fabrica:setup`, com o workflow e o guia dos secrets, e ligado no kairo (F4) · depende de 5, 6, 7 · #108
 
 ### M3 · Verificação (F6, F7, F8)
 - **9.** CI do PR sobe o app e o banco no job e roda o Playwright, e a spec pede casos adversariais nos CAs de ponta a ponta (F6) · depende de 8
-- **10.** Design system versionado por projeto (`docs/design.md`) e campo de interface na triagem (F7)
+- **10.** Design system versionado por projeto (`docs/design.md`) e campo de interface na triagem (F7) · #45
 - **11.** Spec descreve as telas, e a implementação anexa screenshots no celular e no computador ao PR (F7) · depende de 9, 10
-- **12.** Runbook de lançamento gerado numa issue com checklist antes da primeira ida para produção (F8) · depende de 2, 3
+- **12.** Runbook de lançamento gerado numa issue com checklist antes da primeira ida para produção (F8) · depende de 2, 3 · #96
 
 ## Histórico
 - 2026-11-09: criação; PRD aprovado.
