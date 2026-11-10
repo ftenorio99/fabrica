@@ -1,7 +1,7 @@
 # SPEC-119: Dispatcher e skills não colocam texto de issue ou PR no prompt
 
 **Issue:** #119 · **PRD:** F4, F1 · **Classe:** implementacao-simples · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-11-10
+**Status:** aprovada · **Atualizada em:** 2026-11-10
 
 ## Contexto
 O system card do Claude Fable 5.2 e Mythos 5.2 (9/nov/2026, §6.5.2) mostra que o modelo tende a obedecer instruções plantadas em texto que chega no turno do usuário, e trata como não confiável o que chega como resultado de ferramenta. O `docs/prd.md` lista a injeção de prompt como risco alto e responde a ele pondo a segurança antes do dispatcher (M1 antes de M2). O dispatcher da Fase 1 (#105, #107) ainda não existe; esta issue fixa a regra que ele vai seguir e corrige a única etapa que hoje espera texto de comentário no argumento, o `/fabrica:spec <nº> <ajustes>`.
@@ -86,3 +86,4 @@ nenhum
 
 ## Histórico
 - 2026-11-10: criação.
+- 2026-11-10: aprovada.

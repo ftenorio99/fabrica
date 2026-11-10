@@ -1,6 +1,6 @@
 # ADR 0008: Texto de issue e PR fora do prompt
 
-**Status:** proposto · **Data:** 2026-11-10 · **Origem:** issue #119
+**Status:** aceito · **Data:** 2026-11-10 · **Origem:** issue #119
 
 ## Contexto
 O system card do Claude Fable 5.2 e Mythos 5.2 (9/nov/2026, §6.5.2) mostra que o modelo tende a obedecer instruções plantadas em texto que chega no turno do usuário, porque o trata como vindo do usuário. O conteúdo que chega como resultado de ferramenta é tratado como não confiável (0 de 105 tentativas na avaliação).
