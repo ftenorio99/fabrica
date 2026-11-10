@@ -13,7 +13,7 @@ O `/fabrica:setup` liga o sandbox nativo por projeto e grava as configurações 
   - `enabled` e `allowUnsandboxedCommands: false`;
   - a escrita no cache do npm (`~/.npm`);
   - os domínios de base;
-  - `deny` em `~/.ssh`, nos `.env*` e em `GH_TOKEN` e `GITHUB_TOKEN`.
+  - `deny` em `~/.ssh`, nos `.env*` e em `GH_TOKEN` e `GITHUB_TOKEN`. A [ADR 0006](0006-producao-fora-do-alcance-do-agente.md) mudou a lista dos `.env`: o `deny` ficou só em `.env.production` e `.env.production.local`, e o agente lê os `.env` de dev e de teste.
 - **`~/.claude/settings.json` do usuário:** o `tlsTerminate` e dois `mask`:
   - o do token do `gh`, posto pelo proxy só em `api.github.com` e `github.com`;
   - o do cabeçalho `Authorization: Basic` do git, posto só em `github.com`.
