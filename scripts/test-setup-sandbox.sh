@@ -148,6 +148,30 @@ check "#94 CA8 --check depois: ok, mesmo com avisos" "ok" "$(run --check 2>/dev/
 check "#94 CA8 segunda instalação não muda nada" "ok" "$(run 2>/dev/null)"
 check "#94 CA8 usuário sem deniedDomains" "False" "$(jget "$user" '"deniedDomains" in d["sandbox"]["network"]')"
 
+# #112: o Prettier do projeto formata o settings que o script grava.
+fake_prettier() { # fake_prettier <código de saída>
+  mkdir -p "$tmp/proj/node_modules/.bin"
+  printf '#!/usr/bin/env bash\necho "$PWD $*" >>"%s/prettier.log"\nexit %s\n' "$tmp" "$1" >"$tmp/proj/node_modules/.bin/prettier"
+  chmod +x "$tmp/proj/node_modules/.bin/prettier"
+  rm -f "$tmp/prettier.log"
+}
+reset_env
+fake_prettier 0
+check "#112 CA1 instala com prettier no projeto" "instalado" "$(run 2>/dev/null)"
+check "#112 CA1 chama o prettier na raiz com --write" "$tmp/proj --write .claude/settings.json" "$(cat "$tmp/prettier.log" 2>/dev/null)"
+rm -f "$tmp/prettier.log"
+check "#112 CA4 --check não chama o prettier" "ok não" "$(run --check) $([[ -f "$tmp/prettier.log" ]] && echo sim || echo não)"
+check "#112 CA4 instalação sem mudança não chama o prettier" "ok não" "$(run) $([[ -f "$tmp/prettier.log" ]] && echo sim || echo não)"
+reset_env
+fake_prettier 1
+out="$(run 2>"$tmp/err")"; code=$?
+check "#112 CA3 prettier com erro: instala com código 0" "instalado 0" "$out $code"
+check "#112 CA3 prettier com erro: aviso em stderr" "setup-sandbox: não consegui formatar .claude/settings.json; rode o prettier do projeto nele." "$(cat "$tmp/err")"
+reset_env
+out="$(run 2>"$tmp/err")"
+check "#112 CA2 sem prettier: instala sem aviso" "instalado " "$out $(cat "$tmp/err")"
+check "#112 CA2 sem prettier: lista aberta como antes" "1" "$(grep -c '"allowWrite": \[$' "$proj")"
+
 # Opção desconhecida.
 bash "$setup" --xyz >/dev/null 2>&1
 check "opção desconhecida: código 1" "1" "$?"

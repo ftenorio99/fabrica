@@ -49,7 +49,7 @@ $check && mode=check
 
 SETUP_SANDBOX_CMD="bash $script_dir/setup-sandbox.sh --project $project" python3 -I - "$mode" "$project/.claude/settings.json" "$user_settings" \
   "$templates/sandbox-project.json" "$templates/sandbox-user.json" "$project" <<'PY'
-import json, os, re, shutil, sys, tempfile
+import json, os, re, shutil, subprocess, sys, tempfile
 
 mode, project_path, user_path, project_tpl, user_tpl, project_root = sys.argv[1:7]
 SCALARS = {"enabled", "allowUnsandboxedCommands", "allowLocalBinding"}
@@ -212,6 +212,19 @@ if project_changed:
     except OSError as err:
         print(f"setup-sandbox: não consegui gravar {project_path}: {err.strerror}", file=sys.stderr)
         sys.exit(1)
+    # O json.dump abre toda lista em várias linhas; o Prettier do projeto, se
+    # houver, deixa o arquivo no padrão que o lint dele confere (#112).
+    prettier = os.path.join(project_root, "node_modules", ".bin", "prettier")
+    if os.path.isfile(prettier) and os.access(prettier, os.X_OK):
+        rel = os.path.relpath(project_path, project_root)
+        try:
+            ok = subprocess.run([prettier, "--write", rel], cwd=project_root,
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                timeout=60).returncode == 0
+        except (OSError, subprocess.SubprocessError):
+            ok = False
+        if not ok:
+            print(f"setup-sandbox: não consegui formatar {rel}; rode o prettier do projeto nele.", file=sys.stderr)
 
 print("instalado" if (user_changed or project_changed) else "ok")
 PY
