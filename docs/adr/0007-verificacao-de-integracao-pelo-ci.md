@@ -1,6 +1,6 @@
 # ADR 0007: Verificação de integração pelo CI do PR
 
-**Status:** proposto · **Data:** 2026-11-10 · **Origem:** issue #116
+**Status:** aceito · **Data:** 2026-11-10 · **Origem:** issue #116
 
 ## Contexto
 O sandbox da [ADR 0005](0005-isolamento-do-agente-em-sandbox.md) isola os comandos Bash do agente. No Linux, segundo a documentação do sandbox do Claude Code:

@@ -1,7 +1,7 @@
 # SPEC-116: Verificação de integração pelo CI do PR quando o sandbox não a deixa rodar
 
 **Issue:** #116 · **PRD:** F1 (sandbox, ADR 0005) e F3 (verificação) · **Classe:** implementacao-complexa · **Tamanho:** G
-**Status:** rascunho · **Atualizada em:** 2026-11-10
+**Status:** aprovada · **Atualizada em:** 2026-11-10
 
 ## Contexto
 O sandbox da ADR 0005 isola os comandos Bash do agente. No Linux, segundo a documentação do sandbox do Claude Code:
@@ -140,3 +140,4 @@ nenhum
 
 ## Histórico
 - 2026-11-10: criação.
+- 2026-11-10: aprovada.
