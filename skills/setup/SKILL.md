@@ -44,7 +44,7 @@ Rode `bash <diretório base>/../../scripts/check-gh.sh` e siga a linha que ele i
 - Se o script disser que já existe outro `core.hooksPath` global, mostre o valor e pergunte, com o AskUserQuestion, se o usuário quer trocar. Só com um sim rode de novo com `--force`.
 
 ## 4. Sandbox
-O sandbox nativo do Claude Code isola os comandos Bash das sessões no projeto ([ADR 0005](../../docs/adr/0005-isolamento-do-agente-em-sandbox.md)): eles não escrevem fora do projeto, só alcançam os domínios liberados e não leem em claro o token do `gh`, as chaves SSH nem os `.env`.
+O sandbox nativo do Claude Code isola os comandos Bash das sessões no projeto ([ADR 0005](../../docs/adr/0005-isolamento-do-agente-em-sandbox.md)): eles não escrevem fora do projeto, só alcançam os domínios liberados e não leem em claro o token do `gh`, as chaves SSH nem os `.env` de produção. Com um `.fabrica/producao.txt` no projeto, também não alcançam os hosts de produção ([ADR 0006](../../docs/adr/0006-producao-fora-do-alcance-do-agente.md)).
 - **Dependências (Linux):**
   - **`bwrap` e `socat`:** confira com `command -v bwrap socat`. Se faltar algum, mostre `sudo apt-get install bubblewrap socat` (ou `sudo dnf install bubblewrap socat`).
   - **AppArmor:** se `sysctl -n kernel.apparmor_restrict_unprivileged_userns` imprimir `1` (Ubuntu 24.04 ou mais novo), o sandbox não sobe sem um perfil AppArmor que libere o `bwrap`. A dependência falta quando `/etc/apparmor.d/bwrap` não existe ou quando `/etc/apparmor.d/bwrap-userns-restrict` existe sem um link em `/etc/apparmor.d/disable/`. O perfil do Ubuntu tem o mesmo nome e vale no lugar do perfil do Claude Code. Nesses casos, mostre os comandos da seção "Dependências" do [guia](../../docs/guias/isolamento-do-agente.md#dependências).
@@ -57,10 +57,13 @@ O sandbox nativo do Claude Code isola os comandos Bash das sessões no projeto (
       - liga o sandbox, sem saída para fora dele (`allowUnsandboxedCommands: false`);
       - libera a escrita no cache do npm (`~/.npm`);
       - libera os domínios do GitHub e do npm;
-      - nega `~/.ssh`, os `.env*`, `GH_TOKEN` e `GITHUB_TOKEN`.
+      - nega `~/.ssh`, o `.env.production`, o `.env.production.local`, `GH_TOKEN` e `GITHUB_TOKEN`. Os outros `.env` ficam legíveis, porque só têm valores de dev ou de homologação;
+      - com itens `remover:credentials:<arquivo>`: remove os `deny` dos `.env` de dev e de teste que a fábrica gravava antes;
+      - com itens `sandbox.network.deniedDomains:<domínio>`: bloqueia na rede os hosts de produção listados em `.fabrica/producao.txt`.
     - **`~/.claude/settings.json`:** liga o `tlsTerminate` e mascara o token do `hosts.yml` e o cabeçalho do git em `~/.config/fabrica/git-auth.gitconfig`, que o proxy põe só nas requisições ao GitHub. O settings anterior fica em `~/.claude/settings.json.bak-fabrica-sandbox`, separado do backup da statusline.
 
     Diga que a mudança vale na próxima sessão aberta no projeto e que o que precisar sair do sandbox o usuário roda com `!` no prompt. Pergunte com o AskUserQuestion se ele quer instalar.
+- **Padrões de produção:** os avisos `padrão curto` e `linha inválida` que o script imprime em stderr vão para o resumo, para o usuário corrigir o `.fabrica/producao.txt`. Se o projeto não tiver esse arquivo, diga que, sem ele, o hook de produção e o bloqueio de rede não fazem nada, e remeta à seção "Produção fora do alcance" do [guia](../../docs/guias/isolamento-do-agente.md#produção-fora-do-alcance). Não crie o arquivo: os padrões são do usuário.
 - Com a confirmação, rode `bash <diretório base>/../../scripts/setup-sandbox.sh`. Se ele sair com código 2, a sessão já roda em sandbox: mostre a linha com `!` que o script imprimiu, para o usuário rodar no prompt.
 - **Cabeçalho do git:** confira com `bash <diretório base>/../../scripts/setup-git-auth.sh --check`. Se a resposta não for `ok`, o `git push` não funciona no sandbox. Explique que o script grava o token do `gh`, já codificado, em `~/.config/fabrica/git-auth.gitconfig` (permissão `600`) e inclui o arquivo no `~/.gitconfig`, e peça ao usuário para rodá-lo ele mesmo, com `! bash <diretório base>/../../scripts/setup-git-auth.sh`. Não o rode você: ele grava uma credencial. O usuário roda de novo sempre que o token do `gh` mudar.
 - **Token fine-grained:** o mascaramento não impede o vazamento do token pelo próprio GitHub ([ADR 0005](../../docs/adr/0005-isolamento-do-agente-em-sandbox.md)). Se `gh api -i /user` não trouxer o cabeçalho `github-authentication-token-expiration`, o token não é fine-grained: avise e remeta à seção "Token fine-grained" do [guia](../../docs/guias/isolamento-do-agente.md#token-fine-grained).
