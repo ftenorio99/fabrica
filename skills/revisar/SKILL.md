@@ -44,7 +44,9 @@ Guarde, para cada pedido, um trecho dele e o que foi feito: o commit da correç�
 
 ## 3. Rodada de revisão
 **Verificação pendente para o CI** ([ADR 0007](../../docs/adr/0007-verificacao-de-integracao-pelo-ci.md)): se o `implementar` anotou comandos bloqueados pelo sandbox, ou se o `make test` que você rodou falhou só com as assinaturas, o CI do PR faz essa verificação antes do revisor:
-1. **Sem CI:** se nenhum workflow em `.github/workflows/` dispara em `pull_request`, não há quem verifique. Comente na issue os comandos bloqueados, aplique `escalonado`, peça ao usuário a verificação com `!` (ex.: `! make test && make e2e`) e pare.
+1. **Sem CI:** se nenhum workflow em `.github/workflows/` dispara em `pull_request`, não há quem verifique.
+   - **Primeira vez:** comente na issue, com o marcador `<!-- fabrica:revisar -->`, os comandos bloqueados. Peça ao usuário que rode a verificação com `!` (ex.: `! make test && make e2e`) e responda na issue com o resultado. Aplique `escalonado` e pare.
+   - **Retomada:** se, depois desse comentário, há uma resposta do usuário na issue com o resultado, remova `escalonado` e use a resposta como verificação manual: passe-a ao revisor e cite-a em "Verificações manuais" no PR. Sem PR em rascunho e sem esperar CI, siga a partir do revisor. Se a resposta mostra falha, volte ao `/fabrica:implementar`.
 2. **PR em rascunho:** sem PR, abra-o já como rascunho (`gh pr create --draft --body-file <arquivo>`), com o corpo do passo 5 e os CAs que dependem da verificação bloqueada com ⏳ "aguardando o CI". Com PR, use-o e, se ele não estiver em rascunho, converta com `gh pr ready --undo`.
 3. **CI:** espere o CI do head como no passo 6 ("Ler o CI").
 4. **Revisor:** passe a ele, além do que vem abaixo, os comandos bloqueados e o resultado do CI: nome, `conclusion` e link de cada run.
