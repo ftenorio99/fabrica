@@ -36,7 +36,7 @@ Toda etapa e todo comando que lê a spec, a branch ou o PR de uma issue usa esta
 | 3 | `precisa-info` sem resposta nova | Perguntas abertas | usuário | Responder as perguntas na issue. |
 | 4 | `precisa-info` com resposta nova | Respostas recebidas | agente | `/fabrica:triagem <nº>` (ou `/fabrica:spec <nº>`, se as perguntas vieram da spec) |
 | 5 | sem `spec-pronta`, sem `spec-aprovada` e sem marcador de spec | Triada | agente | `/fabrica:spec <nº>` |
-| 6 | `spec-pronta` sem `spec-aprovada`, com resposta nova ao marcador de spec ou, no atalho, sem comentário de spec, com resposta nova ao marcador de triagem | Ajuste da spec pedido | agente | `/fabrica:spec <nº> <ajustes>` |
+| 6 | `spec-pronta` sem `spec-aprovada`, com resposta nova ao marcador de spec ou, no atalho, sem comentário de spec, com resposta nova ao marcador de triagem | Ajuste da spec pedido | agente | `/fabrica:spec <nº>` |
 | 7 | `spec-pronta` sem `spec-aprovada` | Spec para aprovar | usuário | Revisar a spec e aplicar `spec-aprovada` ou comentar ajustes. No atalho, a spec é a spec curta da triagem, e comentar pede a spec completa. |
 | 8 | `spec-aprovada` e nenhum PR da branch | Em implementação | agente | `/fabrica:implementar <nº>` (se não houver `em-andamento` recente) |
 | 9 | PR em rascunho | Revisão automática com pendências | usuário | Ler os achados pendentes no PR e decidir. Se o PR não lista achados pendentes e tem CAs com ⏳ "aguardando o CI", o `/fabrica:revisar` parou enquanto esperava o CI ([ADR 0007](../../docs/adr/0007-verificacao-de-integracao-pelo-ci.md)): retome com `/fabrica:revisar <nº>`. |
