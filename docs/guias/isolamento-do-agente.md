@@ -136,6 +136,8 @@ O hook lê o arquivo da branch e o da `main` no `origin`. Apagar uma linha numa 
 
 Se o hook barrar um comando legítimo (um `grep` que cita o nome da variável, por exemplo), rode-o você mesmo com `!` no prompt, ou deixe o padrão mais específico.
 
+As regras `Read(...)` de `permissions.deny` do `.claude/settings.json` também valem no sandbox. Um `Read(.env)` antigo deixa o `.env` ilegível para os comandos do agente, mesmo com o bloco `sandbox` em dia. O setup avisa com `permissions.deny nega <regra>`, e quem remove a regra é você. Mantenha as regras dos `.env` de produção, que também protegem a ferramenta Read.
+
 Projetos que ligaram o sandbox antes da ADR 0006 têm `deny` em `.env`, `.env.local`, `.env.development` e `.env.test`. O `--check` do setup mostra `remover:credentials:<arquivo>`, e confirmar o passo **Sandbox** remove essas entradas.
 
 ## Rodar o teste de aceite
