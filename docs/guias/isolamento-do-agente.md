@@ -25,7 +25,7 @@ O modo não muda o `/fabrica:status`, o `/fabrica:metricas` nem as etapas: por e
 ## Modo `sbx`
 O `sbx` é o comando do Docker Sandboxes. A fábrica não o instala nem roda: a VM, a política de rede e o secret são seus, no host. O checklist abaixo é o que o `/fabrica:setup` mostra no fim, conferido com o `sbx` 0.51.0. Troque `<projeto>` pelo nome da pasta do repositório.
 
-1. **Fechar a rede padrão (no host, uma vez por máquina).** O `sbx` nasce com a rede aberta. Confira com `sbx policy ls`. Se a política global liberar tudo, refaça a inicialização:
+1. **Fechar a rede padrão (no host, uma vez por máquina).** O `sbx` nasce com a rede aberta. Confira com `sbx policy ls`: a política global deve ser a `default-deny-all`, que nega o que nenhuma regra decide. Se ela liberar tudo, refaça a inicialização:
 
    ```bash
    sbx policy reset
@@ -43,6 +43,7 @@ O `sbx` é o comando do Docker Sandboxes. A fábrica não o instala nem roda: a 
    ```bash
    sbx policy allow network --sandbox <projeto> github.com,api.github.com,codeload.github.com,uploads.github.com,*.githubusercontent.com,registry.npmjs.org,registry-1.docker.io,auth.docker.io,production.cloudflare.docker.com
    ```
+   A lista não tem a API do Claude Code, e não precisa. Toda VM criada com o agente `claude` recebe do `sbx` uma política de origem `kit`, só dela, que você não edita e que é recriada no `sbx create`. Ela libera o que o próprio Claude Code usa: `api.anthropic.com`, `mcp-proxy.anthropic.com`, `claude.com`, `platform.claude.com`, `downloads.claude.ai` e `bridge.claudeusercontent.com`, mais `deb.debian.org` e `dhi.io`. Para ver as regras de uma VM, use `sbx policy ls <projeto>`.
 4. **Entregar o token do GitHub ao proxy (no host).** O token não entra na VM: o proxy o põe nas requisições ao GitHub.
 
    ```bash
@@ -60,7 +61,7 @@ O `sbx` é o comando do Docker Sandboxes. A fábrica não o instala nem roda: a 
 6. **Conferir a rede (no host).** Use `sbx policy log <projeto>`, que mostra o que o proxy liberou e o que bloqueou. Não confie num `curl` de dentro da VM: o proxy responde 200 ao CONNECT mesmo para um host bloqueado.
 
 ### Ampliar os domínios
-Quando uma etapa falhar com erro de rede, veja no `sbx policy log <projeto>` qual host foi bloqueado. Se o projeto precisa dele (a API de um serviço de pagamento em modo de teste, as fontes que o build baixa, a API do próprio Claude Code), libere só o host exato, só para a VM do projeto:
+Quando uma etapa falhar com erro de rede, veja no `sbx policy log <projeto>` qual host foi bloqueado. Se o projeto precisa dele (a API de um serviço de pagamento em modo de teste, as fontes que o build baixa), libere só o host exato, só para a VM do projeto:
 
 ```bash
 sbx policy allow network --sandbox <projeto> api.stripe.com
