@@ -29,7 +29,7 @@ Documentos: `docs/prd.md` (produto), `specs/` (uma spec por issue), `docs/adr/` 
 ## Segredos
 - Nunca commitar credenciais, tokens ou `.env`. Versione um `.env.example` sem valores reais.
 - `.env`, `.env.local`, `.env.development` e `.env.test` só têm valores de dev ou de homologação: o agente os lê. Os segredos de produção ficam no provedor (os secrets do deploy), nunca na máquina.
-- Os hosts e os literais de produção (prefixos de chave, nomes de variáveis) ficam listados em `.fabrica/producao.txt`. As etapas de agente não rodam comando que os cite, e o sandbox bloqueia os hosts na rede.
+- Os hosts e os literais de produção (prefixos de chave, nomes de variáveis) ficam listados em `.fabrica/producao.txt`. As etapas de agente não rodam comando que os cite. No modo `sbx` de `.fabrica/isolamento.txt`, a política de rede da VM também não libera esses hosts.
 - Antes de cada commit, revise o que está em stage (`git diff --staged`).
 
 ## Versões e dependências

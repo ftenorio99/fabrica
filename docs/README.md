@@ -25,7 +25,7 @@ Tudo acontece no GitHub do próprio projeto: as tarefas são issues, o estado de
 | [Issue escalonada](guias/issue-escalonada.md) | Um agente parou e pediu a sua decisão. |
 | [Revisar um PR da fábrica](guias/revisar-pr.md) | O PR chegou com `pronto-revisao`. |
 | [Fechar um marco](guias/fechar-marco.md) | O marco atual está acabando e é hora de puxar o próximo. |
-| [Isolamento do agente](guias/isolamento-do-agente.md) | Ligar o sandbox num projeto, ampliar os domínios, listar os padrões de produção e rodar o teste de aceite. |
+| [Isolamento do agente](guias/isolamento-do-agente.md) | Escolher entre a VM do `sbx` e o modo sem sandbox, preparar a VM, ampliar os domínios e listar os padrões de produção. |
 
 ## Fontes da verdade
 Este manual explica e remete. As regras ficam em:

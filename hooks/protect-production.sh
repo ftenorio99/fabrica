@@ -8,7 +8,7 @@
 # que só muda por merge do usuário: apagar a linha na branch não libera o
 # comando. A comparação é por substring literal, sem diferenciar maiúsculas.
 # Como o protect-main.sh, é uma checagem de texto: pega o erro inocente, e a
-# barreira de rede (sandbox.network.deniedDomains) pega o resto dos hosts.
+# barreira de rede, no modo sbx, é a política da VM (ADR 0010).
 
 if ! command -v jq >/dev/null || ! command -v git >/dev/null; then
   echo "protect-production: faltam o jq ou o git; os padrões de produção não foram conferidos." >&2

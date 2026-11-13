@@ -2,6 +2,8 @@
 
 **Status:** aceito · **Data:** 2026-11-10 · **Origem:** issue #116
 
+> A [ADR 0010](0010-isolamento-pelo-sbx-com-opcao-sem-sandbox.md) retirou o sandbox nativo: o limite descrito aqui é o dele, e a revisão desta ADR para o modo `sbx` fica para uma issue própria (#143).
+
 ## Contexto
 O sandbox da [ADR 0005](0005-isolamento-do-agente-em-sandbox.md) isola os comandos Bash do agente. No Linux, segundo a documentação do sandbox do Claude Code:
 - todo socket Unix fica bloqueado, inclusive o do Docker;

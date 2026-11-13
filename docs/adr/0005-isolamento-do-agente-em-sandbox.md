@@ -1,6 +1,6 @@
 # ADR 0005: Isolamento do agente local pelo sandbox nativo do Claude Code
 
-**Status:** aceito · **Data:** 2026-11-09 · **Origem:** issue #93
+**Status:** substituído por ADR 0010 · **Data:** 2026-11-09 · **Origem:** issue #93
 
 ## Contexto
 A F1 do PRD pede que o agente rode em sandbox, com o sistema de arquivos e a rede restritos e sem ler segredos em claro, antes de o fluxo andar sozinho (F4). Na máquina do usuário, as etapas leem o token do `gh` em `~/.config/gh/hosts.yml`, as chaves em `~/.ssh` e os `.env`, e alcançam qualquer host. Os hooks do git da ADR 0002 protegem só a `main`.

@@ -1,79 +1,86 @@
 # Isolamento do agente
 
-Este guia é para quando você quer deixar os agentes rodando sozinhos num projeto, pelo `/fabrica:avancar`, sem que um comando deles alcance o resto da máquina. A fábrica usa o sandbox nativo do Claude Code. A decisão e as alternativas estão na [ADR 0005](../adr/0005-isolamento-do-agente-em-sandbox.md).
+Este guia é para quando você quer deixar os agentes rodando sozinhos num projeto, pelo `/fabrica:avancar`, e precisa decidir o que um comando deles pode alcançar. A decisão e as alternativas estão na [ADR 0010](../adr/0010-isolamento-pelo-sbx-com-opcao-sem-sandbox.md), que substituiu a ADR 0005.
 
-## O que o sandbox protege
-O sandbox vale para os comandos Bash das sessões abertas no projeto e para os processos filhos deles:
-- **Arquivos:** os comandos escrevem só no projeto, na pasta temporária e no cache do npm (`~/.npm`). O cache é compartilhado entre os projetos, e um agente enganado poderia gravar nele um pacote adulterado. O `npm ci` confere o hash de cada pacote pelo lockfile. O `.claude/settings.json` do projeto continua protegido, mesmo estando dentro do projeto. O estrago que um comando fizer dentro do projeto o git recupera.
-- **Rede:** só os domínios liberados respondem. A base é a do GitHub (`github.com`, `api.github.com`, `codeload.github.com`, `uploads.github.com` e `*.githubusercontent.com`) e o `registry.npmjs.org`. O servidor local (`allowLocalBinding`) continua liberado, para o servidor de dev e o Playwright.
-- **Segredos:**
-  - `~/.ssh`, o `.env.production` e o `.env.production.local` do projeto não podem ser lidos. Os outros `.env` (`.env`, `.env.local`, `.env.development` e `.env.test`) só têm valores de dev ou de homologação e ficam legíveis, para os testes e as migrações locais (veja "Produção fora do alcance");
-  - `GH_TOKEN` e `GITHUB_TOKEN` chegam vazias;
-  - o token do `gh` em `~/.config/gh/hosts.yml` aparece como um marcador, e o proxy do sandbox põe o token real só nas requisições a `api.github.com` e `github.com`;
-  - o cabeçalho do `git push` em `~/.config/fabrica/git-auth.gitconfig` também aparece como marcador, e o proxy põe o valor real só nas requisições a `github.com` (veja "Git push").
-- **Sem saída:** o agente não pode repetir fora do sandbox um comando barrado (`allowUnsandboxedCommands: false`), e nenhum comando é exceção. O que precisa sair do sandbox você roda com `!` no prompt.
+## Os dois modos
+Cada projeto escolhe um modo, gravado em `.fabrica/isolamento.txt`:
 
-O sandbox não cobre o WebFetch, que segue as regras de permissão, nem o tráfego do próprio Claude Code com a API.
+| | `sbx` (padrão) | `sem-sandbox` |
+|---|---|---|
+| Onde o agente roda | Numa VM do Docker Sandboxes, com a pasta do projeto montada | Direto na sua máquina |
+| Arquivos | Só a pasta do projeto e o home da VM. O seu home, as chaves SSH e os outros projetos ficam fora | Tudo o que o seu usuário lê e escreve |
+| Rede | Só os hosts da política da VM | Qualquer host |
+| Token do GitHub | Fica no host. Na VM, o agente vê um marcador, e o proxy põe o token real nas requisições ao GitHub | O agente lê o token do `gh` |
+| Docker e Compose | Funcionam dentro da VM | Os da sua máquina |
+| `main` protegida | Hooks do git, instalados dentro da VM | Hooks do git da máquina |
 
-## Dependências
-No Linux, o sandbox precisa do `bubblewrap` e do `socat`:
+Nenhum dos dois modos cobre o WebFetch, que segue as regras de permissão do Claude Code, nem o tráfego do próprio Claude Code com a API.
+
+**Escolher:** rode `/fabrica:setup` no projeto. Ele pergunta o modo na primeira vez, grava o arquivo e mostra o que fazer em seguida. Faça o commit de `.fabrica/isolamento.txt` numa branch e abra o PR, como qualquer mudança.
+
+**Trocar:** edite o arquivo por um PR. Ele tem uma linha, `sbx` ou `sem-sandbox`; linhas vazias e começadas com `#` são ignoradas. Com o modo já gravado, o setup não pergunta de novo.
+
+O modo não muda o `/fabrica:status`, o `/fabrica:metricas` nem as etapas: por enquanto, ele só orienta o setup.
+
+## Modo `sbx`
+O `sbx` é o comando do Docker Sandboxes. A fábrica não o instala nem roda: a VM, a política de rede e o secret são seus, no host. O checklist abaixo é o que o `/fabrica:setup` mostra no fim, conferido com o `sbx` 0.51.0. Troque `<projeto>` pelo nome da pasta do repositório.
+
+1. **Fechar a rede padrão (no host, uma vez por máquina).** O `sbx` nasce com a rede aberta. Confira com `sbx policy ls`: a política global deve ser a `default-deny-all`, que nega o que nenhuma regra decide. Se ela liberar tudo, refaça a inicialização:
+
+   ```bash
+   sbx policy reset
+   sbx policy init deny-all
+   ```
+
+   O `reset` para as VMs que estiverem rodando e apaga as regras locais.
+2. **Criar a VM (no host, na pasta do projeto).**
+
+   ```bash
+   sbx create --name <projeto> claude .
+   ```
+3. **Liberar a rede só para a VM (no host).** A base é o GitHub, o npm e o Docker Hub:
+
+   ```bash
+   sbx policy allow network --sandbox <projeto> github.com,api.github.com,codeload.github.com,uploads.github.com,*.githubusercontent.com,registry.npmjs.org,registry-1.docker.io,auth.docker.io,production.cloudflare.docker.com
+   ```
+   A lista não tem a API do Claude Code, e não precisa. Toda VM criada com o agente `claude` recebe do `sbx` uma política de origem `kit`, só dela, que você não edita e que é recriada no `sbx create`. Ela libera o que o próprio Claude Code usa: `api.anthropic.com`, `mcp-proxy.anthropic.com`, `claude.com`, `platform.claude.com`, `downloads.claude.ai` e `bridge.claudeusercontent.com`, mais `deb.debian.org` e `dhi.io`. Para ver as regras de uma VM, use `sbx policy ls <projeto>`.
+4. **Entregar o token do GitHub ao proxy (no host).** O token não entra na VM: o proxy o põe nas requisições ao GitHub.
+
+   ```bash
+   sbx secret set github --command 'gh auth token'
+   ```
+5. **Instalar o plugin e os hooks do git (dentro da VM).** Abra a sessão com `sbx run --name <projeto>`. O `~/.claude` do host não entra na VM, então instale o plugin nela:
+
+   ```
+   /plugin marketplace add ftenorio99/fabrica
+   /plugin install fabrica@fabrica
+   /fabrica:setup
+   ```
+
+   O setup lê o modo do `.fabrica/isolamento.txt`, que chega à VM pela pasta do projeto, e instala os hooks do git no home da VM. **Repita este item depois de um `sbx rm`:** os hooks somem com a VM e, sem eles, o push na `main` passa.
+6. **Conferir a rede (no host).** Use `sbx policy log <projeto>`, que mostra o que o proxy liberou e o que bloqueou. Não confie num `curl` de dentro da VM: o proxy responde 200 ao CONNECT mesmo para um host bloqueado.
+
+### Ampliar os domínios
+Quando uma etapa falhar com erro de rede, veja no `sbx policy log <projeto>` qual host foi bloqueado. Se o projeto precisa dele (a API de um serviço de pagamento em modo de teste, as fontes que o build baixa), libere só o host exato, só para a VM do projeto:
 
 ```bash
-sudo apt-get install bubblewrap socat
+sbx policy allow network --sandbox <projeto> api.stripe.com
 ```
 
-No Ubuntu 24.04 ou mais novo, confira `sysctl kernel.apparmor_restrict_unprivileged_userns`. Se a resposta for `1`, o AppArmor impede o `bwrap` de criar os namespaces que o sandbox usa, e o sandbox não sobe. O sintoma é um erro como `apply-seccomp: write /proc/self/setgroups ... Permission denied` em todo comando. Crie o perfil do `bwrap`, que vale só para ele e não para os comandos que ele roda, e recarregue o AppArmor:
+Um curinga largo (como `*.github.com`) abre caminhos para tirar dados do projeto (como o `gist.github.com`). Não libere os hosts de produção (veja [Produção fora do alcance](#produção-fora-do-alcance)).
 
-```bash
-sudo tee /etc/apparmor.d/bwrap > /dev/null <<'EOF'
-abi <abi/4.0>,
-include <tunables/global>
+## Modo sem sandbox
+Neste modo, não há isolamento. Os comandos do agente rodam com o seu usuário: leem o token do `gh`, as chaves SSH e os `.env` da máquina, escrevem fora do projeto e alcançam qualquer host. É uma exceção assumida, registrada no arquivo do projeto.
 
-profile bwrap /usr/bin/bwrap flags=(unconfined) {
-  userns,
-  include if exists <local/bwrap>
-}
-EOF
-sudo systemctl reload apparmor
-```
+O que continua valendo:
+- os hooks do git, que recusam commit e push na `main`;
+- o hook de produção, que recusa o comando que cita um padrão de `.fabrica/producao.txt`;
+- as regras de permissão do Claude Code.
 
-No Ubuntu 26.04, o sistema já traz o `/etc/apparmor.d/bwrap-userns-restrict`. Ele define um perfil com o mesmo nome, `bwrap`, carregado depois do perfil acima. Esse perfil põe os processos filhos do `bwrap` num perfil `unpriv_bwrap`, que barra os namespaces aninhados de que o sandbox precisa, e o erro continua. Desligue-o e recarregue o perfil do Claude Code:
-
-```bash
-sudo ln -s /etc/apparmor.d/bwrap-userns-restrict /etc/apparmor.d/disable/
-sudo apparmor_parser -R /etc/apparmor.d/bwrap-userns-restrict
-sudo apparmor_parser -r /etc/apparmor.d/bwrap
-sudo aa-status | grep -i bwrap   # deve listar bwrap, sem unpriv_bwrap
-```
-
-Para desfazer, apague `/etc/apparmor.d/disable/bwrap-userns-restrict` e `/etc/apparmor.d/bwrap` e rode `sudo apparmor_parser -r /etc/apparmor.d/bwrap-userns-restrict`.
-
-O comando `/sandbox` do Claude Code mostra o estado e o que falta.
-
-## Ligar num projeto
-1. Rode `/fabrica:setup` no projeto e confirme o passo **Sandbox**. Ele grava a base no `.claude/settings.json` do projeto e o mascaramento do token no `~/.claude/settings.json`, porque o Claude Code só aceita o mascaramento nesse escopo. Se o projeto tiver o Prettier instalado (`node_modules/.bin/prettier`), o setup formata com ele o `.claude/settings.json`, para o arquivo passar no lint do projeto. Se o projeto tiver um `.prettierignore`, o setup acrescenta a ele os caminhos que o sandbox monta no projeto (veja [O que não roda no sandbox do Linux](#o-que-não-roda-no-sandbox-do-linux)).
-2. Faça commit do `.claude/settings.json` do projeto numa branch e abra o PR, como qualquer mudança.
-3. Abra uma sessão nova no projeto. O sandbox vale a partir dela.
-
-Se a sessão em que você rodou o setup já estiver em sandbox, o script não consegue gravar o settings do usuário. Ele imprime uma linha começando com `!`: cole essa linha no prompt, para ela rodar fora do sandbox.
-
-## Git push
-O git manda o token em Basic auth, codificado em base64, e o proxy só troca um marcador que aparece literalmente na requisição. Com o token do `hosts.yml`, o marcador some dentro do base64, e o push falha com `Invalid username or token`.
-
-Por isso, o cabeçalho vai pronto num arquivo próprio, `~/.config/fabrica/git-auth.gitconfig`, incluído no seu `~/.gitconfig`. No sandbox, o git lê o marcador e manda `Authorization: Basic <marcador>`, e o proxy troca o marcador pelo valor real. Fora do sandbox, o git usa o valor real, e o push continua funcionando como antes.
-
-Gere o arquivo, fora do sandbox, na primeira vez e sempre que o token do `gh` mudar (depois de um `gh auth login` ou `gh auth refresh`):
-
-```bash
-bash <clone do fabrica>/scripts/setup-git-auth.sh
-```
-
-O script grava o arquivo com permissão `600` e acrescenta o `include.path` ao `~/.gitconfig`, se ainda não houver. Com um token velho no arquivo, o push falha também fora do sandbox: gere o arquivo de novo. Para tirar, apague o arquivo e rode `git config --global --unset include.path ~/.config/fabrica/git-auth.gitconfig`.
+Os dois hooks cobrem o erro inocente, não um agente enganado. Use este modo em projetos sem segredo relevante na máquina, ou quando você acompanha a sessão.
 
 ## Token fine-grained
-O mascaramento impede o agente de ler o token e de mandá-lo a um host fora da lista. Ele não impede o vazamento pelo próprio GitHub. O proxy troca o marcador em qualquer parte da requisição a `api.github.com`, inclusive no corpo. Então um agente enganado pode postar o marcador num comentário, ou pedi-lo de volta (ex.: `POST /markdown`), e o GitHub grava ou devolve o token real. Com o cabeçalho do git, a rota parecida é um nome de branch no `git push`.
-
-Por isso, o token do `gh` precisa ser **fine-grained**, com o menor estrago possível se vazar:
+Nos dois modos, o agente age no GitHub com o seu token: no modo sem sandbox, ele o lê; no modo `sbx`, o proxy o usa por ele. Um agente enganado pode usar esse acesso contra qualquer repositório que o token alcance. Por isso, o token do `gh` deve ser **fine-grained**, com o menor estrago possível:
 1. Em https://github.com/settings/personal-access-tokens/new, crie um token com:
    - **Expiração:** 90 dias ou menos;
    - **Repository access:** só os repositórios em que a fábrica trabalha (ex.: `fabrica` e `kairo`);
@@ -81,52 +88,36 @@ Por isso, o token do `gh` precisa ser **fine-grained**, com o menor estrago poss
      - Contents, Issues, Pull requests e Workflows: leitura e escrita;
      - Actions e Commit statuses: leitura;
      - Metadata: leitura, que é obrigatória.
-2. Troque o login do `gh` pelo token novo, guardando-o no arquivo. Faça o `logout` antes: o `gh` dá preferência ao token do chaveiro do sistema, e um login sem ele deixa o token antigo valendo fora do sandbox.
+2. Troque o login do `gh` pelo token novo:
 
    ```bash
    gh auth logout --hostname github.com
-   gh auth login --with-token --insecure-storage   # cole o token e tecle Ctrl-D
-   gh auth status   # deve dizer "(.../hosts.yml)" e não "(keyring)"
+   gh auth login --with-token   # cole o token e tecle Ctrl-D
+   gh auth status
    ```
 
    Depois, revogue o token antigo: em https://github.com/settings/applications, *Authorized OAuth Apps* → **GitHub CLI** → *Revoke*.
-3. Gere de novo o cabeçalho do git: `bash <clone do fabrica>/scripts/setup-git-auth.sh`.
-4. Repita os três passos quando o token expirar. O aceite confere a expiração (`token-com-expiracao`).
+3. Repita os dois passos quando o token expirar. No modo `sbx`, o secret do item 4 do checklist chama `gh auth token` no host e pega o token novo sozinho.
 
-O aceite mostra a reflexão como `aviso reflexao-token-gh`: é o risco aceito na ADR 0005, e não uma falha. Um repositório novo na fábrica precisa entrar no acesso do token.
+Um repositório novo na fábrica precisa entrar no acesso do token. O token fine-grained não lê os checks do PR, e por isso o `/fabrica:revisar` lê o CI pela API do Actions.
 
-## Token no chaveiro
-O `gh` pode guardar o token no chaveiro do sistema, e não no `hosts.yml`. Nesse caso, o sandbox não tem o que mascarar, e o `gh` falha dentro dele. Para saber, confira se o `~/.config/gh/hosts.yml` tem uma linha `oauth_token`. Sem ela, o token está no chaveiro.
+## Projetos com o sandbox nativo
+Até a ADR 0010, o `/fabrica:setup` ligava o sandbox nativo do Claude Code, gravando um bloco `sandbox` no `.claude/settings.json` do projeto. Esse bloco ainda está nos projetos que passaram por aquele setup. Dentro da VM do `sbx`, ele liga um segundo sandbox e esconde o `GH_TOKEN` dos comandos do agente, e o `gh` e o `git push` falham.
 
-Para o `gh` funcionar no sandbox, o token precisa ir para o `hosts.yml` (`gh auth login --insecure-storage`). Fora do sandbox, qualquer processo seu pode ler esse arquivo e o `git-auth.gitconfig`, como já pode ler o chaveiro da sessão. Dentro do sandbox, o agente vê só os marcadores.
+O `/fabrica:setup` avisa quando encontra o bloco, mas não o remove. Até a issue que faz essa migração (#142), escolha um caminho:
+- **Remover o bloco:** apague a chave `sandbox` do `.claude/settings.json` do projeto, por um PR.
+- **Contornar, sem mexer no arquivo:** abra a sessão com o sandbox nativo desligado:
 
-## Ampliar os domínios
-Quando uma etapa falhar com erro de rede para um host que o projeto usa (ex.: a API de um serviço de pagamento em modo de teste), acrescente o domínio no `.claude/settings.json` do projeto:
+  ```bash
+  sbx run claude <projeto> -- --settings '{"sandbox":{"enabled":false}}'
+  ```
 
-```json
-{
-  "sandbox": {
-    "network": {
-      "allowedDomains": ["api.stripe.com"]
-    }
-  }
-}
-```
+O que o setup antigo gravou no `~/.claude/settings.json` e no `~/.gitconfig` da sua máquina não age dentro da VM e pode ficar até a migração.
 
-As listas se somam entre o settings do usuário e o do projeto, e rodar o `/fabrica:setup` de novo mantém os domínios que você acrescentou. Libere só o host exato. Um curinga largo (como `*.github.com`) abre caminhos para tirar dados do projeto (como o `gist.github.com`).
+## Verificação de integração
+As etapas `/fabrica:implementar` e `/fabrica:revisar` mandam para o CI do PR a verificação que falha só com as assinaturas de limite do sandbox nativo: o socket do Docker negado e o `localhost` recusado ([ADR 0007](../adr/0007-verificacao-de-integracao-pelo-ci.md)). Essa regra continua nas etapas.
 
-## O que não roda no sandbox do Linux
-No Linux, o sandbox bloqueia todo socket Unix, inclusive o do Docker, e cada comando tem um `localhost` próprio, que não alcança o banco da máquina. Por isso, o `make test` com banco e o `make e2e` não rodam nas etapas de agente. A fábrica não afrouxa o sandbox para isso: o socket do Docker dá controle da máquina inteira ([ADR 0007](../adr/0007-verificacao-de-integracao-pelo-ci.md)).
-
-O caminho é o CI do PR:
-- o `/fabrica:implementar` roda no sandbox o que cabe nele (lint, typecheck, testes sem banco) e anota como "verificação pendente para o CI" o comando que falhou só pelo limite do sandbox;
-- o `/fabrica:revisar` abre o PR em rascunho, espera o CI e passa o resultado ao revisor como evidência dos critérios de integração. Só com o CI verde ele tira o rascunho e aplica `pronto-revisao`.
-
-O projeto precisa de um workflow em `.github/workflows/` que dispare em `pull_request` e rode a verificação completa. Sem ele, a etapa escalona e pede a verificação a você.
-
-**Prettier:** o sandbox monta no projeto alguns caminhos protegidos, na raiz (`.bashrc`, `.vscode`, `.mcp.json` e outros) e em `.claude/` (`skills`, `agents`, `settings.local.json` e outros), ilegíveis para os comandos, e o `prettier --check .` falha neles. O `/fabrica:setup` acrescenta ao `.prettierignore` os que o projeto não versiona, num bloco comentado. Sem `.prettierignore` no projeto, ele não cria o arquivo.
-
-**Domínios do build:** se o build buscar algo na rede (ex.: o `next/font` baixa fontes do `fonts.googleapis.com` e do `fonts.gstatic.com`), libere esses hosts como em [Ampliar os domínios](#ampliar-os-domínios).
+Dentro da VM do `sbx`, Docker e Compose funcionam, e o `make test` com banco e o `make e2e` rodam na própria etapa: essas falhas não devem aparecer. Se aparecerem, o caminho é o mesmo de antes: o PR abre em rascunho, espera o CI e só sai do rascunho com o CI verde. A revisão dessa regra para o modo `sbx` está na #143.
 
 ## Texto de issue e PR fora do prompt
 O texto de uma issue, de um PR ou de um comentário pode vir de qualquer pessoa, e o modelo tende a obedecer instruções plantadas em texto que chega no turno do usuário. O que chega como resultado de ferramenta ele trata como não confiável ([ADR 0008](../adr/0008-texto-externo-fora-do-prompt.md)). Por isso:
@@ -135,7 +126,7 @@ O texto de uma issue, de um PR ou de um comentário pode vir de qualquer pessoa,
 - **Uso manual:** o que você digita no chat é seu e pode ir no argumento, como `/fabrica:spec 42 troque o CA3`. Não cole ali o texto de um comentário de outra pessoa.
 
 ## Produção fora do alcance
-As etapas de agente só usam dev ou homologação ([ADR 0006](../adr/0006-producao-fora-do-alcance-do-agente.md)). A convenção é que os `.env` da máquina só tenham valores de dev ou de homologação, e que os segredos de produção fiquem no provedor (os secrets do deploy). Não deixe um `.env.production` real na máquina: o sandbox nega a leitura dele pelo Bash, mas a ferramenta Read do Claude Code não passa pelo sandbox.
+As etapas de agente só usam dev ou homologação ([ADR 0006](../adr/0006-producao-fora-do-alcance-do-agente.md)). A convenção é que os `.env` da máquina só tenham valores de dev ou de homologação, e que os segredos de produção fiquem no provedor (os secrets do deploy). Não deixe um `.env.production` real na pasta do projeto: ela é montada na VM do `sbx`, e no modo sem sandbox o agente lê a máquina inteira.
 
 Para o agente não alcançar produção por engano, liste os padrões de produção em `.fabrica/producao.txt`, na raiz do repositório, e faça commit por PR:
 
@@ -147,32 +138,16 @@ texto sk_live_
 texto PROD_DATABASE_URL
 ```
 
-- **`host <domínio>`:** o hook do plugin recusa o comando Bash que cita o domínio, e o `/fabrica:setup` copia o domínio para `sandbox.network.deniedDomains` do projeto, que vale mesmo para um host liberado em `allowedDomains`. Aceita o curinga `*.` no início.
-- **`texto <literal>`:** só o hook, para prefixos de chave, nomes de variáveis e trechos de URL. Literais com menos de 4 caracteres são ignorados.
+- **`host <domínio>`:** o hook do plugin recusa o comando Bash que cita o domínio. Aceita o curinga `*.` no início.
+- **`texto <literal>`:** o hook recusa o comando que cita o literal: prefixos de chave, nomes de variáveis e trechos de URL. Literais com menos de 4 caracteres são ignorados.
 - Linhas vazias e começadas com `#` são ignoradas. A comparação ignora maiúsculas e é por trecho literal, sem expressão regular.
 
-O hook lê o arquivo da branch e o da `main` no `origin`. Apagar uma linha numa branch não libera o comando até o merge, que é seu. Depois de mudar as linhas `host`, rode o `/fabrica:setup` de novo para atualizar o `deniedDomains`.
+O hook lê o arquivo da branch e o da `main` no `origin`. Apagar uma linha numa branch não libera o comando até o merge, que é seu.
+
+O hook pega o que está escrito no comando. A barreira de rede depende do modo:
+- **`sbx`:** a política da VM só libera os hosts que você listou. Enquanto nenhum host de produção entrar nela, a VM não os alcança, mesmo que o comando escape do hook.
+- **`sem-sandbox`:** não há barreira de rede. Só o hook protege.
 
 Se o hook barrar um comando legítimo (um `grep` que cita o nome da variável, por exemplo), rode-o você mesmo com `!` no prompt, ou deixe o padrão mais específico.
 
-As regras `Read(...)` de `permissions.deny` do `.claude/settings.json` também valem no sandbox. Um `Read(.env)` antigo deixa o `.env` ilegível para os comandos do agente, mesmo com o bloco `sandbox` em dia. O setup avisa com `permissions.deny nega <regra>`, e quem remove a regra é você. Mantenha as regras dos `.env` de produção, que também protegem a ferramenta Read.
-
-Projetos que ligaram o sandbox antes da ADR 0006 têm `deny` em `.env`, `.env.local`, `.env.development` e `.env.test`. O `--check` do setup mostra `remover:credentials:<arquivo>`, e confirmar o passo **Sandbox** remove essas entradas.
-
-## Rodar o teste de aceite
-Numa sessão aberta no projeto, com o sandbox ligado, um `.env` e um `.env.production` de teste na raiz (ex.: `TESTE=1`), peça ao agente para rodar:
-
-```bash
-bash <clone do fabrica>/scripts/test-sandbox-acceptance.sh
-```
-
-Cada linha sai como `ok <verificação>` ou `falha <verificação>: <motivo>`:
-- escrita fora do projeto e no `.claude/settings.json`;
-- rede fora da lista;
-- token, `~/.ssh` e `.env.production` em claro, e o `.env` de dev legível;
-- `gh api user`, `npm view` e o `git push` de uma branch `test/sandbox-*`, apagada no fim. Use `--remote <nome>` para fazer o push em outro remote que não o `origin`.
-
-Rode o teste de novo quando o Claude Code mudar o sandbox nas notas de versão, porque o `tlsTerminate`, que o mascaramento usa, ainda é experimental.
-
-## Desligar
-Para desligar num projeto, mude `sandbox.enabled` para `false` no `.claude/settings.json` dele, por um PR. O bloco do `~/.claude/settings.json` só age nos projetos com o sandbox ligado e pode ficar.
+As regras `Read(...)` de `permissions.deny` do `.claude/settings.json` continuam valendo nos dois modos para a ferramenta Read do Claude Code. Mantenha as regras dos `.env` de produção.
