@@ -103,14 +103,22 @@ check "CA7 --set sbx --check" "|1" "$(out --set sbx --check)"
 check "CA7 opção desconhecida" "|1" "$(out --force)"
 check "CA7 opção desconhecida: mensagem" "sim" "$([[ -n "$(err --force)" ]] && echo sim || echo não)"
 check "CA7 nada criado" "não" "$(exists "$proj/.fabrica")"
+msg() { [[ -n "$(err "$@")" ]] && echo sim || echo não; }
+check "CA7 --set sem valor: mensagem" "sim" "$(msg --set)"
+check "CA7 --check --set sbx: mensagem" "sim" "$(msg --check --set sbx)"
+check "CA7 nada criado depois das mensagens" "não" "$(exists "$proj/.fabrica")"
 run --set sbx >/dev/null
 check "CA7 --set docker não altera o arquivo" "|1 s b x \n" "$(out --set docker) $(content)"
+check "CA7 --set sem valor não altera o arquivo" "|1 s b x \n" "$(out --set) $(content)"
+check "CA7 --check --set sem-sandbox não altera o arquivo" "|1 s b x \n" "$(out --check --set sem-sandbox) $(content)"
+check "CA7 opção desconhecida não altera o arquivo" "|1 s b x \n" "$(out --force --set sem-sandbox) $(content)"
 
 # CA8: sem projeto.
 mkdir -p "$tmp/fora"
 check "CA8 fora de repositório git, sem --project" "|1" "$(cd "$tmp/fora" && o="$(GIT_CEILING_DIRECTORIES="$tmp" bash "$setup" --check 2>/dev/null)"; printf '%s|%s' "$o" "$?")"
 check "CA8 fora de repositório git: mensagem" "sim" "$([[ -n "$(cd "$tmp/fora" && GIT_CEILING_DIRECTORIES="$tmp" bash "$setup" --check 2>&1 >/dev/null)" ]] && echo sim || echo não)"
 check "CA8 --project inexistente" "|1" "$(o="$(bash "$setup" --project "$tmp/nao-existe" --check 2>/dev/null)"; printf '%s|%s' "$o" "$?")"
+check "CA8 --project inexistente: mensagem" "sim" "$([[ -n "$(bash "$setup" --project "$tmp/nao-existe" --check 2>&1 >/dev/null)" ]] && echo sim || echo não)"
 check "CA8 --project sem diretório" "|1" "$(o="$(bash "$setup" --project 2>/dev/null)"; printf '%s|%s' "$o" "$?")"
 reset_env
 check "CA8 sem --project, dentro do repositório" "ausente|0" "$(cd "$proj" && o="$(bash "$setup" 2>/dev/null)"; printf '%s|%s' "$o" "$?")"
