@@ -2,6 +2,8 @@
 
 **Status:** aceito · **Data:** 2026-11-10 · **Origem:** issue #94
 
+> A [ADR 0010](0010-isolamento-pelo-sbx-com-opcao-sem-sandbox.md) retirou o sandbox nativo: o bloqueio de rede por `sandbox.network.deniedDomains` deixou de existir, e o que vale em cada modo de isolamento está nela.
+
 ## Contexto
 A F2 do PRD pede que as etapas de agente nunca alcancem o banco nem os serviços de produção, e que o que é de produção vire passo de um runbook executado pelo usuário (F8). O sandbox da [ADR 0005](0005-isolamento-do-agente-em-sandbox.md) restringe a rede a uma lista de domínios, mas não sabe quais hosts de cada projeto são de produção. Ele também nega a leitura de todos os `.env*`, o que impede os testes e as migrações locais dos projetos que carregam o ambiente de dev pelo `.env`, como o kairo.
 
