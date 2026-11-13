@@ -1,6 +1,6 @@
 # ADR 0010: Isolamento do agente pelo Docker Sandboxes (`sbx`), com opção sem sandbox
 
-**Status:** proposto · **Data:** 2026-11-12 · **Origem:** issue #141
+**Status:** aceito · **Data:** 2026-11-12 · **Origem:** issue #141
 
 ## Contexto
 A [ADR 0005](0005-isolamento-do-agente-em-sandbox.md) isolou o agente local com o sandbox nativo do Claude Code (`bwrap` e `socat`, `mask` do token e `tlsTerminate`). No uso, ele ficou frágil:

@@ -1,7 +1,7 @@
 # SPEC-141: Adotar o sbx como sandbox padrão, com opção sem sandbox, e retirar o sandbox nativo
 
 **Issue:** #141 · **PRD:** F1 · **Classe:** implementacao-complexa · **Tamanho:** G
-**Status:** rascunho · **Atualizada em:** 2026-11-12
+**Status:** aprovada · **Atualizada em:** 2026-11-12
 
 ## Contexto
 A F1 do PRD pede que o agente rode em sandbox. A [ADR 0005](../docs/adr/0005-isolamento-do-agente-em-sandbox.md) fez isso com o sandbox nativo do Claude Code, que ficou frágil no uso (token no chaveiro, expressão do `mask`, Docker bloqueado). Em 2026-11-12, o Docker Sandboxes (`sbx` 0.51.0) passou no teste feito no `ancora` e no `kairo`, e a issue decidiu trocar: o `sbx` vira o modo padrão, com a opção de rodar sem sandbox.
@@ -159,3 +159,4 @@ nenhum
 
 ## Histórico
 - 2026-11-12: criação.
+- 2026-11-12: aprovada.
