@@ -99,7 +99,7 @@ No modo `sbx`, termine o resumo com este checklist, trocando `<projeto>` pelo no
 
 1. **No host, uma vez por máquina:** fechar a rede padrão do `sbx`, que nasce aberta. Conferir com `sbx policy ls`; se a política global liberar tudo, `sbx policy reset` e `sbx policy init deny-all`.
 2. **No host:** criar a VM do projeto, na pasta dele: `sbx create --name <projeto> claude .`
-3. **No host:** liberar a rede só para a VM: `sbx policy allow network --sandbox <projeto> github.com,api.github.com,codeload.github.com,uploads.github.com,*.githubusercontent.com,registry.npmjs.org,registry-1.docker.io,auth.docker.io,production.cloudflare.docker.com`
+3. **No host:** liberar a rede só para a VM: `sbx policy allow network --sandbox <projeto> github.com,api.github.com,codeload.github.com,uploads.github.com,*.githubusercontent.com,registry.npmjs.org,registry-1.docker.io,auth.docker.io,production.cloudflare.docker.com`. Projeto com `make e2e` (Playwright): libere também os navegadores, com `sbx policy allow network --sandbox <projeto> cdn.playwright.dev,playwright.download.prss.microsoft.com`
 4. **No host:** entregar o token do GitHub ao proxy, sem ele entrar na VM: `sbx secret set github --command 'gh auth token'`
 5. **Dentro da VM** (`sbx run --name <projeto>`): instalar o plugin com `/plugin marketplace add ftenorio99/fabrica` e `/plugin install fabrica@fabrica`, e rodar `/fabrica:setup` para instalar os hooks do git. Repetir este item depois de um `sbx rm`: sem os hooks, o push na `main` passa.
 6. **No host:** conferir a rede com `sbx policy log <projeto>`, e não com `curl` de dentro da VM, porque o proxy responde 200 ao CONNECT mesmo para um host bloqueado.
