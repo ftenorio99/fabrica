@@ -95,16 +95,37 @@ Rode `bash <diretório base>/../../scripts/check-gh.sh` e siga a linha que ele i
 - Se o script falhar porque falta o `jq`, diga para instalá-lo e siga: a statusline é opcional.
 
 ## Checklist do modo `sbx`
-No modo `sbx`, termine o resumo com este checklist, trocando `<projeto>` pelo nome da pasta do repositório. A VM, a política de rede e o secret são do usuário, no host: não rode nenhum comando `sbx`, nem para conferir se ele está instalado.
+No modo `sbx`, termine o resumo com este checklist. A VM, a política de rede e o secret são do usuário, no host: não rode nenhum comando `sbx`, nem para conferir se ele está instalado.
+
+Antes de montar o checklist, rode `bash <diretório base>/../../scripts/sbx-context.sh`. Ele imprime quatro linhas, sem rodar `sbx` e sem gravar nada:
+- `onde vm` ou `onde host`: se o setup roda dentro da VM do `sbx` ou na máquina;
+- `nome <vm>`: o nome padrão do `sbx` para a pasta do projeto, `claude-<pasta>`. Troque `<vm>` por ele em todo comando abaixo;
+- `token marcador`, `token ausente` ou `token real`: o formato do `GH_TOKEN`;
+- `e2e sim` ou `e2e não`: se o `Makefile` do projeto tem o alvo `e2e:` (Playwright).
+
+Se o script sair com código diferente de 0, mostre o erro, use `onde host`, `claude-<pasta do repositório>` como `<vm>` e mostre a linha do Playwright como condicional ("projeto com `make e2e`").
+
+Monte os itens conforme a linha `onde`. Item feito aparece marcado como feito, com o motivo: não o tire do checklist.
+
+| Item | `onde host` | `onde vm` |
+|---|---|---|
+| 1 | Pendente (texto abaixo) | Feito: o setup roda dentro da VM. O item 6 confere |
+| 2 | Pendente | Feito: o setup roda dentro da VM, que já existe. Não mande criá-la |
+| 3, rede base | Pendente | Feito: o setup roda dentro da VM. O item 6 confere |
+| 3, Playwright | Com `e2e sim`, pendente. Com `e2e não`, não mostre a linha | Igual ao host |
+| 4 | Pendente | Com `token marcador`, feito: o `GH_TOKEN` da VM é o marcador do proxy. Com `token ausente`, pendente. Com `token real`, pendente, com o aviso de que o `GH_TOKEN` da VM tem formato de token real e deveria ser o marcador do proxy |
+| 5 | Feito se o `--check` do passo 4 imprimiu `ok` ou `atualizado <versão>`, ou se os hooks foram instalados nesta execução; senão, pendente | Igual ao host |
+| 6 | Pendente | Pendente, dizendo que ele também confere os itens 1 e 3, que não dá para provar de dentro da VM |
 
 1. **No host, uma vez por máquina:** fechar a rede padrão do `sbx`, que nasce aberta. Conferir com `sbx policy ls`; se a política global liberar tudo, `sbx policy reset` e `sbx policy init deny-all`.
-2. **No host:** criar a VM do projeto, na pasta dele: `sbx create --name <projeto> claude .`
-3. **No host:** liberar a rede só para a VM: `sbx policy allow network --sandbox <projeto> github.com,api.github.com,codeload.github.com,uploads.github.com,*.githubusercontent.com,registry.npmjs.org,registry-1.docker.io,auth.docker.io,production.cloudflare.docker.com`. Projeto com `make e2e` (Playwright): libere também os navegadores, com `sbx policy allow network --sandbox <projeto> cdn.playwright.dev,playwright.download.prss.microsoft.com`
+2. **No host:** criar a VM do projeto, na pasta dele: `sbx create --name <vm> claude .`
+3. **No host:** liberar a rede só para a VM: `sbx policy allow network --sandbox <vm> github.com,api.github.com,codeload.github.com,uploads.github.com,*.githubusercontent.com,registry.npmjs.org,registry-1.docker.io,auth.docker.io,production.cloudflare.docker.com`
+   - **Este projeto tem `make e2e` (Playwright):** liberar também os navegadores: `sbx policy allow network --sandbox <vm> cdn.playwright.dev,playwright.download.prss.microsoft.com`
 4. **No host:** entregar o token do GitHub ao proxy, sem ele entrar na VM: `sbx secret set github --command 'gh auth token'`
-5. **Dentro da VM** (`sbx run --name <projeto>`): instalar o plugin com `/plugin marketplace add ftenorio99/fabrica` e `/plugin install fabrica@fabrica`, e rodar `/fabrica:setup` para instalar os hooks do git. Repetir este item depois de um `sbx rm`: sem os hooks, o push na `main` passa.
-6. **No host:** conferir a rede com `sbx policy log <projeto>`, e não com `curl` de dentro da VM, porque o proxy responde 200 ao CONNECT mesmo para um host bloqueado.
+5. **Dentro da VM** (`sbx run --name <vm>`): instalar o plugin com `/plugin marketplace add ftenorio99/fabrica` e `/plugin install fabrica@fabrica`, e rodar `/fabrica:setup` para instalar os hooks do git. Repetir este item depois de um `sbx rm`: sem os hooks, o push na `main` passa.
+6. **No host:** conferir a rede com `sbx policy log <vm>`, e não com `curl` de dentro da VM, porque o proxy responde 200 ao CONNECT mesmo para um host bloqueado.
 
-Se o `--check` do passo 4 imprimiu `ok` ou `atualizado <versão>`, ou se os hooks foram instalados nesta execução, marque o item 5 como feito nesta máquina ou VM. O detalhe de cada item está no [guia](../../docs/guias/isolamento-do-agente.md#modo-sbx).
+Feche o checklist com esta linha, nos dois casos: "`<vm>` é o nome padrão do `sbx` para esta pasta. Se a VM do projeto tem outro nome, confira na coluna SANDBOX do `sbx ls`, no host, e use esse nome nos comandos." O detalhe de cada item está no [guia](../../docs/guias/isolamento-do-agente.md#modo-sbx).
 
 ## Aviso do modo sem sandbox
 No modo `sem-sandbox`, termine o resumo com este aviso, sem checklist: não há isolamento. Os comandos do agente leem o token do `gh`, as chaves SSH e os `.env` da máquina e alcançam qualquer host. Ficam só os hooks do git, que protegem a `main`, e o hook de produção, que barra o comando que cita um padrão de `.fabrica/producao.txt` ([ADR 0006](../../docs/adr/0006-producao-fora-do-alcance-do-agente.md)).
