@@ -55,7 +55,11 @@ else
 fi
 
 # O home é o da VM: sem as chaves SSH e sem o login do gh da máquina.
-readable="$(find "$HOME/.ssh" -maxdepth 1 -type f -readable -print -quit 2>/dev/null)"
+# Arquivos públicos (known_hosts, config, authorized_keys, chaves .pub) não
+# expõem segredo e podem vir na imagem da VM.
+readable="$(find "$HOME/.ssh" -maxdepth 1 -type f -readable \
+  ! -name 'known_hosts*' ! -name config ! -name 'authorized_keys*' ! -name '*.pub' \
+  -print -quit 2>/dev/null)"
 if [[ -n "$readable" ]]; then
   bad "home-isolado" "consegui ler $readable"
 elif grep -q 'oauth_token' "$HOME/.config/gh/hosts.yml" 2>/dev/null; then
@@ -95,16 +99,24 @@ fi
 
 # Push na main: um commit solto sobre o HEAD dá ao push o que mandar mesmo com
 # o HEAD igual à main, e o --dry-run não deixa nada chegar ao remoto.
+# O pai do commit solto é a ponta da main do remoto, para o push ser
+# fast-forward: com o HEAD atrás da main, o git recusaria o push como
+# non-fast-forward antes de chamar o hook. Sem main no remoto, vale o HEAD.
 push_err="$(mktemp)"
-sha="$(git -c user.name=fabrica -c user.email=fabrica@localhost commit-tree 'HEAD^{tree}' -p HEAD -m 'teste de aceite do isolamento' 2>"$push_err")"
+first_error() { grep -m1 -E 'rejected|error|fatal' "$push_err" || head -1 "$push_err"; }
+parent=HEAD
+if git fetch -q "$remote" main 2>/dev/null; then
+  parent="$(git rev-parse FETCH_HEAD)"
+fi
+sha="$(git -c user.name=fabrica -c user.email=fabrica@localhost commit-tree 'HEAD^{tree}' -p "$parent" -m 'teste de aceite do isolamento' 2>"$push_err")"
 if [[ -z "$sha" ]]; then
-  bad "push-na-main-recusado" "não consegui criar o commit de teste: $(head -1 "$push_err")"
+  bad "push-na-main-recusado" "não consegui criar o commit de teste: $(first_error)"
 elif git push --dry-run "$remote" "$sha:refs/heads/main" >/dev/null 2>"$push_err"; then
   bad "push-na-main-recusado" "os hooks do git não estão instalados nesta VM; rode /fabrica:setup"
 elif grep -q 'Push para a main bloqueado' "$push_err"; then
   ok "push-na-main-recusado"
 else
-  bad "push-na-main-recusado" "o push falhou por outro motivo: $(head -1 "$push_err")"
+  bad "push-na-main-recusado" "o push falhou por outro motivo: $(first_error)"
 fi
 
 # O push de uma branch funciona, com o token posto pelo proxy.
@@ -113,7 +125,7 @@ if git push -q "$remote" "HEAD:refs/heads/$branch" 2>"$push_err"; then
   ok "git-push"
   git push -q "$remote" --delete "$branch" 2>/dev/null || bad "git-push-limpeza" "apague a branch $branch em $remote"
 else
-  bad "git-push" "$(head -1 "$push_err")"
+  bad "git-push" "$(first_error)"
 fi
 rm -f "$push_err"
 
