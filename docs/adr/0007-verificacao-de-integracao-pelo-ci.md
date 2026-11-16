@@ -1,8 +1,8 @@
 # ADR 0007: Verificação de integração pelo CI do PR
 
-**Status:** aceito · **Data:** 2026-11-10 · **Origem:** issue #116
+**Status:** substituído por ADR 0011 · **Data:** 2026-11-10 · **Origem:** issue #116
 
-> A [ADR 0010](0010-isolamento-pelo-sbx-com-opcao-sem-sandbox.md) retirou o sandbox nativo: o limite descrito aqui é o dele, e a revisão desta ADR para o modo `sbx` fica para uma issue própria (#143).
+> A [ADR 0010](0010-isolamento-pelo-sbx-com-opcao-sem-sandbox.md) retirou o sandbox nativo, cujo limite é o descrito aqui. A [ADR 0011](0011-verificacao-de-integracao-na-etapa.md) substitui esta: a verificação de integração passa a rodar na própria etapa, e o CI vira reserva e conferência.
 
 ## Contexto
 O sandbox da [ADR 0005](0005-isolamento-do-agente-em-sandbox.md) isola os comandos Bash do agente. No Linux, segundo a documentação do sandbox do Claude Code:

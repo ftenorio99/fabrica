@@ -8,8 +8,8 @@ Um agente parou e aplicou a label `escalonado`. O `/fabrica:status` mostra a iss
 | A implementação encontrou um desvio relevante da spec: mudança de comportamento, de critério ou de escopo | Comentário `<!-- fabrica:implementar -->` na issue, com as opções e uma recomendação |
 | `make lint` ou `make test` falharam depois de duas rodadas de correção | Comentário `<!-- fabrica:implementar -->` com o comando, o erro e o que já foi tentado |
 | A revisão terminou com achados bloqueantes depois de duas rodadas de correção | PR em rascunho com os achados pendentes |
-| A verificação de integração não roda no sandbox e o projeto não tem CI em `pull_request` ([ADR 0007](../adr/0007-verificacao-de-integracao-pelo-ci.md)) | Comentário `<!-- fabrica:revisar -->` na issue, com os comandos que você roda com `!` |
-| Verificação manual pedida a você: um critério de aceite pede uma verificação que não roda no sandbox, como um comando com o app rodando e o banco | Comentário `<!-- fabrica:revisar -->` na issue, com o critério, o comando que você roda com `!` e o que conferir; o PR fica em rascunho |
+| O ambiente não rodou a verificação de integração (por exemplo, o Docker estava desligado) e o projeto não tem CI em `pull_request` ([ADR 0011](../adr/0011-verificacao-de-integracao-na-etapa.md)) | Comentário `<!-- fabrica:revisar -->` na issue, com os comandos que você roda com `!` e o que conferir no ambiente |
+| Verificação manual pedida a você: um critério de aceite pede uma verificação que depende de você (outra sessão, conta externa, passo interativo), ou que o agente tentou e o ambiente não rodou | Comentário `<!-- fabrica:revisar -->` na issue, com o critério, o comando que você roda com `!` e o que conferir; o PR fica em rascunho |
 | Um pedido seu no PR mudaria um critério de aceite ou entraria no "Fora de escopo" da spec | Comentário `<!-- fabrica:revisar -->` no PR, com o que foi feito em cada pedido |
 
 ## O que fazer

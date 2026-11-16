@@ -20,7 +20,7 @@ Nenhum dos dois modos cobre o WebFetch, que segue as regras de permissão do Cla
 
 **Trocar:** edite o arquivo por um PR. Ele tem uma linha, `sbx` ou `sem-sandbox`; linhas vazias e começadas com `#` são ignoradas. Com o modo já gravado, o setup não pergunta de novo.
 
-O modo não muda o `/fabrica:status`, o `/fabrica:metricas` nem as etapas: por enquanto, ele só orienta o setup.
+O modo não muda o `/fabrica:status` nem o `/fabrica:metricas`. Ele orienta o setup e, nas etapas, só a mensagem quando o ambiente não roda a verificação de integração (veja [Verificação de integração](#verificação-de-integração)).
 
 ## Modo `sbx`
 O `sbx` é o comando do Docker Sandboxes. A fábrica não o instala nem roda: a VM, a política de rede e o secret são seus, no host. O checklist abaixo é o que o `/fabrica:setup` mostra no fim, conferido com o `sbx` 0.51.0. Troque `<projeto>` pelo nome da pasta do repositório.
@@ -43,7 +43,13 @@ O `sbx` é o comando do Docker Sandboxes. A fábrica não o instala nem roda: a 
    ```bash
    sbx policy allow network --sandbox <projeto> github.com,api.github.com,codeload.github.com,uploads.github.com,*.githubusercontent.com,registry.npmjs.org,registry-1.docker.io,auth.docker.io,production.cloudflare.docker.com
    ```
-   A lista não tem a API do Claude Code, e não precisa. Toda VM criada com o agente `claude` recebe do `sbx` uma política de origem `kit`, só dela, que você não edita e que é recriada no `sbx create`. Ela libera o que o próprio Claude Code usa: `api.anthropic.com`, `mcp-proxy.anthropic.com`, `claude.com`, `platform.claude.com`, `downloads.claude.ai` e `bridge.claudeusercontent.com`, mais `deb.debian.org` e `dhi.io`. Para ver as regras de uma VM, use `sbx policy ls <projeto>`.
+   A lista base não tem a API do Claude Code, e não precisa. Toda VM criada com o agente `claude` recebe do `sbx` uma política de origem `kit`, só dela, que você não edita e que é recriada no `sbx create`. Ela libera o que o próprio Claude Code usa: `api.anthropic.com`, `mcp-proxy.anthropic.com`, `claude.com`, `platform.claude.com`, `downloads.claude.ai` e `bridge.claudeusercontent.com`, mais `deb.debian.org` e `dhi.io`. Para ver as regras de uma VM, use `sbx policy ls <projeto>`.
+
+   **Projeto com `make e2e` (Playwright):** libere também os hosts de onde o Playwright baixa os navegadores (veja [Hosts da verificação de integração](#hosts-da-verificação-de-integração)):
+
+   ```bash
+   sbx policy allow network --sandbox <projeto> cdn.playwright.dev,playwright.download.prss.microsoft.com
+   ```
 4. **Entregar o token do GitHub ao proxy (no host).** O token não entra na VM: o proxy o põe nas requisições ao GitHub.
 
    ```bash
@@ -140,9 +146,21 @@ Os restos da máquina só existem no host. Dentro da VM, o `~/.claude` e o `~/.g
 As linhas que o setup antigo gravou no `.prettierignore` do projeto, abaixo do comentário `fabrica#116`, não fazem mal sem o sandbox nativo e podem ser apagadas à mão.
 
 ## Verificação de integração
-As etapas `/fabrica:implementar` e `/fabrica:revisar` mandam para o CI do PR a verificação que falha só com as assinaturas de limite do sandbox nativo: o socket do Docker negado e o `localhost` recusado ([ADR 0007](../adr/0007-verificacao-de-integracao-pelo-ci.md)). Essa regra continua nas etapas.
+O `/fabrica:implementar`, o `/fabrica:revisar` e o revisor rodam a verificação de integração (o `make test` com banco e, quando a spec tem CA de ponta a ponta, o `make e2e`) na própria etapa, nos dois modos ([ADR 0011](../adr/0011-verificacao-de-integracao-na-etapa.md)):
+- **`sbx`:** com o Docker e o Compose de dentro da VM;
+- **`sem-sandbox`:** com o Docker da sua máquina.
 
-Dentro da VM do `sbx`, Docker e Compose funcionam, e o `make test` com banco e o `make e2e` rodam na própria etapa: essas falhas não devem aparecer. Se aparecerem, o caminho é o mesmo de antes: o PR abre em rascunho, espera o CI e só sai do rascunho com o CI verde. A revisão dessa regra para o modo `sbx` está na #143.
+Um projeto sem `.fabrica/isolamento.txt` também roda a verificação: a etapa não para e avisa no chat para você rodar o `/fabrica:setup`.
+
+**Reserva do CI:** quando o comando falha com uma assinatura de ambiente, o ambiente não roda a verificação, e a falha não conta como erro da implementação. As assinaturas são o socket do Docker negado, o daemon do Docker inacessível, o `localhost` recusado, o socket negado e o navegador do Playwright que não baixa ou não abre. A lista exata está no passo "Verificar" do [`/fabrica:implementar`](../../skills/implementar/SKILL.md#4-verificar). Nesse caso, o PR abre em rascunho, espera o CI do head e só sai do rascunho com o CI verde. Sem CI em `pull_request`, a etapa pede a verificação a você. O "Para a sua revisão" do PR diz o que conferir: no modo `sbx`, o Docker na VM e o `sbx policy log <projeto>` no host; no modo sem sandbox, se o Docker está ligado na máquina.
+
+O CI continua rodando a verificação completa em todo PR, como conferência num ambiente descartável.
+
+### Hosts da verificação de integração
+No modo `sbx`, a VM precisa alcançar o que a verificação baixa:
+- **Imagens do Compose:** o Docker Hub já está no comando base do item 3 do checklist. Uma imagem de outro registry (como o `ghcr.io` ou o `quay.io`) aparece bloqueada no `sbx policy log <projeto>`: libere só esse host, como em [Ampliar os domínios](#ampliar-os-domínios).
+- **Navegadores do Playwright:** o Playwright os baixa de `cdn.playwright.dev`, com `playwright.download.prss.microsoft.com` como espelho. Libere os dois com a linha do item 3 para projetos com `make e2e`.
+- **Bibliotecas de sistema do navegador:** se o `make e2e` falhar com `Host system is missing dependencies`, rode na VM, uma vez, o comando que instala as dependências do Playwright do projeto (ex.: `pnpm exec playwright install --with-deps chromium`). A etapa não instala pacotes de sistema. Até lá, a verificação vai para a reserva do CI.
 
 ## Texto de issue e PR fora do prompt
 O texto de uma issue, de um PR ou de um comentário pode vir de qualquer pessoa, e o modelo tende a obedecer instruções plantadas em texto que chega no turno do usuário. O que chega como resultado de ferramenta ele trata como não confiável ([ADR 0008](../adr/0008-texto-externo-fora-do-prompt.md)). Por isso:
