@@ -1,7 +1,7 @@
 # SPEC-143: Rodar a verificação de integração dentro da VM do sbx
 
 **Issue:** #143 · **PRD:** F1, F6 · **Classe:** implementacao-complexa · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-11-15
+**Status:** aprovada · **Atualizada em:** 2026-11-16
 
 ## Contexto
 A [ADR 0007](../docs/adr/0007-verificacao-de-integracao-pelo-ci.md) mandou o `make test` com banco e o `make e2e` para o CI do PR, porque o sandbox nativo bloqueava o Docker e o `localhost`. A [ADR 0010](../docs/adr/0010-isolamento-pelo-sbx-com-opcao-sem-sandbox.md) (#141) retirou o sandbox nativo e gravou o modo de isolamento do projeto em `.fabrica/isolamento.txt`. Na VM do `sbx`, Docker e Compose funcionam, e no modo `sem-sandbox` o agente usa os da máquina. Esta issue é a parte C da divisão da #141: as etapas passam a rodar a verificação de integração elas mesmas. A F6 do PRD (testes de ponta a ponta no CI do PR) não muda: o CI continua rodando tudo.
@@ -155,3 +155,4 @@ nenhum
 
 ## Histórico
 - 2026-11-15: criação.
+- 2026-11-16: aprovada.

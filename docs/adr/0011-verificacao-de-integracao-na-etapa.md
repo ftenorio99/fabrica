@@ -1,6 +1,6 @@
 # ADR 0011: Verificação de integração na própria etapa, com o CI como reserva
 
-**Status:** proposto · **Data:** 2026-11-15 · **Origem:** issue #143
+**Status:** aceito · **Data:** 2026-11-15 · **Origem:** issue #143
 
 ## Contexto
 A [ADR 0007](0007-verificacao-de-integracao-pelo-ci.md) mandou para o CI do PR a verificação que depende de Docker, de banco e do `localhost` (`make test` com banco, `make e2e`), porque o sandbox nativo do Claude Code bloqueava os três. A [ADR 0010](0010-isolamento-pelo-sbx-com-opcao-sem-sandbox.md) retirou o sandbox nativo. Nos dois modos que ficaram, o limite não existe:
