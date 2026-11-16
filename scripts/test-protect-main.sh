@@ -290,6 +290,41 @@ jq -n --arg c 'git commit -m x' '{tool_input: {command: $c}}' | HOME=$tmp/sem-ho
   grep -q 'não estão instalados. Rode /fabrica:setup'
 result $? CA6 "sem hooks: mensagem de instalação"
 
+# B150: contrato do Antigravity. O comando vem em toolCall.args.CommandLine e
+# a negativa sai como {decision, reason}, sem o hookSpecificOutput.
+# agy_input <comando>
+agy_input() {
+  jq -n --arg c "$1" --arg d "$MAIN" \
+    '{hookEventName: "PreToolUse", cwd: $d, toolCall: {id: "t1", name: "run_command", args: {CommandLine: $c}}}'
+}
+# check_agy <esperado: deny|allow> <comando> [HOME]
+check_agy() {
+  local expected=$1 command=$2 home=${3:-$HOME} out got=allow
+  out=$(agy_input "$command" | HOME=$home bash "$hook" 2>&1)
+  if [[ -n $out ]]; then
+    got=inválido
+    [[ $(jq -r '.decision + " " + (has("hookSpecificOutput") | tostring)' <<<"$out" 2>/dev/null) == "deny false" ]] && got=deny
+  fi
+  [[ $got == "$expected" ]]
+  result $? B150 "agy $expected: $command"
+}
+for c in 'git commit --no-verify -m x' 'git push --no-verify origin main' 'git commit -nm x' \
+  'git -c core.hooksPath=/dev/null commit -m x' 'GIT_CONFIG_GLOBAL=/dev/null git commit -m x' \
+  'HOME=/tmp git commit -m x' 'rm -rf ~/.config/fabrica/githooks'; do
+  check_agy deny "$c"
+done
+for c in 'ls' 'git log -n 5' 'git push -u origin feat/x' 'git commit -m x && git log -n 1'; do
+  check_agy allow "$c"
+done
+check_agy deny 'git commit -m x' "$tmp/sem-hooks"
+check_agy allow 'ls -la' "$tmp/sem-hooks"
+claude_reason=$(jq -n --arg c 'git commit -n -m x' '{tool_input: {command: $c}}' | bash "$hook" |
+  jq -r '.hookSpecificOutput.permissionDecisionReason')
+[[ -n $claude_reason && $(agy_input 'git commit -n -m x' | bash "$hook" | jq -r '.reason') == "$claude_reason" ]]
+result $? B150 "agy: o motivo é o mesmo do Claude Code"
+[[ -z $(jq -n '{hookEventName: "PreToolUse", toolCall: {name: "view_file", args: {AbsolutePath: "/tmp/x"}}}' | bash "$hook" 2>&1) ]]
+result $? B150 "agy: ferramenta sem CommandLine passa sem saída"
+
 # Tempo: comando de 40 KB. Uma execução de aquecimento é descartada e vale a
 # mediana de 5, para um pico isolado da máquina não reprovar o caso (#49).
 big="git commit -m \"$(head -c 40000 /dev/zero | tr '\0' a)\""

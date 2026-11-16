@@ -9,6 +9,10 @@
 # comando. A comparação é por substring literal, sem diferenciar maiúsculas.
 # Como o protect-main.sh, é uma checagem de texto: pega o erro inocente, e a
 # barreira de rede, no modo sbx, é a política da VM (ADR 0010).
+#
+# Aceita dois contratos de entrada e responde no de quem chamou:
+#   Claude Code:  .tool_input.command          -> hookSpecificOutput
+#   Antigravity:  .toolCall.args.CommandLine   -> {decision, reason}
 
 if ! command -v jq >/dev/null || ! command -v git >/dev/null; then
   echo "protect-production: faltam o jq ou o git; os padrões de produção não foram conferidos." >&2
@@ -16,9 +20,11 @@ if ! command -v jq >/dev/null || ! command -v git >/dev/null; then
 fi
 
 input=$(cat)
-cmd=$(jq -r '.tool_input.command // ""' <<<"$input")
+cmd=$(jq -r '.tool_input.command // .toolCall.args.CommandLine // ""' <<<"$input")
 [[ -n $cmd ]] || exit 0
-cwd=$(jq -r '.cwd // ""' <<<"$input")
+# No Antigravity, o hook roda na pasta do plugin: sem o cwd na entrada, a
+# pasta do projeto vem de workspacePaths, e não do $PWD.
+cwd=$(jq -r '.cwd // .workspacePaths[0]? // ""' <<<"$input")
 [[ -n $cwd ]] || cwd=${CLAUDE_PROJECT_DIR:-$PWD}
 
 root=$(git -C "$cwd" rev-parse --show-toplevel 2>/dev/null) || exit 0
@@ -47,8 +53,12 @@ while IFS= read -r line; do
   esac
   [[ -n $needle ]] || continue
   if [[ $lower == *"${needle,,}"* ]]; then
-    jq -n --arg r "Este comando cita um padrão de produção (\`$value\`, de $file). As etapas de agente só usam dev ou homologação: o que é de produção vai para o runbook e é rodado por você." \
-      '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: $r}}'
+    reason="Este comando cita um padrão de produção (\`$value\`, de $file). As etapas de agente só usam dev ou homologação: o que é de produção vai para o runbook e é rodado por você."
+    if jq -e 'has("toolCall")' <<<"$input" >/dev/null 2>&1; then
+      jq -n --arg r "$reason" '{decision: "deny", reason: $r}'
+    else
+      jq -n --arg r "$reason" '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: $r}}'
+    fi
     exit 0
   fi
 done <<<"$rules"
