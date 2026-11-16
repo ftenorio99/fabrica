@@ -14,7 +14,8 @@ A revisão automática é a primeira passada antes da revisão humana. Ela confe
 ## 1. Pré-requisitos
 - **`gh`:** rode `bash <diretório base desta skill>/../../scripts/check-gh.sh`. Se a linha não for `ok`, pare antes de ler ou escrever no GitHub, como diz [../setup/gh.md](../setup/gh.md). Seguida a partir do `/fabrica:implementar`, que já fez a checagem, não a repita.
 - Você está na branch da issue (a da regra da spec da issue de [estados.md](../status/estados.md): o comentário `<!-- fabrica:spec -->` ou, no atalho, a spec curta da triagem), com commits além da `main` e tudo enviado (`git status` limpo, `git push` feito).
-- `make lint` e `make test` passam, ou falham só com as assinaturas de limite do sandbox do [`/fabrica:implementar`](../implementar/SKILL.md#4-verificar), com a verificação pendente para o CI anotada. Se falharem por outro motivo, volte para a etapa de implementação em vez de revisar.
+- **Modo de isolamento:** seguida a partir do `/fabrica:implementar`, use o modo que ele já leu. Rodada sozinha, leia-o com `bash <diretório base desta skill>/../../scripts/setup-isolation.sh --check` e siga a tabela "Modo de isolamento" do passo "Verificar" do [`/fabrica:implementar`](../implementar/SKILL.md#4-verificar): o modo não muda o caminho, só a anotação e a orientação, e a saída `ausente` ou `inválido` não para a etapa.
+- `make lint` e `make test` passam, ou falham só com as assinaturas de ambiente do [`/fabrica:implementar`](../implementar/SKILL.md#4-verificar), com a verificação pendente para o CI anotada. Se falharem por outro motivo, volte para a etapa de implementação em vez de revisar.
 
 ## 2. Pedidos no PR
 Antes de qualquer consulta ao PR, guarde o **instante da coleta** em UTC: `date -u +%Y-%m-%dT%H:%M:%SZ`. Guarde-o sempre, com PR ou sem PR: ele vai na âncora do passo 6 e é o início desta etapa na linha de custo. Quando esta skill é seguida a partir do `/fabrica:implementar`, o instante da coleta é o `fim` da linha de custo que o `implementar` trouxe, sem um `date` novo.
@@ -43,19 +44,19 @@ Se já existir PR da branch (`gh pr view`), trate os pedidos do usuário antes d
 Guarde, para cada pedido, um trecho dele e o que foi feito: o commit da correção, "mudança de escopo, escalado" ou "não procede", com o motivo. Isso vai para a resposta do passo 6.
 
 ## 3. Rodada de revisão
-**Verificação pedida ao usuário:** a etapa pede ao usuário uma verificação que o agente não consegue fazer em dois casos: a verificação de integração num projeto sem CI (item 1 abaixo) e um CA de verificação manual que não roda no sandbox, como um comando que precisa do app rodando com banco (veja "CA manual fora do alcance" no passo 4).
+**Verificação pedida ao usuário:** a etapa pede ao usuário uma verificação que o agente não consegue fazer em dois casos: a verificação de integração num projeto sem CI (item 1 abaixo) e um CA de verificação manual fora do alcance do agente: ele depende do usuário, ou a tentativa de rodá-lo falhou com assinatura de ambiente (veja "CA manual fora do alcance" no passo 4).
 - **Pedido:** comente na issue, com o marcador `<!-- fabrica:revisar -->`, cada CA envolvido, o comando exato a rodar com `!` (ex.: `! make test && make e2e`) e o que conferir na saída. Peça ao usuário que responda **na issue** com o comando e a saída e depois rode `/fabrica:revisar <nº>`, sem tirar o `escalonado`: a retomada tira a label. Aplique `escalonado` e pare.
 - **Retomada:** se, depois do último comentário `<!-- fabrica:revisar -->` da issue com esse pedido, há uma resposta do usuário na issue com o resultado, remova `escalonado` e use a resposta como verificação manual de cada CA do pedido: passe ao revisor o comando e a saída que o usuário mostrou, e cite-os em "Verificações manuais" no PR. Se a resposta mostra falha, volte ao `/fabrica:implementar`. Sem resposta nova, a issue continua esperando o usuário: diga isso no chat e pare.
 
-**Verificação pendente para o CI** ([ADR 0007](../../docs/adr/0007-verificacao-de-integracao-pelo-ci.md)): se o `implementar` anotou comandos bloqueados pelo sandbox, ou se o `make test` que você rodou falhou só com as assinaturas, o CI do PR faz essa verificação antes do revisor:
+**Verificação pendente para o CI** ([ADR 0011](../../docs/adr/0011-verificacao-de-integracao-na-etapa.md)): a verificação de integração roda na etapa. O CI é a reserva para quando o ambiente não a roda: se o `implementar` anotou comandos que o ambiente não roda, ou se o `make test` que você rodou falhou só com as assinaturas de ambiente, o CI do PR faz essa verificação antes do revisor:
 1. **Sem CI:** se nenhum workflow em `.github/workflows/` dispara em `pull_request`, não há quem verifique.
-   - **Primeira vez:** faça o "Pedido" da verificação pedida ao usuário, com os comandos bloqueados.
+   - **Primeira vez:** faça o "Pedido" da verificação pedida ao usuário, com os comandos que o ambiente não roda e a orientação do modo.
    - **Retomada:** siga a "Retomada" da verificação pedida ao usuário. Sem PR em rascunho e sem esperar CI, siga a partir do revisor.
-2. **PR em rascunho:** sem PR, abra-o já como rascunho (`gh pr create --draft --body-file <arquivo>`), com o corpo do passo 5 e os CAs que dependem da verificação bloqueada com ⏳ "aguardando o CI". Com PR, use-o e, se ele não estiver em rascunho, converta com `gh pr ready --undo`.
+2. **PR em rascunho:** sem PR, abra-o já como rascunho (`gh pr create --draft --body-file <arquivo>`), com o corpo do passo 5 e os CAs que dependem da verificação que o ambiente não roda com ⏳ "aguardando o CI". Em "Para a sua revisão", liste a anotação de cada comando e a orientação do modo. Com PR, use-o e, se ele não estiver em rascunho, converta com `gh pr ready --undo`.
 3. **CI:** espere o CI do head como no passo 6 ("Ler o CI").
-4. **Revisor:** passe a ele, além do que vem abaixo, os comandos bloqueados e o resultado do CI: nome, `conclusion` e link de cada run.
+4. **Revisor:** passe a ele, além do que vem abaixo, os comandos que o ambiente não roda e o resultado do CI: nome, `conclusion` e link de cada run.
 
-Sem verificação pendente, o PR só é aberto no passo 5, como antes.
+Sem verificação pendente, o PR só é aberto no passo 5 e não nasce em rascunho por causa da verificação de integração: o revisor roda a verificação, e a evidência dos CAs de integração é a dele. O CI do passo 6 continua sendo esperado, como em todo PR.
 
 Chame o subagente `revisor` deste plugin (no Agent tool, `fabrica:revisor`). Se ele não estiver disponível, use um subagente de propósito geral e passe a ele, como instruções, o conteúdo de [../../agents/revisor.md](../../agents/revisor.md).
 
@@ -64,13 +65,14 @@ Passe ao revisor:
 - a branch e a base (`origin/main`);
 - as anotações da implementação (verificações manuais feitas e desvios da spec), rotuladas como "afirmações do `implementar`, a conferir": o revisor só aceita como evidência o que ele mesmo encontra ou roda;
 - na retomada de uma verificação pedida ao usuário, o comando e a saída da resposta dele, com os CAs a que ela se refere;
-- com verificação pendente para o CI, os comandos bloqueados e o resultado do CI do head.
+- a saída do `setup-isolation.sh --check`;
+- com verificação pendente para o CI, os comandos que o ambiente não roda e o resultado do CI do head.
 
 O revisor devolve, para cada critério de aceite, se está atendido e com qual evidência, e uma lista de achados com severidade `bloqueante`, `importante` ou `sugestão`.
 
 ## 4. Corrigir
 - Um CA que o revisor devolve como `depois do merge` não é achado nem pendência: ele vai para o PR com ⏳ (passo 5).
-- **CA manual fora do alcance:** um CA de verificação manual que o revisor devolve como não feito porque a verificação não roda no sandbox (ex.: precisa do app rodando com banco), sem retomada com a resposta do usuário, não é achado a corrigir nem conta como rodada. Abra ou atualize o PR como rascunho (`gh pr create --draft --body-file <arquivo>` ou, com PR, `gh pr ready --undo`), com o corpo do passo 5 e esse CA com ⏳ "aguardando a sua verificação", e faça o "Pedido" da verificação pedida ao usuário do passo 3. Os demais achados seguem as regras abaixo antes do pedido.
+- **CA manual fora do alcance:** um CA de verificação manual que o revisor devolve como não feito por um destes motivos, sem retomada com a resposta do usuário, não é achado a corrigir nem conta como rodada: a verificação depende do usuário (outra sessão, conta externa, passo interativo), ou a tentativa de rodá-la falhou com assinatura de ambiente. Um CA que precisa do app rodando com banco não entra aqui só por isso: o revisor tenta rodá-lo antes. Abra ou atualize o PR como rascunho (`gh pr create --draft --body-file <arquivo>` ou, com PR, `gh pr ready --undo`), com o corpo do passo 5 e esse CA com ⏳ "aguardando a sua verificação", e faça o "Pedido" da verificação pedida ao usuário do passo 3. Os demais achados seguem as regras abaixo antes do pedido.
 - Corrija todos os achados `bloqueante` e `importante` que procedem. Se discordar de um achado, registre o motivo; ele vai para o PR.
 - Depois de corrigir, rode `make lint` e `make test`, faça commit (`fix: ...` ou o tipo adequado) e push, e faça uma nova rodada de revisão. Com verificação pendente para o CI, espere antes o CI do head novo e passe o resultado ao revisor. Um CI vermelho por causa da mudança é achado `bloqueante` e conta como rodada.
 - No máximo **duas rodadas de correção**. Se ainda restarem achados bloqueantes, abra o PR mesmo assim como rascunho (`--draft`), liste os achados pendentes, aplique `escalonado` na issue e não aplique `pronto-revisao`.
@@ -113,7 +115,7 @@ Se já existir PR da branch (`gh pr view`), inclusive o rascunho do passo 3, atu
   ```
 
 ## 6. CI, labels e resposta no PR
-- **Ler o CI:** o `gh pr checks` não funciona com o token fine-grained da [ADR 0005](../../docs/adr/0005-isolamento-do-agente-em-sandbox.md), que não lê checks. Leia os runs do head pela API do Actions, repetindo a consulta até o fim:
+- **Ler o CI:** o `gh pr checks` não funciona com o token fine-grained do [guia de isolamento](../../docs/guias/isolamento-do-agente.md#token-fine-grained), que não lê checks. Leia os runs do head pela API do Actions, repetindo a consulta até o fim:
   ```
   gh api "repos/<dono>/<repo>/actions/runs?head_sha=$(git rev-parse HEAD)" -q '.workflow_runs[] | [.name, .status, .conclusion, .html_url] | @tsv'
   ```
@@ -121,7 +123,7 @@ Se já existir PR da branch (`gh pr view`), inclusive o rascunho do passo 3, atu
   - **Verde:** todo run tem `conclusion` `success`, `skipped` ou `neutral`.
   - **Sem CI:** nenhum run do head depois de 10 minutos. Registre no PR e siga, como com um PR sem CI. Com verificação pendente para o CI, isso equivale a não ter CI: siga o item 1 da "Verificação pendente para o CI" do passo 3. Depois da "Retomada" desse item, a verificação já está atendida pela resposta do usuário: trate o PR como sem CI, sem esperar os 10 minutos.
 - Espere o CI. Se falhar por causa da mudança, corrija como no passo 4 (conta como rodada). Se precisou de duas ou mais correções por CI vermelho, registre uma lição com o gatilho `rodadas`, com os checks que falharam e o que os resolveu ([../licao/formato.md](../licao/formato.md)). Se falhar por motivo externo (instabilidade, credencial), registre no PR e siga.
-- Com CI verde e sem achados bloqueantes, mesmo com CAs ⏳ "depois do merge": se o PR está em rascunho só por causa do passo 3 ou de um "CA manual fora do alcance" do passo 4, já atendido na retomada, tire o rascunho (`gh pr ready`). Depois, `gh issue edit <nº> --add-label pronto-revisao --remove-label escalonado`. Nos CAs verificados pelo CI, a evidência no corpo é o nome e o link do run, e o resumo ganha a linha "Verificação de integração pelo CI (ADR 0007)". Se o passo 2 escalou uma mudança de escopo, remova `pronto-revisao` se estiver aplicada (`gh issue edit <nº> --remove-label pronto-revisao`) e mantenha `escalonado`: o PR espera a mudança da spec, não a revisão do usuário.
+- Com CI verde e sem achados bloqueantes, mesmo com CAs ⏳ "depois do merge": se o PR está em rascunho só por causa do passo 3 ou de um "CA manual fora do alcance" do passo 4, já atendido na retomada, tire o rascunho (`gh pr ready`). Depois, `gh issue edit <nº> --add-label pronto-revisao --remove-label escalonado`. Nos CAs verificados pelo CI, a evidência no corpo é o nome e o link do run, e o resumo ganha a linha "Verificação de integração pelo CI (ADR 0011)". Se o passo 2 escalou uma mudança de escopo, remova `pronto-revisao` se estiver aplicada (`gh issue edit <nº> --remove-label pronto-revisao`) e mantenha `escalonado`: o PR espera a mudança da spec, não a revisão do usuário.
 - **Resposta no PR:** comente no PR (`gh pr comment <nº do PR> --body-file <arquivo>`) com o marcador `<!-- fabrica:revisar -->`. Esse comentário vira a nova âncora do passo 2, então publique-o sempre que aplicar `pronto-revisao` e sempre que tratar pedidos, mesmo com rascunho ou escalado:
   - **instante da coleta:** logo abaixo do marcador, a linha `**Pedidos lidos até:** <instante da coleta do passo 2>`;
   - **sem pedidos:** uma linha, "PR pronto para a sua revisão", com o resumo da revisão automática;

@@ -48,13 +48,27 @@ Pare e explique o motivo (no chat e, quando indicado, na issue) se algum destes 
 - Não faça nada fora do escopo da spec, nem melhorias "de passagem". Se notar algo que merece atenção, anote para o PR.
 
 ## 4. Verificar
-- Rode `make lint` e `make test` (e `make e2e` se a spec pedir). Conte como **uma rodada de verificação** cada vez que a implementação estiver pronta e você rodar os comandos.
-- **Limite do sandbox:** no Linux, o sandbox bloqueia o socket do Docker e o `localhost` da máquina, e nenhuma configuração os libera sem desmontar o isolamento ([ADR 0007](../../docs/adr/0007-verificacao-de-integracao-pelo-ci.md)). Uma falha cuja saída traz uma destas assinaturas não é falha da implementação:
-  - `docker.sock` junto com `permission denied`, `EACCES` ou `connect: operation not permitted`;
-  - `ECONNREFUSED` (ou `Connection refused`) para `127.0.0.1`, `::1` ou `localhost`;
-  - `Operation not permitted` ao criar um socket (`socket(AF_UNIX`).
+- **Modo de isolamento:** antes dos comandos, leia o modo com `bash <diretório base desta skill>/../../scripts/setup-isolation.sh --check`. O modo não muda o caminho: a verificação de integração (a parte do `make test` e do `make e2e` que precisa de Docker, de banco ou do `localhost`) roda na própria etapa em todos os casos ([ADR 0011](../../docs/adr/0011-verificacao-de-integracao-na-etapa.md)). O modo só muda a anotação e a orientação ao usuário:
 
-  Nesse caso, rode as partes da verificação que não dependem do bloqueio, quando o projeto as separa (ex.: o projeto `unit` do Vitest, o `typecheck`, o ESLint), e anote cada comando bloqueado como `<comando>: bloqueado pelo sandbox (<assinatura>)`. Essa é a **verificação pendente para o CI**, que vai para o `revisar`. Não escalone por ela. Um erro sem assinatura conta como falha, como abaixo. Se o mesmo comando falha com assinatura e com outro erro, vale o outro erro.
+  | Saída do `--check` | O que fazer | Orientação quando há assinatura de ambiente |
+  |---|---|---|
+  | `sbx` | Rode a verificação completa | "Na VM, confira o Docker; no host, veja o `sbx policy log <projeto>`", com o link da seção [Hosts da verificação de integração](../../docs/guias/isolamento-do-agente.md#hosts-da-verificação-de-integração) do guia |
+  | `sem-sandbox` | Rode a verificação completa | "Confira se o Docker está ligado na máquina" |
+  | `ausente` ou `inválido` | Rode a verificação completa, sem parar, e avise no chat, uma vez por execução: "O projeto não tem modo de isolamento gravado. Rode `/fabrica:setup`." O aviso não vai para a issue nem para o PR | As duas orientações acima |
+  | O script sai com código diferente de 0 | Trate como `ausente` | Idem |
+- Rode `make lint`, `make test` e, se a spec tem CA de ponta a ponta, `make e2e`. Conte como **uma rodada de verificação** cada vez que a implementação estiver pronta e você rodar os comandos.
+- **Assinatura de ambiente:** um trecho da saída que mostra que o ambiente não roda a verificação, e não que a implementação falhou. Esta é a lista única, usada também pelo `revisar` e pelo revisor:
+  1. `docker.sock` junto com `permission denied`, `EACCES` ou `connect: operation not permitted`;
+  2. `ECONNREFUSED` (ou `Connection refused`) para `127.0.0.1`, `::1` ou `localhost`;
+  3. `Operation not permitted` ao criar um socket (`socket(AF_UNIX`);
+  4. `Cannot connect to the Docker daemon` (Docker desligado ou não instalado);
+  5. do Playwright: `Failed to download` na instalação do navegador, `Executable doesn't exist at` ou `Host system is missing dependencies`.
+
+  Com assinatura de ambiente num comando, rode as partes da verificação que não dependem do ambiente, quando o projeto as separa (ex.: o projeto `unit` do Vitest, o `typecheck`, o ESLint), e anote cada comando como `<comando>: o ambiente não roda a verificação (modo <saída do --check>: <assinatura>)`. Essa é a **verificação pendente para o CI**, que vai para o `revisar` junto com a orientação do modo. Ela não conta rodada de correção, e você não escalona por ela. Um erro sem assinatura conta como falha, como abaixo.
+- **Bordas:**
+  - o mesmo comando falha com assinatura e com outro erro: vale o outro erro;
+  - o `make test` passa e só o `make e2e` tem assinatura: só o `make e2e` fica pendente para o CI, e os CAs cobertos pelo `make test` têm a evidência da etapa;
+  - numa retomada, depois de o usuário corrigir o ambiente, a assinatura some: rode de novo, e não há verificação pendente.
 - Se falhar, corrija e rode de novo. Depois de **duas rodadas de correção** ainda com falha, pare: comente na issue o comando, o erro resumido e o que já foi tentado, faça push do que existe, aplique `escalonado` (`gh issue edit <nº> --add-label escalonado`) e avise o usuário. Não siga para a revisão.
 - Se precisou de **duas ou mais rodadas de correção**, tenha passado ou escalado, registre uma lição com o gatilho `rodadas`, com os comandos, os erros e o que os resolveu ([../licao/formato.md](../licao/formato.md)). No escalonamento por rodadas, essa é a única lição: não registre também `escalonado`.
 - Execute cada verificação manual descrita na seção "Testes" da spec (por exemplo, introduzir um erro, conferir que o comando falha e reverter). Anote o comando e o resultado de cada uma; isso vai para o PR. Não execute os CAs marcados "depois do merge".
