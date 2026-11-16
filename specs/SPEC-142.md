@@ -1,7 +1,7 @@
 # SPEC-142: Remover o sandbox nativo do plugin e migrar os projetos já instalados
 
 **Issue:** #142 · **PRD:** F1 · **Classe:** implementacao-complexa · **Tamanho:** G
-**Status:** rascunho · **Atualizada em:** 2026-11-12
+**Status:** aprovada · **Atualizada em:** 2026-11-15
 
 ## Contexto
 A F1 do PRD pede que o agente rode isolado. A [ADR 0010](../docs/adr/0010-isolamento-pelo-sbx-com-opcao-sem-sandbox.md) trocou o sandbox nativo do Claude Code pelo `sbx`, e a #141 (parte A) fez o `/fabrica:setup` perguntar o modo de isolamento. Ficaram para esta issue (parte B) os restos do sandbox nativo: os scripts e os templates, que continuam no plugin sem uso; o bloco `sandbox` no `.claude/settings.json` dos projetos que passaram pelo setup antigo (`kairo` e `ancora`), que esconde o `GH_TOKEN` dentro da VM; o que o setup antigo gravou na máquina, incluindo um arquivo com credencial; e o teste de aceite, que ainda testa o sandbox nativo.
@@ -199,3 +199,4 @@ nenhum
 
 ## Histórico
 - 2026-11-12: criação.
+- 2026-11-15: aprovada.
