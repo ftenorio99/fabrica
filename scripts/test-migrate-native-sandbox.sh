@@ -267,6 +267,7 @@ check "CA12 --check --apply projeto" "|1|sim" "$(out --check --apply projeto)|$(
 check "CA12 --apply maquina --check" "|1|sim" "$(out --apply maquina --check)|$(msg --apply maquina --check)"
 check "CA12 opção desconhecida" "|1|sim" "$(out --force)|$(msg --force)"
 check "CA12 --project inexistente" "|1|sim" "$(o="$(bash "$migrate" --project "$tmp/nao-existe" --check 2>/dev/null)"; printf '%s|%s' "$o" "$?")|$([[ -n "$(bash "$migrate" --project "$tmp/nao-existe" --check 2>&1 >/dev/null)" ]] && echo sim || echo não)"
+check "CA12 --project inexistente: mensagem com o uso" "sim" "$([[ "$(bash "$migrate" --project "$tmp/nao-existe" --check 2>&1 >/dev/null)" == *"Uso: migrate-native-sandbox.sh"* ]] && echo sim || echo não)"
 check "CA12 --project sem diretório" "|1" "$(o="$(bash "$migrate" --project 2>/dev/null)"; printf '%s|%s' "$o" "$?")"
 check "CA12 nada muda" "$before" "$(snapshot)"
 mkdir -p "$tmp/fora"

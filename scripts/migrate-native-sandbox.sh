@@ -56,7 +56,7 @@ if $check && [[ -n "$target" ]]; then
 fi
 
 if $project_given; then
-  [[ -d "$project" ]] || fail "o diretório $project não existe."
+  [[ -d "$project" ]] || fail "o diretório $project não existe. $usage"
 else
   project="$(git rev-parse --show-toplevel 2>/dev/null)" || project=""
 fi
