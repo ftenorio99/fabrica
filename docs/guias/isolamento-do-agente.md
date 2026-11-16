@@ -81,7 +81,7 @@ Ele imprime `ok <verificação>` ou `falha <verificação>: <motivo>` e sai com 
 | Verificação | O que confere |
 |---|---|
 | `token-marcador` | O `GH_TOKEN` da VM existe e não tem o formato de um token real do GitHub. |
-| `home-isolado` | Não há chave legível em `~/.ssh` nem login do `gh` no home da VM. |
+| `home-isolado` | Não há chave privada legível em `~/.ssh` nem login do `gh` no home da VM. Os arquivos públicos (`known_hosts`, `config`, `authorized_keys` e as chaves `.pub`) não contam. |
 | `gh-api-user` | O `gh` funciona com o token posto pelo proxy. |
 | `dominio-liberado` | A VM alcança `api.github.com`. |
 | `dominio-fora-da-lista` | A VM não recebe a página de `example.com`, que não está na política. |
