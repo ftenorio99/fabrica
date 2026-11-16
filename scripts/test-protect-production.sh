@@ -122,6 +122,33 @@ out=$(jq -n --arg c 'echo sk_live_x' '{tool_input: {command: $c}}' | CLAUDE_PROJ
 [[ $(jq -r '.hookSpecificOutput.permissionDecision' <<<"$out" 2>/dev/null) == deny ]]
 result $? CA3 "sem cwd na entrada, usa o CLAUDE_PROJECT_DIR"
 
+# B150: contrato do Antigravity. O comando vem em toolCall.args.CommandLine e
+# a negativa sai como {decision, reason}, sem o hookSpecificOutput.
+# agy <cwd> <comando> [filtro jq sobre a entrada]: grava a saída em $out.
+agy() {
+  out=$(jq -n --arg c "$2" --arg d "$1" \
+    '{hookEventName: "PreToolUse", cwd: $d, workspacePaths: [$d], toolCall: {id: "t1", name: "run_command", args: {CommandLine: $c}}}' |
+    jq "${3:-.}" | (cd "$tmp/solto" && bash "$hook" 2>"$tmp/stderr"))
+  code=$?
+}
+agy "$work" "psql postgres://u@DB.PROD.exemplo/x"
+(( code == 0 )) && [[ $(jq -r '.decision + " " + (has("hookSpecificOutput") | tostring)' <<<"$out" 2>/dev/null) == "deny false" ]]
+result $? B150 "agy nega: host de produção"
+[[ $(jq -r '.reason' <<<"$out" 2>/dev/null) == *"\`db.prod.exemplo\`"*".fabrica/producao.txt"* ]]
+result $? B150 "agy: o motivo cita o padrão e o arquivo"
+agy "$work" "echo sk_live_abc"
+[[ $(jq -r '.decision' <<<"$out" 2>/dev/null) == deny ]]
+result $? B150 "agy nega: texto de produção"
+agy "$work" "make test"
+(( code == 0 )) && [[ -z $out ]]
+result $? B150 "agy deixa passar: make test"
+agy "$tmp/solto" "echo sk_live_abc"
+(( code == 0 )) && [[ -z $out ]]
+result $? B150 "agy deixa passar: fora de um repositório"
+agy "$work" "echo sk_live_abc" 'del(.cwd)'
+[[ $(jq -r '.decision' <<<"$out" 2>/dev/null) == deny ]]
+result $? B150 "agy: sem cwd na entrada, usa o workspacePaths"
+
 # CA4: comentário, padrão curto, linha sem valor e tipo desconhecido não barram.
 allowed CA4 "$work" "echo Padrões de produção do projeto de teste"
 allowed CA4 "$work" "echo abc"

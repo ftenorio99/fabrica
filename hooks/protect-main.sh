@@ -1,18 +1,26 @@
 #!/usr/bin/env bash
-# PreToolUse (Bash): impede o Claude de desligar os hooks do git da fábrica.
+# PreToolUse (Bash): impede o agente de desligar os hooks do git da fábrica.
 # Quem recusa commit e push na main/master são os hooks globais do git
 # (githooks/, instalados por scripts/setup-githooks.sh). Este hook só faz
 # checagens de texto sobre o comando inteiro, sem separar aspas, contra o
 # que desligaria esses hooks, no núcleo do ADR 0002. Falsos positivos raros
 # são aceitos (ex.: um corpo de PR que cita --no-verify); o contorno é
 # escrever o texto num arquivo e passar --body-file ao gh.
+#
+# Aceita dois contratos de entrada e responde no de quem chamou:
+#   Claude Code:  .tool_input.command          -> hookSpecificOutput
+#   Antigravity:  .toolCall.args.CommandLine   -> {decision, reason}
 
 input=$(cat)
-cmd=$(jq -r '.tool_input.command // ""' <<<"$input")
+cmd=$(jq -r '.tool_input.command // .toolCall.args.CommandLine // ""' <<<"$input")
 [[ -n $cmd ]] || exit 0
 
 deny() {
-  jq -n --arg r "$1" '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: $r}}'
+  if jq -e 'has("toolCall")' <<<"$input" >/dev/null 2>&1; then
+    jq -n --arg r "$1" '{decision: "deny", reason: $r}'
+  else
+    jq -n --arg r "$1" '{hookSpecificOutput: {hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: $r}}'
+  fi
   exit 0
 }
 
