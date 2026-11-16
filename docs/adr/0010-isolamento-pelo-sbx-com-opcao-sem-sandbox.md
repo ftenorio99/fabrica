@@ -40,4 +40,4 @@ O bloqueio de rede dos hosts de produção da ADR 0006 (`sandbox.network.deniedD
 - Docker e Compose funcionam dentro da VM. O limite que motivou a ADR 0007 deixa de existir no modo `sbx`, e a revisão daquela ADR fica para uma issue própria.
 - No modo `sem-sandbox`, o agente lê o token do `gh`, as chaves SSH e os `.env` da máquina e alcança qualquer host.
 - O isolamento do job do dispatcher (#106) precisa ser revisto à luz desta decisão.
-- O teste de aceite da ADR 0005 (`scripts/test-sandbox-acceptance.sh`) não vale para o `sbx`. Um aceite novo fica para a issue que remove o sandbox nativo do plugin.
+- O teste de aceite da ADR 0005 (`scripts/test-sandbox-acceptance.sh`) não vale para o `sbx`. Um aceite novo fica para a issue que remove o sandbox nativo do plugin: é o `scripts/test-sandbox-acceptance.sh` reescrito na #142, que roda dentro da VM.
