@@ -1,7 +1,7 @@
 # SPEC-147: Checklist do sbx usa o nome real da VM e não manda recriar a VM em que o setup roda
 
 **Issue:** #147 · **PRD:** F1 · **Classe:** implementacao-simples · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-11-16
+**Status:** aprovada · **Atualizada em:** 2026-11-16
 
 ## Contexto
 A F1 do PRD isola o agente numa VM do Docker Sandboxes ([ADR 0010](../docs/adr/0010-isolamento-pelo-sbx-com-opcao-sem-sandbox.md)). No fim do `/fabrica:setup`, um checklist mostra o que o usuário faz no host para preparar essa VM. Hoje o checklist e o guia usam `<projeto>` como nome da VM, mas as VMs reais se chamam `claude-<projeto>`, que é o nome padrão do `sbx`. Em 2026-11-16, o setup rodou dentro das VMs do kairo e do ankyra, mandou criar de novo a VM em que estava e sugeriu comandos de rede e de log para nomes que nenhuma VM usa.
@@ -104,3 +104,4 @@ nenhum
 
 ## Histórico
 - 2026-11-16: criação.
+- 2026-11-16: aprovada.
