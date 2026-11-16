@@ -69,6 +69,28 @@ sbx policy allow network --sandbox <projeto> api.stripe.com
 
 Um curinga largo (como `*.github.com`) abre caminhos para tirar dados do projeto (como o `gist.github.com`). Não libere os hosts de produção (veja [Produção fora do alcance](#produção-fora-do-alcance)).
 
+### Teste de aceite
+O `scripts/test-sandbox-acceptance.sh` do plugin confere, de dentro da VM, se o isolamento está de pé. Rode-o numa VM nova, depois de trocar a versão do `sbx` e depois de mudar a política de rede. Na sessão aberta na VM (`sbx run --name <projeto>`), peça ao agente para rodar, na pasta do projeto, o script do plugin instalado (em `~/.claude/plugins/cache/fabrica/fabrica/<versão>/`):
+
+```bash
+bash <pasta do plugin>/scripts/test-sandbox-acceptance.sh
+```
+
+Ele imprime `ok <verificação>` ou `falha <verificação>: <motivo>` e sai com 1 se alguma falhar:
+
+| Verificação | O que confere |
+|---|---|
+| `token-marcador` | O `GH_TOKEN` da VM existe e não tem o formato de um token real do GitHub. |
+| `home-isolado` | Não há chave legível em `~/.ssh` nem login do `gh` no home da VM. |
+| `gh-api-user` | O `gh` funciona com o token posto pelo proxy. |
+| `dominio-liberado` | A VM alcança `api.github.com`. |
+| `dominio-fora-da-lista` | A VM não recebe a página de `example.com`, que não está na política. |
+| `hooks-do-git` | Os hooks do git estão instalados na VM. |
+| `push-na-main-recusado` | Um push de teste na `main` é recusado pelo hook. O teste usa `--dry-run`, e nada chega ao remoto. |
+| `git-push` | O push de uma branch `test/sandbox-*` funciona. A branch é apagada em seguida. |
+
+O teste olha o corpo das respostas, e não o código HTTP, pelo motivo do item 6 do checklist. Com tudo `ok`, ele lembra de conferir o `sbx policy log <projeto>` no host, que é onde aparece o que o proxy bloqueou. Fora da VM, `token-marcador` e `home-isolado` falham, como devem.
+
 ## Modo sem sandbox
 Neste modo, não há isolamento. Os comandos do agente rodam com o seu usuário: leem o token do `gh`, as chaves SSH e os `.env` da máquina, escrevem fora do projeto e alcançam qualquer host. É uma exceção assumida, registrada no arquivo do projeto.
 
@@ -104,15 +126,18 @@ Um repositório novo na fábrica precisa entrar no acesso do token. O token fine
 ## Projetos com o sandbox nativo
 Até a ADR 0010, o `/fabrica:setup` ligava o sandbox nativo do Claude Code, gravando um bloco `sandbox` no `.claude/settings.json` do projeto. Esse bloco ainda está nos projetos que passaram por aquele setup. Dentro da VM do `sbx`, ele liga um segundo sandbox e esconde o `GH_TOKEN` dos comandos do agente, e o `gh` e o `git push` falham.
 
-O `/fabrica:setup` avisa quando encontra o bloco, mas não o remove. Até a issue que faz essa migração (#142), escolha um caminho:
-- **Remover o bloco:** apague a chave `sandbox` do `.claude/settings.json` do projeto, por um PR.
-- **Contornar, sem mexer no arquivo:** abra a sessão com o sandbox nativo desligado:
+O `/fabrica:setup` faz a migração, nos dois modos:
+- **No projeto, sem perguntar:** remove a chave `sandbox` inteira do `.claude/settings.json`, na cópia de trabalho, e deixa as outras chaves como estão. Não há backup, porque o arquivo é versionado: o `git diff` mostra a mudança, e você a leva por uma branch e um PR.
+- **Na máquina, com a sua confirmação:** mostra o que encontrou e pergunta antes de remover. São os restos do setup antigo:
+  - no `~/.claude/settings.json`, o `tlsTerminate` e as duas entradas de `mask` (a do `hosts.yml` do `gh` e a do `git-auth.gitconfig`), só quando estão idênticas às que a fábrica gravava. O que você mudou ou acrescentou no bloco `sandbox` fica;
+  - no `~/.gitconfig`, a inclusão do `~/.config/fabrica/git-auth.gitconfig`;
+  - o próprio `~/.config/fabrica/git-auth.gitconfig`.
 
-  ```bash
-  sbx run claude <projeto> -- --settings '{"sandbox":{"enabled":false}}'
-  ```
+**Backups:** antes de alterar, o setup copia o `settings.json` para `settings.json.bak-fabrica-sandbox`, na mesma pasta, e o arquivo de configuração do git para `<arquivo>.bak-fabrica-sandbox` (em geral, `~/.gitconfig.bak-fabrica-sandbox`). O `git-auth.gitconfig` é apagado sem backup, porque guarda uma credencial. Apague os backups quando não precisar mais deles.
 
-O que o setup antigo gravou no `~/.claude/settings.json` e no `~/.gitconfig` da sua máquina não age dentro da VM e pode ficar até a migração.
+Os restos da máquina só existem no host. Dentro da VM, o `~/.claude` e o `~/.gitconfig` são os da VM, e o setup não acha nada para remover: rode-o uma vez no host.
+
+As linhas que o setup antigo gravou no `.prettierignore` do projeto, abaixo do comentário `fabrica#116`, não fazem mal sem o sandbox nativo e podem ser apagadas à mão.
 
 ## Verificação de integração
 As etapas `/fabrica:implementar` e `/fabrica:revisar` mandam para o CI do PR a verificação que falha só com as assinaturas de limite do sandbox nativo: o socket do Docker negado e o `localhost` recusado ([ADR 0007](../adr/0007-verificacao-de-integracao-pelo-ci.md)). Essa regra continua nas etapas.
