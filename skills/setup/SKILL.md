@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Define o modo de isolamento do projeto (VM do Docker Sandboxes, o sbx, ou sem sandbox) e grava a escolha em .fabrica/isolamento.txt, confere se o gh está instalado, autenticado e na versão mínima da fábrica, cria ou corrige as labels da fábrica (agente, precisa-info, spec-pronta, spec-aprovada, escalonado, pronto-revisao, licao, em-andamento) num repositório do GitHub, conforme a tabela de estados.md, instala na máquina os hooks do git que bloqueiam commit e push na main e, se o usuário quiser, instala a statusline da fábrica. No modo sbx, termina com o checklist da VM. Use num repositório que ainda não tem as labels, quando uma etapa avisar que uma label não existe ou que o gh está desatualizado, quando avisarem que os hooks do git não estão instalados, dentro de uma VM nova do sbx ou para escolher como isolar os agentes num projeto.
+description: Define o modo de isolamento do projeto (VM do Docker Sandboxes, o sbx, ou sem sandbox) e grava a escolha em .fabrica/isolamento.txt, remove os restos do sandbox nativo antigo do projeto e, com confirmação, da máquina, confere se o gh está instalado, autenticado e na versão mínima da fábrica, cria ou corrige as labels da fábrica (agente, precisa-info, spec-pronta, spec-aprovada, escalonado, pronto-revisao, licao, em-andamento) num repositório do GitHub, conforme a tabela de estados.md, instala na máquina os hooks do git que bloqueiam commit e push na main e, se o usuário quiser, instala a statusline da fábrica. No modo sbx, termina com o checklist da VM. Use num repositório que ainda não tem as labels, quando uma etapa avisar que uma label não existe ou que o gh está desatualizado, quando avisarem que os hooks do git não estão instalados, dentro de uma VM nova do sbx ou para escolher como isolar os agentes num projeto.
 argument-hint: "[<dono>/<repo>]"
 disable-model-invocation: true
 ---
@@ -16,17 +16,39 @@ Cada projeto roda os agentes num de dois modos, gravado em `.fabrica/isolamento.
 
 O modo é sempre o do projeto do diretório atual, mesmo com um `<dono>/<repo>` no argumento, que vale só para as labels.
 
+### Restos do sandbox nativo
+Antes de ler o modo, remova o que o setup antigo gravou para o sandbox nativo do Claude Code, que saiu da fábrica. A migração vale nos dois modos e também antes de o modo ser escolhido. Rode `bash <diretório base>/../../scripts/migrate-native-sandbox.sh --check` e siga a saída:
+
+| Situação | O que fazer |
+|---|---|
+| O `--check` imprime `ok` | Nada. A migração não aparece no resumo. |
+| O `--check` lista `projeto:sandbox` | Rode `bash <diretório base>/../../scripts/migrate-native-sandbox.sh --apply projeto`, sem perguntar. No resumo, diga que o bloco `sandbox` do `.claude/settings.json` era do sandbox nativo, que saiu da fábrica, que ele foi removido na cópia de trabalho e que o usuário leva a mudança por uma branch e um PR. Não faça o commit. |
+| O `--check` lista itens `maquina:*` | Mostre os itens, um por linha, com o que cada um é (lista abaixo). Diga onde ficam os backups e que o `git-auth.gitconfig` é apagado sem backup, por guardar uma credencial. Pergunte com o AskUserQuestion se remove. Com um sim, rode `bash <diretório base>/../../scripts/migrate-native-sandbox.sh --apply maquina`. Com um não, não remova nada e registre no resumo "restos do sandbox nativo na máquina: mantidos, a pedido do usuário". |
+| O script sai com código 1 | Leve a mensagem de erro para o resumo e siga para a leitura do modo. |
+| Fora de um repositório git | A migração roda só para a máquina. A leitura do modo continua pulada. |
+
+O `--check` pode listar o item do projeto e os da máquina de uma vez: trate os dois, o projeto primeiro.
+
+**Itens da máquina:**
+- `maquina:tlsTerminate`: o `tlsTerminate` do bloco `sandbox` do `settings.json` do usuário (`~/.claude/settings.json`);
+- `maquina:mask:<arquivo>`: a entrada de `mask` desse arquivo no mesmo `settings.json`;
+- `maquina:gitconfig-include`: a inclusão do `git-auth.gitconfig` na configuração global do git (`~/.gitconfig`);
+- `maquina:git-auth`: o arquivo `~/.config/fabrica/git-auth.gitconfig`, com o cabeçalho de autenticação do GitHub.
+
+**Backups:** o script copia o `settings.json` do usuário para `settings.json.bak-fabrica-sandbox`, na mesma pasta, e o arquivo de configuração do git para `<arquivo>.bak-fabrica-sandbox`. Nunca mostre o conteúdo do `git-auth.gitconfig`.
+
+### Modo
 Rode `git rev-parse --show-toplevel`. Depois, conforme a situação:
 
 | Situação | O que fazer |
 |---|---|
-| O `git rev-parse` falha: fora de um repositório git | Pule este passo. No resumo, diga que o modo de isolamento é por projeto e não foi definido. |
+| O `git rev-parse` falha: fora de um repositório git | Pule a leitura do modo. No resumo, diga que o modo de isolamento é por projeto e não foi definido. |
 | `bash <diretório base>/../../scripts/setup-isolation.sh --check` imprime `sbx` ou `sem-sandbox` | Não pergunte nada. Mostre o modo e diga que, para trocar, o usuário edita `.fabrica/isolamento.txt` por um PR. |
 | O `--check` imprime `ausente` ou `inválido` | Em `inválido`, mostre antes o conteúdo do arquivo. Explique os dois modos e pergunte com o AskUserQuestion qual usar, com `sbx (Recomendado)` como primeira opção e "sem sandbox" como segunda. Grave a resposta com `bash <diretório base>/../../scripts/setup-isolation.sh --set <sbx\|sem-sandbox>`. |
-| O script imprime em stderr `sandbox nativo ligado em .claude/settings.json` | Leve o aviso para o resumo, como abaixo. |
+| O script imprime em stderr `sandbox nativo ligado em .claude/settings.json` | Como a migração roda antes, o aviso só aparece quando ela falhou. Leve-o para o resumo, com o erro da migração, como abaixo. |
 
 - **Arquivo gravado agora:** o script grava na cópia de trabalho. Diga ao usuário para fazer o commit de `.fabrica/isolamento.txt` numa branch e abrir o PR. Não faça o commit você.
-- **Aviso do sandbox nativo:** o bloco `sandbox` do `.claude/settings.json` é do sandbox nativo do Claude Code, que saiu da fábrica. Dentro da VM do `sbx`, ele esconde o `GH_TOKEN` dos comandos do agente. Remeta à seção "Projetos com o sandbox nativo" do [guia](../../docs/guias/isolamento-do-agente.md#projetos-com-o-sandbox-nativo). Não remova o bloco: mudar as permissões do projeto é gesto do usuário.
+- **Aviso do sandbox nativo:** o bloco `sandbox` do `.claude/settings.json` é do sandbox nativo do Claude Code, que saiu da fábrica. Dentro da VM do `sbx`, ele esconde o `GH_TOKEN` dos comandos do agente. Remeta à seção "Projetos com o sandbox nativo" do [guia](../../docs/guias/isolamento-do-agente.md#projetos-com-o-sandbox-nativo).
 
 Os passos seguintes rodam do mesmo jeito nos dois modos. O que muda é o fim do resumo: o [checklist do modo `sbx`](#checklist-do-modo-sbx) ou o [aviso do modo sem sandbox](#aviso-do-modo-sem-sandbox).
 
@@ -88,7 +110,7 @@ Se o `--check` do passo 4 imprimiu `ok` ou `atualizado <versão>`, ou se os hook
 No modo `sem-sandbox`, termine o resumo com este aviso, sem checklist: não há isolamento. Os comandos do agente leem o token do `gh`, as chaves SSH e os `.env` da máquina e alcançam qualquer host. Ficam só os hooks do git, que protegem a `main`, e o hook de produção, que barra o comando que cita um padrão de `.fabrica/producao.txt` ([ADR 0006](../../docs/adr/0006-producao-fora-do-alcance-do-agente.md)).
 
 ## Responder
-- Isolamento: o modo (`sbx`, `sem sandbox` ou `não definido: fora de um repositório git`) e se foi gravado agora ou já estava. Se foi gravado agora, o lembrete de fazer o commit de `.fabrica/isolamento.txt` por um PR. Com o aviso do sandbox nativo, o que ele significa e o link do guia.
+- Isolamento: o modo (`sbx`, `sem sandbox` ou `não definido: fora de um repositório git`) e se foi gravado agora ou já estava. Se foi gravado agora, o lembrete de fazer o commit de `.fabrica/isolamento.txt` por um PR. Depois, o que a migração dos restos do sandbox nativo fez: nada a dizer quando o `--check` deu `ok`; bloco `sandbox` do projeto removido, com o lembrete do PR; restos da máquina removidos, com o caminho dos backups; restos da máquina mantidos, a pedido do usuário; ou o erro do script. Com o aviso do sandbox nativo, o que ele significa, o erro da migração e o link do guia.
 - `gh`: a linha do `check-gh.sh` (`ok 2.103.3`, `desatualizado 2.46.0 <mínima>` etc.) e, se não for `ok`, o que fazer.
 - Labels: o repositório alvo e a linha `ok <label>` de cada uma. Com erro, a mensagem do script e o que fazer (autenticar o `gh`, criar o repositório com `gh repo create`, passar `<dono>/<repo>`). Não tente criar as labels por outro caminho.
 - Hooks do git: o estado final (`instalados`, `já estavam instalados` ou `não instalados, a pedido do usuário`).
@@ -102,4 +124,4 @@ No modo `sem-sandbox`, termine o resumo com este aviso, sem checklist: não há 
 - Não instale nem troque a statusline sem a confirmação do usuário, e não edite o `statusLine` do settings por outro caminho.
 - Não rode comandos `sbx`, não crie a VM, não mexa na política de rede e não grave o secret: o checklist é do usuário.
 - Não grave o modo de isolamento sem a resposta do usuário, não troque um modo já gravado e não edite `.fabrica/isolamento.txt` por outro caminho.
-- Não altere o bloco `sandbox` do `.claude/settings.json` do projeto.
+- Não remova os restos do sandbox nativo da máquina sem a confirmação do usuário, e não edite o `~/.claude/settings.json` nem o `~/.gitconfig` por outro caminho.
