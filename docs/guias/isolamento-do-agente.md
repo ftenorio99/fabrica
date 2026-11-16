@@ -43,13 +43,13 @@ O `sbx` é o comando do Docker Sandboxes. A fábrica não o instala nem roda: a 
    ```bash
    sbx policy allow network --sandbox <projeto> github.com,api.github.com,codeload.github.com,uploads.github.com,*.githubusercontent.com,registry.npmjs.org,registry-1.docker.io,auth.docker.io,production.cloudflare.docker.com
    ```
+   A lista base não tem a API do Claude Code, e não precisa. Toda VM criada com o agente `claude` recebe do `sbx` uma política de origem `kit`, só dela, que você não edita e que é recriada no `sbx create`. Ela libera o que o próprio Claude Code usa: `api.anthropic.com`, `mcp-proxy.anthropic.com`, `claude.com`, `platform.claude.com`, `downloads.claude.ai` e `bridge.claudeusercontent.com`, mais `deb.debian.org` e `dhi.io`. Para ver as regras de uma VM, use `sbx policy ls <projeto>`.
 
    **Projeto com `make e2e` (Playwright):** libere também os hosts de onde o Playwright baixa os navegadores (veja [Hosts da verificação de integração](#hosts-da-verificação-de-integração)):
 
    ```bash
    sbx policy allow network --sandbox <projeto> cdn.playwright.dev,playwright.download.prss.microsoft.com
    ```
-   A lista não tem a API do Claude Code, e não precisa. Toda VM criada com o agente `claude` recebe do `sbx` uma política de origem `kit`, só dela, que você não edita e que é recriada no `sbx create`. Ela libera o que o próprio Claude Code usa: `api.anthropic.com`, `mcp-proxy.anthropic.com`, `claude.com`, `platform.claude.com`, `downloads.claude.ai` e `bridge.claudeusercontent.com`, mais `deb.debian.org` e `dhi.io`. Para ver as regras de uma VM, use `sbx policy ls <projeto>`.
 4. **Entregar o token do GitHub ao proxy (no host).** O token não entra na VM: o proxy o põe nas requisições ao GitHub.
 
    ```bash
