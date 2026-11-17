@@ -1,7 +1,7 @@
 # SPEC-159: OpenCode: hooks de proteção da main, de produção e do ~/.claude
 
 **Issue:** #159 · **PRD:** nenhuma F diretamente: protege no OpenCode o que a F1 e a F2 protegem no Claude Code (ver Riscos) · **Classe:** implementacao-complexa · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-11-17
+**Status:** aprovada · **Atualizada em:** 2026-11-17
 
 ## Contexto
 Esta é a fase 3 do `opencode/PLANO-OPENCODE.md` (§4.5), sobre a #149. No Claude Code, os hooks `hooks/protect-main.sh` e `hooks/protect-production.sh` recusam os comandos que desligariam os hooks do git ou que citam produção. No OpenCode, o adaptador da #157 ainda não tem proteção nenhuma.
@@ -125,3 +125,4 @@ nenhum
 
 ## Histórico
 - 2026-11-17: criação.
+- 2026-11-17: aprovada.
