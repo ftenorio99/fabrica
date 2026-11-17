@@ -1,7 +1,7 @@
 # SPEC-161: OpenCode: teste de aceite test-adapter.sh e README do adaptador
 
 **Issue:** #161 · **PRD:** nenhuma (o OpenCode está no "Fora de escopo" do PRD; ver Riscos) · **Classe:** implementacao-complexa · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-11-17
+**Status:** aprovada · **Atualizada em:** 2026-11-17
 
 ## Contexto
 Esta é a fase 5 do `opencode/PLANO-OPENCODE.md` (§5 e §8), sobre a #149. As fases 1 a 4 já estão na `main`: o adaptador `opencode/server.ts` registra as 12 skills, os 12 comandos `/fabrica:*`, o subagente `fabrica/revisor`, os hooks de proteção da main, de produção e do `~/.claude` e a nota de sessão dos hooks do git (#157 a #160). Falta a prova automática e a documentação: hoje o adaptador só se confere com chamadas manuais à API, e não há README para instalar, testar nem desfazer.
@@ -145,3 +145,4 @@ nenhum
 
 ## Histórico
 - 2026-11-17: criação.
+- 2026-11-17: aprovada.
