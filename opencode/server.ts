@@ -6,9 +6,9 @@
 // usa a rede.
 import { Plugin, Skill } from "@opencode/plugin"
 import { spawnSync } from "node:child_process"
-import { existsSync, readFileSync, readdirSync, statSync } from "node:fs"
+import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs"
 import { homedir } from "node:os"
-import { dirname, isAbsolute, join, resolve } from "node:path"
+import { basename, dirname, isAbsolute, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
 // Separador entre "fabrica" e a etapa no nome do comando. Se o TUI recusar o
@@ -24,6 +24,7 @@ type SkillSource = {
   argumentHint?: string
   autoinvoke: boolean
   path: string
+  body: string
 }
 
 // Lê o frontmatter plano das skills: o bloco entre as duas primeiras linhas
@@ -55,15 +56,24 @@ export function parseFrontmatter(
 // SKILL.md sem frontmatter, sem name ou sem description é ignorado com erro.
 export function loadSkills(root: string): SkillSource[] {
   const skillsDir = join(root, "skills")
-  if (!existsSync(skillsDir) || !statSync(skillsDir).isDirectory()) {
-    console.error(`${LOG_PREFIX} raiz sem pasta skills/: ${root}`)
+  const skills: SkillSource[] = []
+  let folders: string[]
+  try {
+    if (!existsSync(skillsDir) || !statSync(skillsDir).isDirectory()) {
+      console.error(`${LOG_PREFIX} raiz sem pasta skills/: ${root}`)
+      return []
+    }
+    folders = readdirSync(skillsDir).sort()
+  } catch (error) {
+    // Erro de permissão ou de leitura na pasta: as skills somem, mas o plugin segue.
+    console.error(`${LOG_PREFIX} não foi possível ler skills/: ${String(error)}`)
     return []
   }
-  const skills: SkillSource[] = []
-  for (const folder of readdirSync(skillsDir).sort()) {
+  for (const folder of folders) {
     const path = join(skillsDir, folder, "SKILL.md")
     try {
       if (!statSync(join(skillsDir, folder)).isDirectory() || !existsSync(path)) continue
+      // Uma leitura só: metadados e corpo saem do mesmo texto.
       const parsed = parseFrontmatter(readFileSync(path, "utf8"))
       const name = parsed?.fields["name"]
       const description = parsed?.fields["description"]
@@ -78,6 +88,7 @@ export function loadSkills(root: string): SkillSource[] {
         argumentHint: parsed.fields["argument-hint"] || undefined,
         autoinvoke: parsed.fields["disable-model-invocation"] !== "true",
         path,
+        body: parsed.body,
       })
     } catch (error) {
       console.error(`${LOG_PREFIX} skill ignorada, erro ao ler ${path}: ${String(error)}`)
@@ -198,6 +209,25 @@ export function runHookScript(root: string, script: string, command: string, cwd
   return { deny: false }
 }
 
+// Caminho canônico: resolve links simbólicos do ponto mais próximo que existe,
+// para que um link para ~/.claude não escape da checagem. O resto, que ainda
+// não existe, é anexado como está.
+export function canonicalPath(path: string): string {
+  let current = resolve(path)
+  const rest: string[] = []
+  while (!existsSync(current)) {
+    const parent = dirname(current)
+    if (parent === current) break
+    rest.unshift(basename(current))
+    current = parent
+  }
+  try {
+    return join(realpathSync(current), ...rest)
+  } catch {
+    return resolve(path)
+  }
+}
+
 // Guarda-corpo do Claude Code: nega as linhas de shell que citam o ~/.claude ou
 // o setup-statusline.sh e as edições dentro do ~/.claude. É uma regra de texto:
 // a linha de shell não diz se escreve, então toda citação conta.
@@ -215,11 +245,12 @@ export function claudeGuard(
       : undefined
   }
   if (action === "edit") {
+    const realClaudeDir = canonicalPath(claudeDir)
     const inside = (item: string) => {
       const path = item.startsWith("~/") ? join(home, item.slice(2)) : item
       // Caminho relativo vale a partir do diretório do projeto.
-      const full = isAbsolute(path) ? resolve(path) : resolve(cwd, path)
-      return full === claudeDir || full.startsWith(claudeDir + "/")
+      const full = canonicalPath(isAbsolute(path) ? path : resolve(cwd, path))
+      return full === realClaudeDir || full.startsWith(realClaudeDir + "/")
     }
     return items.some(inside) ? CLAUDE_GUARD_MESSAGE : undefined
   }
@@ -239,10 +270,17 @@ export function evaluateShell(root: string, line: string, cwd: string, guard: bo
   return { deny: false }
 }
 
-function resolveRoot(options: Record<string, unknown> | undefined): string {
+// options.root aceita "~/..." (pasta pessoal) e caminho relativo, que vale a
+// partir do diretório do projeto aberto. Sem options.root, a raiz é a pasta pai
+// da pasta deste arquivo.
+export function resolveRoot(options: Record<string, unknown> | undefined, baseDir: string): string {
   const fromOptions = options?.["root"]
-  if (typeof fromOptions === "string" && fromOptions.length > 0) return resolve(fromOptions)
-  // Sem options.root, a raiz é a pasta pai da pasta deste arquivo.
+  if (typeof fromOptions === "string" && fromOptions.length > 0) {
+    const expanded = fromOptions === "~" || fromOptions.startsWith("~/")
+      ? join(homedir(), fromOptions.slice(1))
+      : fromOptions
+    return resolve(baseDir, expanded)
+  }
   return resolve(dirname(fileURLToPath(import.meta.url)), "..")
 }
 
@@ -251,7 +289,7 @@ export default Plugin.define({
   async setup(ctx: any) {
     let root: string
     try {
-      root = resolveRoot(ctx.options)
+      root = resolveRoot(ctx.options, ctx.location?.directory ?? process.cwd())
     } catch (error) {
       console.error(`${LOG_PREFIX} não foi possível resolver a raiz: ${String(error)}`)
       return
@@ -267,7 +305,7 @@ export default Plugin.define({
             name: Skill.Name.make(skill.name),
             description: skill.description,
             path: skill.path,
-            content: parseFrontmatter(readFileSync(skill.path, "utf8"))?.body ?? "",
+            content: skill.body,
             autoinvoke: skill.autoinvoke,
           })
         } catch (error) {
