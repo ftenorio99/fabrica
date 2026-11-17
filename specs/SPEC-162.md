@@ -1,7 +1,7 @@
 # SPEC-162: Antigravity: testar o revisor, as perguntas ao usuário e o aviso de início de sessão
 
 **Issue:** #162 · **PRD:** nenhuma (o Antigravity está fora do escopo do PRD, que fica "só no Claude Code"; mesma situação da #161, ver Riscos) · **Classe:** documentacao · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-11-17
+**Status:** aprovada · **Atualizada em:** 2026-11-17
 
 ## Contexto
 A fase 0 da #149 mostrou que, com o plugin instalado pelo `agy plugin install`, os hooks de proteção negam de verdade, `/fabrica:status` roda e recebe argumento, e só `metricas` e `status` ficam visíveis ao modelo. Três pontos ficaram sem teste: o subagente `revisor`, o equivalente do `AskUserQuestion` e o aviso do `SessionStart`, que sai como texto puro quando o `agy` espera `{"injectSteps":[...]}`. Esta issue testa os três com modelo real e registra o que acontece, sem consertar nada.
@@ -88,3 +88,4 @@ nenhum
 
 ## Histórico
 - 2026-11-17: criação.
+- 2026-11-17: aprovada.
