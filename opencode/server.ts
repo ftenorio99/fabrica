@@ -1,10 +1,14 @@
-// Adaptador da fábrica para o OpenCode (fase 1 do opencode/PLANO-OPENCODE.md).
-// Registra as skills de skills/*/SKILL.md e um comando /fabrica:<etapa> por skill.
-// O texto das skills é lido dos arquivos a cada reload e a cada execução: este
-// arquivo não guarda cópia dele. Não escreve em disco nem usa a rede.
+// Adaptador da fábrica para o OpenCode (fases 1 a 3 do opencode/PLANO-OPENCODE.md).
+// Registra as skills de skills/*/SKILL.md, um comando /fabrica:<etapa> por skill,
+// o subagente fabrica/revisor e os hooks de proteção, que chamam os scripts de
+// hooks/. O texto das skills e do revisor é lido dos arquivos a cada reload e a
+// cada execução: este arquivo não guarda cópia dele. Não escreve em disco nem
+// usa a rede.
 import { Plugin, Skill } from "@opencode/plugin"
+import { spawnSync } from "node:child_process"
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs"
-import { dirname, join, resolve } from "node:path"
+import { homedir } from "node:os"
+import { dirname, isAbsolute, join, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
 // Separador entre "fabrica" e a etapa no nome do comando. Se o TUI recusar o
@@ -152,6 +156,84 @@ export function loadReviewer(
   }
 }
 
+// Hooks de proteção (fase 3 do plano, §4.5). As regras ficam nos scripts de
+// hooks/, os mesmos do Claude Code; aqui só se chama cada um com a linha inteira.
+const PROTECTION_SCRIPTS = ["protect-main.sh", "protect-production.sh"]
+const SCRIPT_TIMEOUT_MS = 10_000
+// Limite do Map da ponte: uma chamada que nunca chega à permissão não deixa a
+// memória crescer.
+const PENDING_LIMIT = 256
+
+const CLAUDE_GUARD_MESSAGE =
+  `${LOG_PREFIX} No OpenCode, a fábrica não altera a configuração do Claude Code ` +
+  `(~/.claude) nem a statusline. Esse passo é só do Claude Code.`
+
+type HookResult = { deny: boolean; reason?: string }
+
+// Chama um script de hooks/ com o JSON do Claude Code. Falha, timeout ou saída
+// que não é JSON contam como "sem negativa", como nos scripts quando falta o jq.
+export function runHookScript(root: string, script: string, command: string, cwd: string): HookResult {
+  const path = join(root, "hooks", script)
+  const result = spawnSync("bash", [path], {
+    input: JSON.stringify({ tool_input: { command }, cwd }),
+    encoding: "utf8",
+    timeout: SCRIPT_TIMEOUT_MS,
+  })
+  if (result.error || result.status !== 0) {
+    const why = result.error ? String(result.error) : `código ${result.status}: ${result.stderr.trim()}`
+    console.error(`${LOG_PREFIX} ${script} falhou (${why}); o comando não foi negado por ele`)
+    return { deny: false }
+  }
+  const output = result.stdout.trim()
+  if (!output) return { deny: false }
+  try {
+    const parsed = JSON.parse(output)
+    const decision = parsed?.hookSpecificOutput
+    if (decision?.permissionDecision === "deny") {
+      return { deny: true, reason: String(decision.permissionDecisionReason ?? "") }
+    }
+  } catch (error) {
+    console.error(`${LOG_PREFIX} ${script} devolveu algo que não é JSON; o comando não foi negado por ele`)
+  }
+  return { deny: false }
+}
+
+// Guarda-corpo do Claude Code: nega as linhas de shell que citam o ~/.claude ou
+// o setup-statusline.sh e as edições dentro do ~/.claude. É uma regra de texto:
+// a linha de shell não diz se escreve, então toda citação conta.
+export function claudeGuard(action: string, items: string[], home: string): string | undefined {
+  const claudeDir = join(home, ".claude")
+  if (action === "shell") {
+    const markers = ["~/.claude", "$HOME/.claude", "${HOME}/.claude", claudeDir, "setup-statusline.sh"]
+    return items.some((line) => markers.some((marker) => line.includes(marker)))
+      ? CLAUDE_GUARD_MESSAGE
+      : undefined
+  }
+  if (action === "edit") {
+    const inside = (item: string) => {
+      const path = item.startsWith("~/") ? join(home, item.slice(2)) : item
+      if (!isAbsolute(path)) return false
+      const full = resolve(path)
+      return full === claudeDir || full.startsWith(claudeDir + "/")
+    }
+    return items.some(inside) ? CLAUDE_GUARD_MESSAGE : undefined
+  }
+  return undefined
+}
+
+// Os três passos de uma linha de shell, na ordem, parando na primeira negativa.
+export function evaluateShell(root: string, line: string, cwd: string, guard: boolean): HookResult {
+  for (const script of PROTECTION_SCRIPTS) {
+    const result = runHookScript(root, script, line, cwd)
+    if (result.deny) return result
+  }
+  if (guard) {
+    const message = claudeGuard("shell", [line], homedir())
+    if (message) return { deny: true, reason: message }
+  }
+  return { deny: false }
+}
+
 function resolveRoot(options: Record<string, unknown> | undefined): string {
   const fromOptions = options?.["root"]
   if (typeof fromOptions === "string" && fromOptions.length > 0) return resolve(fromOptions)
@@ -239,6 +321,71 @@ export default Plugin.define({
       })
     } catch (error) {
       console.error(`${LOG_PREFIX} agente revisor não registrado: ${String(error)}`)
+    }
+
+    // Proteção. O protectClaudeConfig: false desliga só o guarda-corpo, nunca
+    // os scripts de hooks/.
+    const guard = ctx.options?.["protectClaudeConfig"] !== false
+    const cwd: string = ctx.location?.directory ?? process.cwd()
+    for (const script of PROTECTION_SCRIPTS) {
+      if (!existsSync(join(root, "hooks", script))) {
+        console.error(`${LOG_PREFIX} script de proteção ausente: ${join(root, "hooks", script)}`)
+      }
+    }
+
+    // Ponte pelo id da chamada: a linha inteira só chega no execute.before; o
+    // permission.evaluate traz cada comando separado em resources.
+    const pending = new Map<string, string>()
+    try {
+      await ctx.tool.hook("execute.before", (event: any) => {
+        try {
+          if (event?.tool !== "shell") return
+          const command = event?.input?.command
+          if (typeof command !== "string" || typeof event?.id !== "string") return
+          pending.delete(event.id)
+          pending.set(event.id, command)
+          while (pending.size > PENDING_LIMIT) {
+            pending.delete(pending.keys().next().value as string)
+          }
+        } catch (error) {
+          console.error(`${LOG_PREFIX} erro no tool.execute.before: ${String(error)}`)
+        }
+      })
+    } catch (error) {
+      console.error(`${LOG_PREFIX} hook tool.execute.before não registrado: ${String(error)}`)
+    }
+
+    // A negativa fica no hook de permissão, que é o que barra a ferramenta.
+    try {
+      await ctx.permission.hook("evaluate", (event: any) => {
+        try {
+          const resources: string[] = Array.isArray(event?.resources) ? event.resources.map(String) : []
+          if (event?.action === "shell") {
+            const id = event?.source?.id
+            const bridged = typeof id === "string" ? pending.get(id) : undefined
+            if (bridged !== undefined) pending.delete(id)
+            const line = bridged ?? resources.join(" && ")
+            const result = evaluateShell(root, line, cwd, guard)
+            if (result.deny) {
+              event.effect = "deny"
+              event.message = result.reason
+              const origin = bridged !== undefined ? "linha da ponte" : "resources"
+              console.error(`${LOG_PREFIX} shell negado (${origin}): ${line} | motivo: ${result.reason}`)
+            }
+          } else if (event?.action === "edit" && guard) {
+            const message = claudeGuard("edit", resources, homedir())
+            if (message) {
+              event.effect = "deny"
+              event.message = message
+              console.error(`${LOG_PREFIX} edit negado: ${resources.join(", ")}`)
+            }
+          }
+        } catch (error) {
+          console.error(`${LOG_PREFIX} erro no permission.evaluate: ${String(error)}`)
+        }
+      })
+    } catch (error) {
+      console.error(`${LOG_PREFIX} hook permission.evaluate não registrado: ${String(error)}`)
     }
   },
 })
