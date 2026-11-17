@@ -284,6 +284,38 @@ export function resolveRoot(options: Record<string, unknown> | undefined, baseDi
   return resolve(dirname(fileURLToPath(import.meta.url)), "..")
 }
 
+// Nota de sessão (§4.5 do plano): equivale ao SessionStart do Claude Code.
+const HOOKS_NOTE =
+  "Os hooks do git da fábrica não estão instalados nesta máquina. Rode /fabrica:setup."
+
+// Diz se o hooksPath global do git aponta para ~/.config/fabrica/githooks.
+// Qualquer falha ao ler conta como "não instalado" e é logada; nunca lança.
+export function hooksInstalled(home: string = homedir()): boolean {
+  // Mesmo destino do scripts/setup-githooks.sh: ${XDG_CONFIG_HOME:-$HOME/.config}.
+  const xdg = process.env.XDG_CONFIG_HOME
+  const configDir = xdg && isAbsolute(xdg) ? xdg : join(home, ".config")
+  const expected = join(configDir, "fabrica", "githooks")
+  const result = spawnSync("git", ["config", "--global", "--get", "core.hooksPath"], {
+    encoding: "utf8",
+    timeout: 5000,
+  })
+  if (result.error) {
+    console.error(`${LOG_PREFIX} não foi possível ler o hooksPath do git: ${String(result.error)}`)
+    return false
+  }
+  // Código 1 é só "chave não definida", o caso normal; outro código é erro de leitura.
+  if (result.status !== 0 && result.status !== 1) {
+    console.error(
+      `${LOG_PREFIX} git config saiu com código ${result.status}: ${(result.stderr ?? "").trim()}`,
+    )
+    return false
+  }
+  let value = (result.stdout ?? "").trim()
+  if (!value) return false
+  if (value === "~" || value.startsWith("~/")) value = join(home, value.slice(1))
+  return resolve(value) === expected
+}
+
 export default Plugin.define({
   id: "fabrica",
   async setup(ctx: any) {
@@ -435,6 +467,24 @@ export default Plugin.define({
       })
     } catch (error) {
       console.error(`${LOG_PREFIX} hook permission.evaluate não registrado: ${String(error)}`)
+    }
+
+    // Nota de sessão: uma vez por sessão, quando os hooks do git não estão instalados.
+    const noted = new Set<string>()
+    try {
+      await ctx.session.hook("context", (event: any) => {
+        try {
+          const key = String(event?.sessionID ?? event?.session?.id ?? "default")
+          if (noted.has(key)) return
+          noted.add(key)
+          if (hooksInstalled()) return
+          event.system.push({ type: "text", text: HOOKS_NOTE })
+        } catch (error) {
+          console.error(`${LOG_PREFIX} erro no session.context: ${String(error)}`)
+        }
+      })
+    } catch (error) {
+      console.error(`${LOG_PREFIX} hook session.context não registrado: ${String(error)}`)
     }
   },
 })

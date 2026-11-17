@@ -29,6 +29,7 @@ issue #149.
 | `ctx.skill.transform`, com `autoinvoke: false` | confirmado | `GET /api/skill` |
 | `ctx.permission.hook("evaluate")` nega com `event.effect = "deny"` | confirmado na API | `POST /api/session/<id>/permission` devolveu `deny` |
 | `ctx.session.hook("context")`, com `event.system` e `event.tools` | confirmado | hook disparou |
+| O evento `context` traz `sessionID` e `system` como lista de `{type, text}` | confirmado | plugin de sonda numa sessão real do `opencode run` (#160) |
 | Ferramentas `shell`, `question` e `subagent` no agente padrão | confirmado | lista de `event.tools` |
 | A ferramenta `shell` pede permissão com `action: "shell"` | confirmado | sessão com modelo |
 | O `deny` do hook barra a ferramenta `shell` numa sessão real | confirmado | a ferramenta termina em erro com `event.message`, e o modelo a repete; nenhum commit foi criado |
@@ -37,14 +38,19 @@ issue #149.
 | `resources` traz cada comando separado, não a linha inteira | confirmado | ver §4.5 |
 | A skill com `autoinvoke: false` chega ao modelo pela ferramenta `skill` | confirmado | o modelo carregou a skill pelo nome e seguiu a instrução |
 | `opencode run "/fabrica:<etapa>"` executa o comando | **não** | o `run` trata o texto como mensagem comum; comando só pelo TUI ou pela API |
-| O OpenCode 2.3.0 não carrega o `CLAUDE.md` sozinho | só no código do binário | o servidor só observa o `AGENTS.md` |
+| O OpenCode 2.3.0 não carrega o `CLAUDE.md` sozinho | confirmado | projeto só com `CLAUDE.md`: o modelo não soube a regra (#160) |
+| O OpenCode 2.3.0 carrega o `AGENTS.md` sem configuração | confirmado | projeto só com `AGENTS.md`: o modelo respondeu a regra (#160) |
+| `"instructions": ["CLAUDE.md"]` resolve a partir do projeto | confirmado só no `opencode.jsonc` do projeto | no config apontado por `OPENCODE_CONFIG`, o `CLAUDE.md` do projeto não chegou; a config global real (`~/.config/opencode`) não foi testada (#160) |
 
 Ainda sem verificação:
 
 1. se `/fabrica:<etapa>` digitado no TUI é aceito, já que a API aceita (pede
    sessão interativa);
 2. se o preâmbulo de harness (§4.3), enviado pelo comando, muda o
-   comportamento do modelo como esperado; depende do item 1 ou da API.
+   comportamento do modelo como esperado; depende do item 1 ou da API;
+3. se a nota de sessão dos hooks do git (#160) chega ao modelo: a forma do
+   evento foi conferida, mas a nota em si não foi vista numa sessão, porque a
+   máquina de teste tem os hooks instalados.
 
 A documentação da v2 fica em `https://opencode.ai/docs/build/plugins/server/`.
 A página `https://opencode.ai/docs/plugins` indexada por buscadores e pelo
@@ -339,6 +345,19 @@ Duas saídas, que não se excluem:
 - **`AGENTS.md` como fonte das regras**, com o `CLAUDE.md` apontando para ele.
   Vale para o OpenCode e para o Antigravity, mas muda os templates da fábrica
   e os projetos existentes. É uma decisão separada deste plano (ver §11).
+
+**Conferido na #160 (OpenCode 2.3.0):**
+
+- **Projeto com `AGENTS.md`:** as regras chegam ao modelo sem configuração
+  extra. É o caso dos projetos migrados pela #156.
+- **Opt-in para projeto só com `CLAUDE.md`:** um `opencode.jsonc` **na raiz do
+  projeto** com `{ "instructions": ["CLAUDE.md"] }` faz o modelo receber as
+  regras; o caminho relativo resolve a partir do projeto. O mesmo `instructions`
+  num config apontado por `OPENCODE_CONFIG` **não** entregou o `CLAUDE.md` do
+  projeto, então não dá para contar com o caminho relativo num config fora do
+  projeto. A config global em `~/.config/opencode` não foi testada. Enquanto
+  isso, o opt-in vale por projeto, e a saída duradoura é migrar o projeto para
+  o `AGENTS.md`.
 
 Sem nenhuma das duas, o agente ainda lê o `CLAUDE.md` pela ferramenta de
 leitura quando a skill manda, mas perde o carregamento automático. Atenção ao
