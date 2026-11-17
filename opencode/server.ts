@@ -387,6 +387,12 @@ export default Plugin.define({
           }
         } catch (error) {
           console.error(`${LOG_PREFIX} erro no permission.evaluate: ${String(error)}`)
+          // Numa proteção, falhar ao avaliar o shell conta como negativa. As outras
+          // ações seguem sem negativa, como antes.
+          if (event?.action === "shell") {
+            event.effect = "deny"
+            event.message = `${LOG_PREFIX} não foi possível verificar este comando; ele foi negado por segurança.`
+          }
         }
       })
     } catch (error) {
