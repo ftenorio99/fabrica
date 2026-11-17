@@ -1,8 +1,9 @@
 # Plano: adaptar o fabrica ao OpenCode sem tocar no Claude Code
 
 Status: proposta, nada implementado. As APIs de plugin em que o plano se apoia
-foram verificadas em 2026-11-16 com o OpenCode 2.3.0 (estudo da issue #149); o
-que foi confirmado e o que falta está na §0.
+foram verificadas em 2026-11-16 com o OpenCode 2.3.0 (estudo da issue #149), e
+a fase 0, com modelo real, rodou em 2026-11-17; o que foi confirmado e o que
+falta está na §0.
 Escopo: levar as 12 etapas, o subagente revisor e as proteções da fábrica ao
 OpenCode, com **zero mudança** no que existe para o Claude Code.
 
@@ -11,8 +12,11 @@ OpenCode, com **zero mudança** no que existe para o Claude Code.
 ## 0. O que já foi verificado
 
 O estudo carregou um plugin mínimo numa VM do `sbx`, com um servidor local
-(`opencode serve`) e sem modelo, e exercitou o plugin pela API do servidor. O
-registro completo está na issue #149.
+(`opencode serve`) e sem modelo, e exercitou o plugin pela API do servidor.
+Depois, a fase 0 repetiu os pontos que dependiam de modelo com
+`opencode run` e o modelo gratuito `opencode/deepseek-v4.1-flash-free` (os
+pagos do gateway recusaram por falta de crédito). O registro completo está na
+issue #149.
 
 | Ponto | Situação | Como foi visto |
 |---|---|---|
@@ -26,18 +30,21 @@ registro completo está na issue #149.
 | `ctx.permission.hook("evaluate")` nega com `event.effect = "deny"` | confirmado na API | `POST /api/session/<id>/permission` devolveu `deny` |
 | `ctx.session.hook("context")`, com `event.system` e `event.tools` | confirmado | hook disparou |
 | Ferramentas `shell`, `question` e `subagent` no agente padrão | confirmado | lista de `event.tools` |
-| A ferramenta `shell` pede permissão com `action: "shell"` | só no código do binário | não houve execução real |
+| A ferramenta `shell` pede permissão com `action: "shell"` | confirmado | sessão com modelo |
+| O `deny` do hook barra a ferramenta `shell` numa sessão real | confirmado | a ferramenta termina em erro com `event.message`, e o modelo a repete; nenhum commit foi criado |
+| O `--auto` não passa por cima do `deny` do hook | confirmado | mesmo resultado com `opencode run --auto` |
+| Ordem numa chamada de `shell`: `tool.execute.before` → `shell.create.before` → `permission.evaluate` | confirmado | log do plugin; o comando só roda depois da permissão |
+| `resources` traz cada comando separado, não a linha inteira | confirmado | ver §4.5 |
+| A skill com `autoinvoke: false` chega ao modelo pela ferramenta `skill` | confirmado | o modelo carregou a skill pelo nome e seguiu a instrução |
+| `opencode run "/fabrica:<etapa>"` executa o comando | **não** | o `run` trata o texto como mensagem comum; comando só pelo TUI ou pela API |
 | O OpenCode 2.3.0 não carrega o `CLAUDE.md` sozinho | só no código do binário | o servidor só observa o `AGENTS.md` |
 
-Ainda sem verificação, porque depende de um modelo respondendo:
+Ainda sem verificação:
 
-1. se o `deny` do hook barra a ferramenta `shell` numa sessão real, e que
-   mensagem o agente recebe;
-2. o conteúdo de `event.resources`: a linha de comando inteira ou cada comando
-   extraído dela (ver §4.5);
-3. se `/fabrica:<etapa>` digitado no TUI é aceito, já que a API aceita;
-4. se o corpo da skill e o preâmbulo chegam ao modelo como esperado;
-5. o comportamento com `opencode --auto`, que aprova o que não foi negado.
+1. se `/fabrica:<etapa>` digitado no TUI é aceito, já que a API aceita (pede
+   sessão interativa);
+2. se o preâmbulo de harness (§4.3), enviado pelo comando, muda o
+   comportamento do modelo como esperado; depende do item 1 ou da API.
 
 A documentação da v2 fica em `https://opencode.ai/docs/build/plugins/server/`.
 A página `https://opencode.ai/docs/plugins` indexada por buscadores e pelo
@@ -182,6 +189,11 @@ A API do servidor aceita `:` no nome do comando, no registro e na execução.
 Falta conferir o TUI: se ele rejeitar o nome digitado, o plano B é registrar
 `/fabrica/setup` etc. A decisão é tomada no primeiro teste com o TUI (ver §8).
 
+O `opencode run "/fabrica:status"` **não** executa o comando: o texto vai ao
+modelo como mensagem comum (fase 0). Uso não interativo de uma etapa, como no
+dispatcher da Fase 1, precisa ir pela API do servidor
+(`POST /api/session/<id>/command`).
+
 ### 4.3 Preâmbulo de harness
 
 Para não editar as skills, o adaptador injeta um preâmbulo curto, igual para
@@ -266,19 +278,29 @@ há duas implementações da mesma regra. Desde a 0.35.1 (#150), os dois scripts
 também aceitam o contrato do Antigravity; o adaptador do OpenCode usa o do
 Claude Code e não cria um terceiro.
 
-**Ponto em aberto: o que chega em `resources`.** As checagens do
-`protect-main.sh` são de texto sobre a linha inteira (prefixo de variável como
-`HOME=...`, a flag `--no-verify`, `core.hooksPath`). O código do OpenCode
-indica que a ferramenta `shell` passa em `resources` os comandos extraídos da
-linha, e não necessariamente a linha como o agente a escreveu. Se o prefixo de
-variável ou o encadeamento se perderem nessa extração, parte das checagens
-deixa de valer. O teste com modelo (§8) decide entre:
+**De onde vem a linha de comando.** As checagens do `protect-main.sh` são de
+texto sobre a linha inteira (prefixo de variável como `HOME=...`, a flag
+`--no-verify`, `core.hooksPath`). A fase 0 mostrou que `resources` não traz
+essa linha. Para `HOME=/tmp git status --short && echo fim | cat`:
 
-- usar `resources` como está, se a linha chega inteira;
-- ler a linha em `ctx.tool.hook("execute.before")`, com `event.tool === "shell"`
-  e `event.input`, e negar por aí ou guardar a linha para o hook de permissão.
-  A documentação diz que esse hook pode inspecionar e trocar a entrada, mas
-  não documenta como barrar a chamada.
+| Hook | O que chega |
+|---|---|
+| `tool.execute.before` | `event.input.command` com a linha inteira; `event.id` é o id da chamada |
+| `permission.evaluate` | `resources: ["HOME=/tmp git status --short", "echo fim", "cat"]`; `source.id` é o mesmo id |
+
+O prefixo fica no comando a que pertence, mas o encadeamento se perde. Por
+isso o adaptador faz uma ponte pelo id da chamada:
+
+1. em `ctx.tool.hook("execute.before")`, com `event.tool === "shell"`, guarda
+   `event.input.command` num `Map` indexado por `event.id`;
+2. em `permission.evaluate`, com `action: "shell"`, busca a linha por
+   `source.id`, passa-a aos scripts e apaga a entrada do `Map`;
+3. se a linha não estiver no `Map`, usa `resources.join(" && ")`, para nunca
+   avaliar menos do que chegou.
+
+A negativa continua no hook de permissão, que é o que barra de verdade (a
+documentação não diz como barrar pelo `execute.before`). O `test-adapter.sh`
+cobre a ponte com uma linha encadeada.
 
 **Limites conhecidos**
 
@@ -408,16 +430,16 @@ Nada em `~/.claude/` é tocado em nenhum dos dois sentidos.
 
 | Fase | Entrega | Impacto no Claude |
 |---|---|---|
-| 0 | Teste com modelo dos cinco pontos em aberto da §0 | nenhum |
+| 0 | Teste com modelo dos pontos em aberto da §0 (**feita em 2026-11-17**, falta o TUI) | nenhum |
 | 1 | `server.ts`: skills + comandos `/fabrica:*`, carregado pela entrada em `"plugins"` | nenhum |
 | 2 | Agente `fabrica/revisor` | nenhum |
 | 3 | Hooks de permissão (main, produção, guarda-corpo) | nenhum |
 | 4 | Nota de sessão e leitura do `CLAUDE.md` (opt-in) | nenhum |
 | 5 | `test-adapter.sh` e README do adaptador | nenhum |
 
-A fase 0 vem antes porque o ponto 2 da §0 (o conteúdo de `resources`) decide o
-desenho da fase 3. Ela precisa de login no OpenCode e, na VM, da liberação dos
-hosts do provedor na política de rede.
+A fase 0 vinha antes porque o conteúdo de `resources` decidia o desenho da
+fase 3; o resultado é a ponte da §4.5. O nome `/fabrica:<etapa>` no TUI fica
+para o primeiro teste manual da fase 1.
 
 Cada fase termina com o checkpoint: `git diff --name-only main` só com
 caminhos em `opencode/`, e os testes bash atuais passando.
@@ -444,10 +466,12 @@ caminhos em `opencode/`, e os testes bash atuais passando.
   - um commit com `--no-verify` volta `deny`;
   - um comando que cita um padrão de `.fabrica/producao.txt` volta `deny`;
   - uma escrita em `~/.claude/` volta `deny` (guarda-corpo);
-  - `git status` volta `allow`.
+  - `git status` volta `allow`;
+  - com a linha encadeada guardada pelo `execute.before`, a negativa vale
+    mesmo quando o comando proibido não é o primeiro da linha.
 - Nenhum erro do plugin em `~/.local/share/opencode/log/opencode.log`.
 
-**OpenCode, com modelo (manual)**
+**OpenCode, com modelo (manual, pelo TUI; o `opencode run` não executa comandos)**
 
 - `/fabrica:status` digitado no TUI roda sem erro.
 - O agente tenta um commit com `--no-verify` e recebe a mensagem atual de
@@ -460,15 +484,15 @@ caminhos em `opencode/`, e os testes bash atuais passando.
 
 | Risco | Mitigação |
 |---|---|
-| Nome com `:` não funcionar no TUI | A API aceita; teste no TUI na fase 0; fallback `/fabrica/...` |
-| `resources` não trazer a linha inteira | Teste na fase 0; alternativa pelo `tool.hook("execute.before")` (§4.5) |
+| Nome com `:` não funcionar no TUI | A API aceita; teste no TUI no primeiro uso manual da fase 1; fallback `/fabrica/...` |
+| `resources` não trazer a linha inteira | Confirmado na fase 0; ponte pelo id da chamada a partir do `tool.hook("execute.before")` (§4.5) |
 | API de plugins V2 mudar | Adaptador pequeno e isolado; `test-adapter.sh` acusa a quebra |
 | Plugin externo não poder criar agente | Caminho 2 da §4.4, por arquivo |
 | Skill nova quebrar o parser de frontmatter | Parser tolerante; erro logado e skill ignorada |
 | Duplicação de regra | Nenhuma: corpo e mensagens vêm dos arquivos atuais |
 | `instructions: ["CLAUDE.md"]` afetar projetos | Opt-in, só na config do OpenCode |
 | Modelo ignorar o preâmbulo e mexer no Claude | Guarda-corpo nega shell/edit em `~/.claude` |
-| `opencode --auto` aprovar o que o hook deveria negar | Teste na fase 0; o `deny` do hook deve valer como negativa explícita |
+| `opencode --auto` aprovar o que o hook deveria negar | Descartado na fase 0: o `deny` do hook vale também com `--auto` |
 | `jq` ausente | Ponte falha aberta (não nega), como os scripts atuais |
 
 ---
