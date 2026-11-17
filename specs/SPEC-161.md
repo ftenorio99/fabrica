@@ -55,7 +55,7 @@ Um teste de aceite em `opencode/test-adapter.sh` confere, numa VM do `sbx` e sem
 **O `opencode/README.md`.** Nesta ordem, o suficiente para instalar do zero:
 1. o que o adaptador faz (12 skills, 12 comandos, `fabrica/revisor`, hooks), o que é adaptado e o que não existe (statusline, custo real);
 2. requisitos: OpenCode 2.3.0 (API v2), `git`, `jq`;
-3. instalação: a entrada `"plugins": ["<clone>/opencode"]` em `~/.config/opencode/opencode.jsonc`, que precisa ser uma pasta, e `opencode reload` ou `opencode service restart`; como conferir no TUI;
+3. instalação **por projeto**: a entrada `"plugins": ["<clone>/opencode"]` no `opencode.jsonc` da raiz de cada projeto (a mesma do teste), que precisa ser uma pasta, e `opencode reload` ou `opencode service restart`; como conferir no TUI. A entrada global em `~/.config/opencode/opencode.jsonc` carrega as skills e o `fabrica/revisor`, mas não registra os comandos `/fabrica:*` nem o hook de produção nos projetos (OpenCode 2.3.0); o README diz isso como limite conhecido;
 4. atualização: `git pull` no clone e o reload, sem passo de cópia;
 5. teste: `bash opencode/test-adapter.sh` dentro da VM com o agente `opencode`, o que ele confere e o `--root`;
 6. rollback: tirar a entrada da `"plugins"`, recarregar e, opcionalmente, apagar a pasta; nada em `~/.claude` é tocado;
@@ -76,7 +76,7 @@ Um teste de aceite em `opencode/test-adapter.sh` confere, numa VM do `sbx` e sem
 | CA5 | A checagem do log usa só as linhas acrescentadas depois do início do servidor: com um erro `[fabrica]` antigo no log, a execução passa; com um erro novo, como um `hooks/protect-main.sh` ausente na cópia do `--root`, a verificação `log` falha | manual — duas execuções na VM |
 | CA6 | Ao terminar, no sucesso e na falha, o projeto temporário foi apagado e o `opencode serve` do teste não está rodando: `pgrep -af "opencode serve --hostname 127.0.0.1 --port 0"` não mostra o processo | manual — na VM, conferir com `ls` e `pgrep` |
 | CA7 | A saída do script não contém a senha do servidor | manual — leitura do script e da saída da execução |
-| CA8 | Seguindo só o `opencode/README.md` numa VM nova com o `opencode` instalado, o adaptador fica instalado e o TUI lista os 12 comandos `/fabrica:*` | manual — VM nova, sem outra fonte |
+| CA8 | Seguindo só o `opencode/README.md` numa VM nova com o `opencode` instalado, o adaptador fica instalado num projeto de teste e o TUI, aberto nele, lista os 12 comandos `/fabrica:*` | manual — VM nova, sem outra fonte |
 | CA9 | O `opencode/README.md` tem as seções de instalação, atualização, teste, rollback e limites, e os limites incluem os três da issue (shell do usuário, `deny` do usuário, `opencode run`) e os dois do plano (statusline, custo real) | manual — leitura |
 | CA10 | O `AGENTS.md` tem o item `opencode/` da lista de `Estrutura`, com `bash opencode/test-adapter.sh` e a VM do `sbx` | manual — leitura |
 | CA11 | `git diff --name-only origin/main...HEAD` mostra só `opencode/test-adapter.sh`, `opencode/README.md`, `AGENTS.md` e `specs/SPEC-161.md` | manual — o comando, na branch |
@@ -145,4 +145,5 @@ nenhum
 
 ## Histórico
 - 2026-11-17: criação.
+- 2026-11-17: a instalação passa a ser por projeto (opção 1 do bloqueio da implementação): a entrada global não registra comandos nem o hook de produção nos projetos. O conserto no `server.ts` fica em issue própria.
 - 2026-11-17: aprovada.
