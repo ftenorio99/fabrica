@@ -111,6 +111,47 @@ export function buildText(root: string, folder: string, args: string): string {
   return `${preamble(root, folder)}\n\n${body}`
 }
 
+// Subagente revisor (fase 2 do plano, §4.4). O prompt vem do agents/revisor.md,
+// lido a cada setup e reload; este arquivo só define o modo e as permissões.
+const REVIEWER_ID = "fabrica/revisor"
+
+// A última regra que casa vence. As regras 1 a 4 repetem a base dos agentes do
+// OpenCode; as seguintes deixam o revisor sem editar, perguntar ou abrir outro
+// subagente. O shell continua liberado, como o Bash do revisor no Claude Code.
+const REVIEWER_PERMISSIONS = [
+  { action: "*", resource: "*", effect: "allow" },
+  { action: "read", resource: "*.env", effect: "ask" },
+  { action: "read", resource: "*.env.*", effect: "ask" },
+  { action: "read", resource: "*.env.example", effect: "allow" },
+  { action: "edit", resource: "*", effect: "deny" },
+  { action: "question", resource: "*", effect: "deny" },
+  { action: "subagent", resource: "*", effect: "deny" },
+]
+
+// Lê agents/revisor.md da raiz. Ausente, ilegível, sem frontmatter ou sem
+// description: devolve undefined e loga o erro.
+export function loadReviewer(
+  root: string,
+): { name: string; description: string; system: string } | undefined {
+  const path = join(root, "agents", "revisor.md")
+  try {
+    if (!existsSync(path)) {
+      console.error(`${LOG_PREFIX} agente revisor não registrado, arquivo ausente: ${path}`)
+      return undefined
+    }
+    const parsed = parseFrontmatter(readFileSync(path, "utf8"))
+    const description = parsed?.fields["description"]
+    if (!parsed || !description) {
+      console.error(`${LOG_PREFIX} agente revisor não registrado, frontmatter sem description: ${path}`)
+      return undefined
+    }
+    return { name: parsed.fields["name"] || "revisor", description, system: parsed.body }
+  } catch (error) {
+    console.error(`${LOG_PREFIX} agente revisor não registrado, erro ao ler ${path}: ${String(error)}`)
+    return undefined
+  }
+}
+
 function resolveRoot(options: Record<string, unknown> | undefined): string {
   const fromOptions = options?.["root"]
   if (typeof fromOptions === "string" && fromOptions.length > 0) return resolve(fromOptions)
@@ -179,5 +220,25 @@ export default Plugin.define({
         }
       }
     })
+
+    // O update de um ID novo cria o agente (plano, §4.4). Qualquer erro aqui é
+    // logado e não impede o resto do plugin.
+    try {
+      await ctx.agent.transform((editor: any) => {
+        const reviewer = loadReviewer(root)
+        if (!reviewer) return
+        editor.update(REVIEWER_ID, (agent: any) => {
+          agent.id = REVIEWER_ID
+          agent.name = reviewer.name
+          agent.description = reviewer.description
+          agent.system = reviewer.system
+          agent.mode = "subagent"
+          agent.hidden = false
+          agent.permissions = REVIEWER_PERMISSIONS.map((rule) => ({ ...rule }))
+        })
+      })
+    } catch (error) {
+      console.error(`${LOG_PREFIX} agente revisor não registrado: ${String(error)}`)
+    }
   },
 })
