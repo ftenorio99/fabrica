@@ -1,7 +1,7 @@
 # SPEC-156: Adotar o AGENTS.md como fonte das regras do projeto, com o CLAUDE.md importando-o
 
 **Issue:** #156 · **PRD:** nenhuma F (melhoria fora do roadmap, ligada ao estudo #149) · **Classe:** implementacao-simples · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-11-17
+**Status:** aprovada · **Atualizada em:** 2026-11-17
 
 ## Contexto
 O OpenCode 2.3.0 e o Antigravity carregam o `AGENTS.md` do projeto e não carregam o `CLAUDE.md`. O Claude Code lê o `AGENTS.md` quando não há `CLAUDE.md`. Com os dois arquivos, ele lê só o `CLAUDE.md`, a menos que o `CLAUDE.md` importe o `AGENTS.md` com `@AGENTS.md`. Hoje o kairo e o ankyra têm os dois arquivos sem o import, e o Claude Code perde as regras do Next que estão no `AGENTS.md`. O usuário decidiu (D3 do mnemo, §11 do `opencode/PLANO-OPENCODE.md`) que o `AGENTS.md` passa a ser a fonte das regras do projeto, e o `CLAUDE.md` fica com o import e o que é só do Claude Code.
@@ -88,3 +88,4 @@ nenhum
 
 ## Histórico
 - 2026-11-17: criação.
+- 2026-11-17: aprovada.
