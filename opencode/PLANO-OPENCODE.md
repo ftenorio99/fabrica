@@ -37,7 +37,9 @@ issue #149.
 | `resources` traz cada comando separado, não a linha inteira | confirmado | ver §4.5 |
 | A skill com `autoinvoke: false` chega ao modelo pela ferramenta `skill` | confirmado | o modelo carregou a skill pelo nome e seguiu a instrução |
 | `opencode run "/fabrica:<etapa>"` executa o comando | **não** | o `run` trata o texto como mensagem comum; comando só pelo TUI ou pela API |
-| O OpenCode 2.3.0 não carrega o `CLAUDE.md` sozinho | só no código do binário | o servidor só observa o `AGENTS.md` |
+| O OpenCode 2.3.0 não carrega o `CLAUDE.md` sozinho | confirmado | projeto só com `CLAUDE.md`: o modelo não soube a regra (#160) |
+| O OpenCode 2.3.0 carrega o `AGENTS.md` sem configuração | confirmado | projeto só com `AGENTS.md`: o modelo respondeu a regra (#160) |
+| `"instructions": ["CLAUDE.md"]` resolve a partir do projeto | confirmado só no `opencode.jsonc` do projeto | no config apontado por `OPENCODE_CONFIG`, o `CLAUDE.md` do projeto não chegou; a config global real (`~/.config/opencode`) não foi testada (#160) |
 
 Ainda sem verificação:
 
@@ -339,6 +341,19 @@ Duas saídas, que não se excluem:
 - **`AGENTS.md` como fonte das regras**, com o `CLAUDE.md` apontando para ele.
   Vale para o OpenCode e para o Antigravity, mas muda os templates da fábrica
   e os projetos existentes. É uma decisão separada deste plano (ver §11).
+
+**Conferido na #160 (OpenCode 2.3.0):**
+
+- **Projeto com `AGENTS.md`:** as regras chegam ao modelo sem configuração
+  extra. É o caso dos projetos migrados pela #156.
+- **Opt-in para projeto só com `CLAUDE.md`:** um `opencode.jsonc` **na raiz do
+  projeto** com `{ "instructions": ["CLAUDE.md"] }` faz o modelo receber as
+  regras; o caminho relativo resolve a partir do projeto. O mesmo `instructions`
+  num config apontado por `OPENCODE_CONFIG` **não** entregou o `CLAUDE.md` do
+  projeto, então não dá para contar com o caminho relativo num config fora do
+  projeto. A config global em `~/.config/opencode` não foi testada. Enquanto
+  isso, o opt-in vale por projeto, e a saída duradoura é migrar o projeto para
+  o `AGENTS.md`.
 
 Sem nenhuma das duas, o agente ainda lê o `CLAUDE.md` pela ferramenta de
 leitura quando a skill manda, mas perde o carregamento automático. Atenção ao

@@ -284,6 +284,27 @@ export function resolveRoot(options: Record<string, unknown> | undefined, baseDi
   return resolve(dirname(fileURLToPath(import.meta.url)), "..")
 }
 
+// Nota de sessão (§4.5 do plano): equivale ao SessionStart do Claude Code.
+const HOOKS_NOTE =
+  "Os hooks do git da fábrica não estão instalados nesta máquina. Rode /fabrica:setup."
+
+// Diz se o hooksPath global do git aponta para ~/.config/fabrica/githooks.
+// Qualquer falha ao ler conta como "não instalado" e é logada; nunca lança.
+export function hooksInstalled(home: string = homedir()): boolean {
+  const expected = join(home, ".config", "fabrica", "githooks")
+  const result = spawnSync("git", ["config", "--global", "--get", "core.hooksPath"], {
+    encoding: "utf8",
+  })
+  if (result.error) {
+    console.error(`${LOG_PREFIX} não foi possível ler o hooksPath do git: ${String(result.error)}`)
+    return false
+  }
+  let value = (result.stdout ?? "").trim()
+  if (!value) return false
+  if (value === "~" || value.startsWith("~/")) value = join(home, value.slice(1))
+  return resolve(value) === expected
+}
+
 export default Plugin.define({
   id: "fabrica",
   async setup(ctx: any) {
@@ -435,6 +456,24 @@ export default Plugin.define({
       })
     } catch (error) {
       console.error(`${LOG_PREFIX} hook permission.evaluate não registrado: ${String(error)}`)
+    }
+
+    // Nota de sessão: uma vez por sessão, quando os hooks do git não estão instalados.
+    const noted = new Set<string>()
+    try {
+      await ctx.session.hook("context", (event: any) => {
+        try {
+          const key = String(event?.sessionID ?? event?.session?.id ?? "default")
+          if (noted.has(key)) return
+          noted.add(key)
+          if (hooksInstalled()) return
+          event.system.push({ type: "text", text: HOOKS_NOTE })
+        } catch (error) {
+          console.error(`${LOG_PREFIX} erro no session.context: ${String(error)}`)
+        }
+      })
+    } catch (error) {
+      console.error(`${LOG_PREFIX} hook session.context não registrado: ${String(error)}`)
     }
   },
 })
