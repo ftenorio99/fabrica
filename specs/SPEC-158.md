@@ -1,7 +1,7 @@
 # SPEC-158: OpenCode: agente fabrica/revisor
 
 **Issue:** #158 · **PRD:** nenhuma (fora das F1 a F9; ver Riscos) · **Classe:** implementacao-complexa · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-11-17
+**Status:** aprovada · **Atualizada em:** 2026-11-17
 
 ## Contexto
 Esta é a fase 2 do `opencode/PLANO-OPENCODE.md` (§4.4), sobre a #149. A fase 1 (#157, PR #167) já registra as skills e os comandos `/fabrica:*` no OpenCode. O preâmbulo do comando também já diz que `fabrica:revisor` é o subagente `fabrica/revisor`, chamado pela ferramenta `subagent`. Esse agente ainda não existe no OpenCode, e por isso o `/fabrica:revisar` cai no fallback da skill, um subagente genérico com o texto do `agents/revisor.md`. O plano é aditivo: o plugin do Claude Code continua como está.
@@ -125,3 +125,4 @@ nenhum
 
 ## Histórico
 - 2026-11-17: criação.
+- 2026-11-17: aprovada.
