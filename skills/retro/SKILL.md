@@ -46,7 +46,7 @@ Sem nenhuma evidência em nenhum repositório, diga isso no chat, com as datas d
 
 ## 3. Agrupar em padrões
 - **Padrão:** evidências com a mesma causa, na mesma skill ou etapa (`triagem`, `spec`, `implementar`, `revisar`, `revisor`, `status`, `avancar`, outra). Uma evidência entra num padrão só.
-- **Arquivo:** o arquivo do fabrica que a proposta muda, com o caminho real neste repositório (ex.: `skills/spec/SKILL.md`, `agents/revisor.md`, `templates/CLAUDE.md`, `skills/status/estados.md`). Confira que ele existe (`gh api repos/<dono>/fabrica/contents/<caminho> --silent`).
+- **Arquivo:** o arquivo do fabrica que a proposta muda, com o caminho real neste repositório (ex.: `skills/spec/SKILL.md`, `agents/revisor.md`, `templates/AGENTS.md`, `skills/status/estados.md`). Confira que ele existe (`gh api repos/<dono>/fabrica/contents/<caminho> --silent`).
 - **Proposta:** a regra a acrescentar, trocar ou remover, e em que seção do arquivo. "Melhorar a spec" não é proposta. Aproveite a "Ação sugerida" das lições, mas não a copie quando ela não diz o que mudar.
 - Uma evidência sem par forma padrão sozinha só se ela já apontar uma mudança concreta. Senão, vai para as evidências soltas.
 - **Ordem:** o padrão com mais evidências primeiro; no empate, o de evidência mais recente.

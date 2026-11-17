@@ -35,7 +35,7 @@ A spec é o contrato entre o usuário e quem implementa: ela é aprovada **antes
   | Texto de ajuste no argumento (uso manual) | vale junto com os comentários, como ajuste digitado pelo usuário |
   | Spec existente, sem comentário novo do usuário e sem texto no argumento | nenhum: pare sem commit nem comentário e diga no chat que não há ajuste pedido |
   | Issue triada, sem spec | primeira rodada: não há ajustes a ler |
-- `CLAUDE.md`, as seções do `docs/prd.md` ligadas à issue, ADRs em `docs/adr/` e specs relacionadas em `specs/`.
+- As regras do projeto (`AGENTS.md`; num projeto ainda não migrado, `CLAUDE.md`), as seções do `docs/prd.md` ligadas à issue, ADRs em `docs/adr/` e specs relacionadas em `specs/`.
 - O código existente que será tocado: a spec deve citar arquivos e módulos reais, não imaginários.
 - **Interface:** a linha `Interface` da tabela do comentário de triagem mais recente. Sem a linha (triagem antiga), trate como `não`. Confira se o projeto tem `docs/design.md`.
 
