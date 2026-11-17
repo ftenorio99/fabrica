@@ -1,7 +1,7 @@
 # SPEC-157: OpenCode: adaptador server.ts com as skills e os comandos /fabrica:*
 
 **Issue:** #157 · **PRD:** nenhuma (fora das F1 a F9; ver Riscos) · **Classe:** implementacao-complexa · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-11-17
+**Status:** aprovada · **Atualizada em:** 2026-11-17
 
 ## Contexto
 Esta é a fase 1 do `opencode/PLANO-OPENCODE.md` (§4.1 a §4.3, §7), sobre a #149. O OpenCode 2.3.0 não lê o `plugin.json` nem as convenções do Claude Code, então as 12 etapas da fábrica não existem nele. As APIs de plugin em que o adaptador se apoia foram verificadas na #149, incluindo a fase 0 com modelo real (§0 do plano). O plano é aditivo: o plugin do Claude Code continua como está, e o adaptador lê os arquivos existentes em tempo de execução, sem copiá-los.
@@ -113,3 +113,4 @@ nenhum
 
 ## Histórico
 - 2026-11-17: criação.
+- 2026-11-17: aprovada.
