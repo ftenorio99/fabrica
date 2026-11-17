@@ -21,20 +21,21 @@ O plugin do Claude Code não muda: esta pasta é inerte para ele e nada em `~/.c
 
 ## Instalação
 
-Não há instalador nem `package.json`. A instalação é uma entrada na configuração global do OpenCode, apontando para esta pasta:
+Não há instalador nem `package.json`. A instalação é uma entrada no `opencode.jsonc` da raiz do projeto, apontando para esta pasta:
 
 ```jsonc
-// ~/.config/opencode/opencode.jsonc
+// <projeto>/opencode.jsonc
 {
   "plugins": ["/home/<usuário>/projetos/fabrica/opencode"]
 }
 ```
 
 - O caminho é uma **pasta** (a que tem o `server.ts`), não o arquivo. Caminho de arquivo é ignorado.
-- Se o arquivo já existe, acrescente a pasta à lista de `"plugins"` que estiver lá.
-- Recarregue com `opencode reload`. Se o plugin não aparecer, reinicie o serviço com `opencode service restart` e abra o OpenCode de novo.
-- Para conferir, abra o TUI do OpenCode e digite `/fabrica:`; os 12 comandos aparecem. `opencode plugin list` não mostra plugins locais, mas `GET /api/plugin` mostra o `fabrica` com `status: "active"`.
-- Projetos com `AGENTS.md` recebem as regras sozinhos. Num projeto só com `CLAUDE.md`, acrescente `"instructions": ["CLAUDE.md"]` ao `opencode.jsonc` do projeto.
+- A entrada fica no **projeto**: a configuração global carrega as skills e o revisor, mas não registra os comandos nem o hook de produção no projeto (veja [Limites conhecidos](#limites-conhecidos)).
+- Se o `opencode.jsonc` do projeto já existe, acrescente a pasta à lista de `"plugins"` que estiver lá.
+- Recarregue com `opencode reload` (ou `/reload` no TUI). Se o plugin não aparecer, reinicie o serviço com `opencode service restart` e abra o projeto de novo.
+- Para conferir, abra o TUI do OpenCode **na pasta do projeto** e digite `/fabrica:`; os 12 comandos aparecem. Pela API, `GET /api/plugin` com `location[directory]=<projeto>` mostra o `fabrica` com `state.status: "active"`.
+- Projetos com `AGENTS.md` recebem as regras sozinhos. Num projeto só com `CLAUDE.md`, acrescente `"instructions": ["CLAUDE.md"]` ao mesmo `opencode.jsonc` do projeto.
 
 ## Atualização
 
@@ -64,7 +65,7 @@ Imprime `ok <verificação>` ou `falha <verificação>: <motivo>`, uma por linha
 
 ## Rollback
 
-1. Tire a pasta da lista `"plugins"` em `~/.config/opencode/opencode.jsonc`.
+1. Tire a pasta da lista `"plugins"` do `opencode.jsonc` do projeto (e da global, se você a usou).
 2. Rode `opencode reload` (ou `opencode service restart`).
 3. Opcionalmente, apague a pasta `opencode/` do clone. O adaptador não gera arquivo de agente nem nada em `~/.config/opencode/agents/`.
 
@@ -72,6 +73,7 @@ Nada em `~/.claude/` é tocado em nenhum dos dois sentidos.
 
 ## Limites conhecidos
 
+- **A entrada global não registra os comandos nem o hook de produção no projeto:** com `"plugins"` em `~/.config/opencode/opencode.jsonc`, as 12 skills e o `fabrica/revisor` carregam em todos os projetos, mas `GET /api/command` com a localização do projeto não lista os `/fabrica:*`, e o `protect-production.sh` roda com o `cwd` global, sem achar o `.fabrica/producao.txt` do projeto (OpenCode 2.3.0). Instale pelo `opencode.jsonc` do projeto.
 - **O shell digitado pelo usuário não passa pelo hook de permissão.** O hook protege o agente, não você: o comando digitado no TUI (ou em `opencode run`) só passa pelo `shell.create.before`, como no Claude Code.
 - **Uma regra `deny` sua é final:** ela é aplicada antes e o hook do plugin não é chamado.
 - **`opencode run "/fabrica:<etapa>"` não executa o comando.** O `run` trata o texto como mensagem comum. Para uma etapa, use o TUI ou `POST /api/session/<id>/command`.
