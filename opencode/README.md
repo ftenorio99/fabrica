@@ -46,12 +46,15 @@ Não há instalador nem `package.json`. A instalação é uma entrada no `openco
 O teste de aceite roda dentro de uma VM do `sbx` criada com o agente `opencode`, porque o servidor grava em `~/.config/opencode` e `~/.local/share/opencode` da máquina. No host, ele recusa rodar.
 
 ```bash
-# no host, na pasta do clone
-sbx create --name opencode-<projeto> opencode .
+# no host, na pasta do clone: o caminho do clone no fim monta o workspace da VM
+# (sem ele, o `sbx create` mostra `Workspace: none` e a VM fica sem os arquivos)
+sbx create --name opencode-<projeto> opencode /caminho/do/clone
 
-# dentro da VM, na pasta do clone (o workspace da VM)
-bash opencode/test-adapter.sh
+# no host, na branch que quer testar: roda o teste dentro da VM
+sbx exec opencode-<projeto> bash opencode/test-adapter.sh
 ```
+
+O `sbx run` abre o TUI do agente, não um shell: para o teste, use o `sbx exec`. O `sbx exec` inicia a VM se ela estiver parada, e a VM enxerga a branch que está no clone do host.
 
 Ele sobe um `opencode serve` local, sem modelo, num projeto temporário com o plugin carregado pelo `opencode.jsonc` do projeto, e confere pela API:
 
