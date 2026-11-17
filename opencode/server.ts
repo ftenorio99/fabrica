@@ -159,9 +159,18 @@ export default Plugin.define({
             description,
             execute: async ({ sessionID, prompt, delivery }: any) => {
               const args = typeof prompt?.text === "string" ? prompt.text.trim() : ""
-              // Se o SKILL.md sumiu ou ficou ilegível, o erro volta para quem
-              // executou o comando, sem derrubar o servidor.
-              const text = buildText(root, skill.folder, args)
+              let text: string
+              try {
+                text = buildText(root, skill.folder, args)
+              } catch (error) {
+                // SKILL.md apagado ou ilegível: o erro vai para a sessão como
+                // mensagem sintética, sem derrubar o servidor. Se nem isso der,
+                // o erro volta a quem executou o comando.
+                const message = `${LOG_PREFIX} não foi possível ler a skill ${skill.folder}: ${String(error)}`
+                console.error(message)
+                await ctx.session.synthetic({ sessionID, text: message })
+                return
+              }
               await ctx.session.prompt({ ...prompt, sessionID, text, delivery })
             },
           })
