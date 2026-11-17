@@ -1,7 +1,7 @@
 # SPEC-173: OpenCode: registrar comandos e hooks por projeto na instalação global
 
 **Issue:** #173 · **PRD:** nenhuma (o OpenCode está fora do escopo do PRD, que fica "só no Claude Code"; mesma situação das #161 e #162, ver Riscos) · **Classe:** implementacao-complexa · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-11-17
+**Status:** aprovada · **Atualizada em:** 2026-11-17
 
 ## Contexto
 O adaptador `opencode/server.ts` (#167 a #172) leva ao OpenCode as 12 skills, os comandos `/fabrica:*`, o subagente `fabrica/revisor` e os hooks de proteção. O README da #161 manda instalá-lo por projeto, porque a descoberta da #161 (OpenCode 2.3.0) mostrou que, com o plugin só na entrada global (`~/.config/opencode/opencode.jsonc`):
@@ -107,3 +107,4 @@ nenhum
 
 ## Histórico
 - 2026-11-17: criação.
+- 2026-11-17: aprovada.
