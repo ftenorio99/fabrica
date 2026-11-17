@@ -59,7 +59,7 @@ if [ -n "$repo_owner" ] && [ -n "$repo_name" ]; then
     touch "$cache" 2>/dev/null
     ( gh issue list --repo "$repo_owner/$repo_name" --state open --json labels --limit 200 2>/dev/null \
         | jq -r '[.[] | [.labels[].name]] as $all
-              | ([$all[] | select(index("precisa-info") or index("escalonado") or index("pronto-revisao")
+              | ([$all[] | select(index("precisa-info") or index("escalonado") or index("acao-externa") or index("pronto-revisao")
                   or (index("spec-pronta") and (index("spec-aprovada") | not)))] | length) as $wait
               | ([$all[] | select(index("agente") | not)] | length) as $backlog
               | "\($wait) \($backlog)"' \

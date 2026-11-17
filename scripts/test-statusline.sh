@@ -81,6 +81,13 @@ for _ in 1 2 3 4 5 6 7 8 9 10; do [[ -s "$XDG_CACHE_HOME/fabrica/statusline/o_r"
 check "uma issue no singular e backlog zerado some" \
   "meu-app feat #12 · 1 issue │ Opus · ctx 0%" "$(render "{$base}")"
 
+# SPEC-95, CA10: a ação externa espera o usuário.
+echo '[{"labels": [{"name": "agente"}, {"name": "acao-externa"}]}, {"labels": [{"name": "agente"}]}]' >"$FAKE_ISSUES"
+rm -f "$XDG_CACHE_HOME/fabrica/statusline/o_r"
+render "{$base}" >/dev/null
+for _ in 1 2 3 4 5 6 7 8 9 10; do [[ -s "$XDG_CACHE_HOME/fabrica/statusline/o_r" ]] && break; sleep 0.2; done
+check "acao-externa conta entre as issues que esperam o usuário" "1 0" "$(cat "$XDG_CACHE_HOME/fabrica/statusline/o_r" 2>/dev/null)"
+
 check "fora de um repositório do GitHub, sem contadores" \
   "tmp │ Opus · ctx 0%" "$(render '{"workspace":{"current_dir":"/tmp"},"model":{"display_name":"Opus"}}')"
 

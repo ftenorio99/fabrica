@@ -38,7 +38,7 @@ Rode as consultas independentes em paralelo, menos as buscas repetidas por repos
 - **Tempos:** `python3 <diretório base desta skill>/durations.py <created_at> <closed_at> <pasta>/tl-<nº>.json`. O script devolve, em minutos:
   - `abertura_ao_merge`;
   - `antes_do_fluxo`, da criação até o primeiro `labeled agente`;
-  - `esperando_voce`, o tempo em que valia um portão do usuário: `precisa-info`, `escalonado` ou `pronto-revisao` na issue, ou `spec-pronta` sem `spec-aprovada`. Os intervalos são unidos, então o mesmo minuto não conta duas vezes;
+  - `esperando_voce`, o tempo em que valia um portão do usuário: `precisa-info`, `escalonado`, `acao-externa` ou `pronto-revisao` na issue, ou `spec-pronta` sem `spec-aprovada`. Os intervalos são unidos, então o mesmo minuto não conta duas vezes;
   - `com_o_agente`, do primeiro `agente` ao fechamento, menos `esperando_voce`;
   - `escalonamentos`, os eventos `labeled escalonado` até o `closed_at`. Os posteriores ao fechamento não contam.
 
