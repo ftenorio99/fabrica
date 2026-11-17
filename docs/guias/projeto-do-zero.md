@@ -7,7 +7,11 @@ Da ideia à primeira issue no fluxo.
    cd ~/projetos
    gh repo create <nome> --private --clone
    ```
-   O primeiro commit leva o `README.md` e o `.gitignore` da stack. Os hooks do git deixam passar o commit inicial e o primeiro push de um repositório novo. O projeto nasce na LTS mais recente do runtime, conferida na fonte oficial, como manda o [`CLAUDE.md` do projeto](../../templates/CLAUDE.md).
+   O primeiro commit leva o `README.md`, o `.gitignore` da stack e as regras do projeto: copie para a raiz o [`templates/AGENTS.md`](../../templates/AGENTS.md) e o [`templates/CLAUDE.md`](../../templates/CLAUDE.md) do fabrica.
+   ```
+   cp ~/projetos/fabrica/templates/AGENTS.md ~/projetos/fabrica/templates/CLAUDE.md .
+   ```
+   O `AGENTS.md` é a fonte das regras, lido pelo Claude Code, pelo OpenCode e pelo Antigravity. O `CLAUDE.md` só importa o `AGENTS.md` e guarda o que é do Claude Code. Os hooks do git deixam passar o commit inicial e o primeiro push de um repositório novo. O projeto nasce na LTS mais recente do runtime, conferida na fonte oficial, como manda o `AGENTS.md`.
 2. **Configure**, se for a primeira vez nesta máquina: rode `/fabrica:setup` para instalar os hooks do git. Veja [Primeiros passos](../primeiros-passos.md).
 3. **Escreva o PRD:** no clone, rode `/fabrica:prd <ideia em uma frase>`.
    - **Entrevista:** responda em rodadas. O agente propõe opções, com a recomendação dele primeiro.

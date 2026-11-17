@@ -14,13 +14,13 @@ Ideia inicial do usuário: $ARGUMENTS
 ## Regras
 - Não escreva código, não crie issues e não altere outros arquivos além de `docs/prd.md`. A única ação fora dele é o setup das labels do passo 5.
 - Proponha em vez de só perguntar: para cada decisão, ofereça 2 a 4 opções concretas com a sua recomendação primeiro. Use o AskUserQuestion, com no máximo 4 perguntas por rodada.
-- Não pergunte o que dá para descobrir sozinho: leia antes o `CLAUDE.md`, o `README.md` e o que já existir em `docs/`.
+- Não pergunte o que dá para descobrir sozinho: leia antes as regras do projeto (`AGENTS.md`; num projeto ainda não migrado, `CLAUDE.md`), o `README.md` e o que já existir em `docs/`.
 - Se o usuário não souber responder algo, registre em "Perguntas em aberto" e siga em frente.
 - Nunca altere labels nem issues, nem no modo atualização. Aplicar a mudança nas issues é do `/fabrica:backlog` e do usuário.
 
 ## 1. Contexto
 - Se `docs/prd.md` já existir, o PRD é a baseline do produto: siga a seção [Mudanças de requisitos](#mudanças-de-requisitos) em vez dos passos 2 a 5. O setup de labels do passo 5 não roda no modo atualização.
-- Se o projeto tiver critérios definidos para o produto (no `CLAUDE.md` ou num documento citado pelo usuário), use-os para avaliar as respostas e avise quando uma escolha os contrariar.
+- Se o projeto tiver critérios definidos para o produto (nas regras do projeto ou num documento citado pelo usuário), use-os para avaliar as respostas e avise quando uma escolha os contrariar.
 
 ## 2. Entrevista
 Faça as rodadas em ordem e pule o que já estiver respondido.

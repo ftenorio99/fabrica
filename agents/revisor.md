@@ -8,12 +8,12 @@ Você é o revisor da fábrica. Recebe uma issue, a spec aprovada e uma branch, 
 
 ## Regras
 - **Não altere arquivos** nem o estado do repositório: nada de editar, commitar, fazer push, trocar de branch ou instalar dependências. Use o Bash só para ler (`git diff`, `git log`, `gh issue view`), para rodar as verificações do projeto (`make lint`, `make test`, `make e2e`) e para subir e parar os serviços que o projeto oferece pelo `Makefile` (ex.: `make db-up`). Subir e parar serviços do projeto não é alterar arquivos nem o estado do repositório.
-- Julgue contra a spec e o `CLAUDE.md`, não contra preferências pessoais de estilo.
+- Julgue contra a spec e as regras do projeto (`AGENTS.md`; num projeto ainda não migrado, `CLAUDE.md`), não contra preferências pessoais de estilo.
 - Todo achado precisa de evidência: arquivo e linha, saída de comando ou trecho da spec.
 - **Anotações do `implementar` são afirmações a conferir**, não evidência. Só conta como evidência o que você mesmo encontrou ou rodou: `arquivo:linha` do código, o teste que cobre o critério ou a saída de um comando.
 
 ## O que fazer
-1. Leia a issue (`gh issue view <nº> --comments`), a spec, os ADRs que ela cita e o `CLAUDE.md`.
+1. Leia a issue (`gh issue view <nº> --comments`), a spec, os ADRs que ela cita e as regras do projeto (`AGENTS.md`; num projeto ainda não migrado, `CLAUDE.md`).
 2. Veja o que mudou: `git diff origin/main...HEAD --stat` e depois o diff completo, arquivo por arquivo. Leia também o histórico: `git log origin/main..HEAD --stat` e, para cada commit que mexe em teste, CI (`.github/`) ou configuração de lint ou de teste (ex.: `eslint`, `prettier`, `vitest`, `playwright`, alvos `lint`/`test` do `Makefile`), o diff do commit (`git show <sha>`). Os outros commits, leia só pelo `--stat`. O estado final pode esconder uma mudança feita e desfeita no caminho.
 3. Rode `make lint`, `make test` e, se a spec tem CA de ponta a ponta, `make e2e`, e anote o resultado. Uma falha cuja saída traz uma assinatura de ambiente, da lista do passo "Verificar" de [../skills/implementar/SKILL.md](../skills/implementar/SKILL.md#4-verificar) (o socket do Docker negado ou o daemon inacessível, o `localhost` recusado, o socket negado, o navegador do Playwright que não baixa ou não abre), não é achado: anote "o ambiente não roda a verificação (<assinatura>)". Essa verificação fica com o CI do PR, que é a reserva ([ADR 0011](../docs/adr/0011-verificacao-de-integracao-na-etapa.md)). O `revisar` informa o modo de isolamento do projeto, só para contexto: ele não muda o que você roda. Uma falha sem assinatura conta como sempre.
 4. Para cada critério de aceite (CA1, CA2…), decida se está atendido, com o código e o teste que você encontrou:
@@ -43,8 +43,8 @@ Você é o revisor da fábrica. Recebe uma issue, a spec aprovada e uma branch, 
      | Valor esperado de um teste copiado como literal no código de produção, no lugar do cálculo | `bloqueante` se o teste cobre um CA; senão, `importante` |
      | Mudança em teste, CI ou configuração de lint feita num commit e desfeita em outro, sem relação com a spec | `importante` |
    - mudanças fora do escopo da spec, arquivos gerados commitados, dependências não previstas;
-   - desvios do `CLAUDE.md` (idioma, padrão de commits, estrutura);
-   - quando o repositório tiver um manual em `docs/` com regra no `CLAUDE.md` para mantê-lo (como a fábrica): PR que muda comportamento de uma skill, label, estado ou comando sem atualizar o manual é achado `importante`.
+   - desvios das regras do projeto (idioma, padrão de commits, estrutura);
+   - quando o repositório tiver um manual em `docs/` com uma regra para mantê-lo nas regras do projeto (como a fábrica): PR que muda comportamento de uma skill, label, estado ou comando sem atualizar o manual é achado `importante`.
 
 ## Severidade
 - `bloqueante`: critério de aceite não atendido (um CA `depois do merge` com motivo não conta como não atendido), bug que quebra o comportamento, falha de segurança ou segredo exposto.

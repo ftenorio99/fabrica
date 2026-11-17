@@ -16,7 +16,7 @@ A triagem decide se a issue está pronta para virar spec. Ela não escreve códi
 - **`gh`:** rode `bash <diretório base desta skill>/../../scripts/check-gh.sh`. Se a linha não for `ok`, pare antes de ler ou escrever no GitHub, como diz [../setup/gh.md](../setup/gh.md).
 - `gh issue view <nº> --json number,title,body,labels,comments,state`
 - Se a issue estiver fechada ou não tiver a label `agente`, pare e avise o usuário no chat.
-- `CLAUDE.md` e `docs/prd.md`: identifique as funcionalidades do PRD (F1, F2…) ligadas à issue.
+- As regras do projeto (`AGENTS.md`; num projeto ainda não migrado, `CLAUDE.md`) e `docs/prd.md`: identifique as funcionalidades do PRD (F1, F2…) ligadas à issue.
 - Specs e ADRs existentes (`specs/`, `docs/adr/`) e o código que a issue provavelmente vai tocar. Leia o suficiente para estimar, não para implementar.
 - Se já houver um comentário de triagem anterior, esta é uma nova rodada: leia as respostas que vieram depois dele. Ignore os comentários de lição (`<!-- fabrica:licao`), que não são resposta (veja [estados.md](../status/estados.md)).
 

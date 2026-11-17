@@ -83,7 +83,7 @@ O revisor devolve, para cada critério de aceite, se está atendido e com qual e
 ## 5. Abrir o PR
 Se já existir PR da branch (`gh pr view`), inclusive o rascunho do passo 3, atualize a descrição em vez de abrir outro. Senão, `gh pr create --body-file <arquivo>`:
 
-- **Título:** `<tipo da triagem>: <descrição curta em português>`, no padrão do `CLAUDE.md` (vira a mensagem do squash).
+- **Título:** `<tipo da triagem>: <descrição curta em português>`, no padrão de commits das regras do projeto (`AGENTS.md`; num projeto ainda não migrado, `CLAUDE.md`), porque vira a mensagem do squash.
 - **Corpo:**
 
   ```markdown
