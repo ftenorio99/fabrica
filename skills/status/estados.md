@@ -50,7 +50,7 @@ Toda etapa e todo comando que lê a spec, a branch ou o PR de uma issue usa esta
 
 ## Ação externa
 Quando o `implementar` ou o `revisar` depende de uma ação do usuário fora do GitHub (criar conta ou projeto, cadastrar secret, gerar chave), a etapa publica na issue um **comentário de ação**, com o marcador `<!-- fabrica:acao etapa=<implementar|revisar> -->` e uma checklist, aplica `acao-externa` e para ([ADR 0012](../../docs/adr/0012-acao-externa-com-checklist.md)). O formato do comentário e a retomada estão em [acao-externa.md](acao-externa.md).
-- **Leitura:** as linhas 1a e 1b usam o comentário de ação mais recente, lido por `python3 <raiz do plugin>/scripts/acao-status.py <comentários.json>`, com os comentários de `gh api repos/<repo>/issues/<nº>/comments --paginate --slurp`. A saída `estado=pendente` é a linha 1a, e `estado=concluida` é a 1b. As saídas `sem-comentario`, `sem-itens` e `etapa-invalida` são [inconsistências](#inconsistências).
+- **Leitura:** as linhas 1a e 1b usam o comentário de ação mais recente, lido por `python3 <diretório base da skill>/../../scripts/acao-status.py <comentários.json>`, com os comentários de `gh api repos/<repo>/issues/<nº>/comments --paginate --slurp`. A saída `estado=pendente` é a linha 1a, e `estado=concluida` é a 1b. As saídas `sem-comentario`, `sem-itens` e `etapa-invalida` são [inconsistências](#inconsistências).
 - **Gesto do usuário:** marcar os itens na própria checklist, editando o comentário. Não é preciso comentar.
 - **Precedência:** com `escalonado` e `acao-externa` ao mesmo tempo, vale o `escalonado` (linha 1).
 - A label `acao-externa` sai na retomada, pela etapa do marcador. Até lá, o `/fabrica:metricas` conta o tempo como espera do usuário.

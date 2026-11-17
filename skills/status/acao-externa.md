@@ -40,7 +40,7 @@ Marque cada item aqui mesmo quando concluir, editando este comentário. Com todo
 A ação externa não gera lição e não conta como rodada de correção.
 
 ## Retomar
-Quando a etapa começa com `acao-externa` na issue, leia o estado com `gh api repos/<dono>/<repo>/issues/<nº>/comments --paginate --slurp > <arquivo>` e `python3 <raiz do plugin>/scripts/acao-status.py <arquivo>`:
+Quando a etapa começa com `acao-externa` na issue, leia o estado com `gh api repos/<dono>/<repo>/issues/<nº>/comments --paginate --slurp > <arquivo>` e `python3 <diretório base da skill>/../../scripts/acao-status.py <arquivo>`:
 
 | Situação | O que fazer |
 |---|---|
