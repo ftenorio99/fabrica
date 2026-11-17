@@ -294,6 +294,7 @@ export function hooksInstalled(home: string = homedir()): boolean {
   const expected = join(home, ".config", "fabrica", "githooks")
   const result = spawnSync("git", ["config", "--global", "--get", "core.hooksPath"], {
     encoding: "utf8",
+    timeout: 5000,
   })
   if (result.error) {
     console.error(`${LOG_PREFIX} não foi possível ler o hooksPath do git: ${String(result.error)}`)

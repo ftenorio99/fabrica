@@ -29,6 +29,7 @@ issue #149.
 | `ctx.skill.transform`, com `autoinvoke: false` | confirmado | `GET /api/skill` |
 | `ctx.permission.hook("evaluate")` nega com `event.effect = "deny"` | confirmado na API | `POST /api/session/<id>/permission` devolveu `deny` |
 | `ctx.session.hook("context")`, com `event.system` e `event.tools` | confirmado | hook disparou |
+| O evento `context` traz `sessionID` e `system` como lista de `{type, text}` | confirmado | plugin de sonda numa sessão real do `opencode run` (#160) |
 | Ferramentas `shell`, `question` e `subagent` no agente padrão | confirmado | lista de `event.tools` |
 | A ferramenta `shell` pede permissão com `action: "shell"` | confirmado | sessão com modelo |
 | O `deny` do hook barra a ferramenta `shell` numa sessão real | confirmado | a ferramenta termina em erro com `event.message`, e o modelo a repete; nenhum commit foi criado |
@@ -46,7 +47,10 @@ Ainda sem verificação:
 1. se `/fabrica:<etapa>` digitado no TUI é aceito, já que a API aceita (pede
    sessão interativa);
 2. se o preâmbulo de harness (§4.3), enviado pelo comando, muda o
-   comportamento do modelo como esperado; depende do item 1 ou da API.
+   comportamento do modelo como esperado; depende do item 1 ou da API;
+3. se a nota de sessão dos hooks do git (#160) chega ao modelo: a forma do
+   evento foi conferida, mas a nota em si não foi vista numa sessão, porque a
+   máquina de teste tem os hooks instalados.
 
 A documentação da v2 fica em `https://opencode.ai/docs/build/plugins/server/`.
 A página `https://opencode.ai/docs/plugins` indexada por buscadores e pelo
