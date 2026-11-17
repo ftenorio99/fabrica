@@ -26,6 +26,7 @@ Tudo acontece no GitHub do próprio projeto: as tarefas são issues, o estado de
 | [Revisar um PR da fábrica](guias/revisar-pr.md) | O PR chegou com `pronto-revisao`. |
 | [Fechar um marco](guias/fechar-marco.md) | O marco atual está acabando e é hora de puxar o próximo. |
 | [Isolamento do agente](guias/isolamento-do-agente.md) | Escolher entre a VM do `sbx` e o modo sem sandbox, preparar a VM, ampliar os domínios e listar os padrões de produção. |
+| [Migrar para o AGENTS.md](guias/migrar-para-agents-md.md) | O projeto tem as regras só no `CLAUDE.md`, ou tem os dois arquivos sem o import. |
 
 ## Fontes da verdade
 Este manual explica e remete. As regras ficam em:
