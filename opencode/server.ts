@@ -291,13 +291,23 @@ const HOOKS_NOTE =
 // Diz se o hooksPath global do git aponta para ~/.config/fabrica/githooks.
 // Qualquer falha ao ler conta como "não instalado" e é logada; nunca lança.
 export function hooksInstalled(home: string = homedir()): boolean {
-  const expected = join(home, ".config", "fabrica", "githooks")
+  // Mesmo destino do scripts/setup-githooks.sh: ${XDG_CONFIG_HOME:-$HOME/.config}.
+  const xdg = process.env.XDG_CONFIG_HOME
+  const configDir = xdg && isAbsolute(xdg) ? xdg : join(home, ".config")
+  const expected = join(configDir, "fabrica", "githooks")
   const result = spawnSync("git", ["config", "--global", "--get", "core.hooksPath"], {
     encoding: "utf8",
     timeout: 5000,
   })
   if (result.error) {
     console.error(`${LOG_PREFIX} não foi possível ler o hooksPath do git: ${String(result.error)}`)
+    return false
+  }
+  // Código 1 é só "chave não definida", o caso normal; outro código é erro de leitura.
+  if (result.status !== 0 && result.status !== 1) {
+    console.error(
+      `${LOG_PREFIX} git config saiu com código ${result.status}: ${(result.stderr ?? "").trim()}`,
+    )
     return false
   }
   let value = (result.stdout ?? "").trim()
