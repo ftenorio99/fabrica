@@ -23,7 +23,15 @@ Nenhum dos dois modos cobre o WebFetch, que segue as regras de permissão do Cla
 O modo não muda o `/fabrica:status` nem o `/fabrica:metricas`. Ele orienta o setup e, nas etapas, só a mensagem quando o ambiente não roda a verificação de integração (veja [Verificação de integração](#verificação-de-integração)).
 
 ## Modo `sbx`
-O `sbx` é o comando do Docker Sandboxes. A fábrica não o instala nem roda: a VM, a política de rede e o secret são seus, no host. O checklist abaixo é o que o `/fabrica:setup` mostra no fim, conferido com o `sbx` 0.51.0. Troque `<projeto>` pelo nome da pasta do repositório.
+O `sbx` é o comando do Docker Sandboxes. A fábrica não o instala nem roda: a VM, a política de rede e o secret são seus, no host. O checklist abaixo é o que o `/fabrica:setup` mostra no fim, conferido com o `sbx` 0.51.0.
+
+**Nome da VM:** `claude-<projeto>`, com `<projeto>` sendo o nome da pasta do repositório. É o nome padrão do `sbx` (`<agente>-<pasta>`), o mesmo que um `sbx run claude .` sem `--name` daria, e o checklist o passa explícito no `sbx create`. O setup já mostra os comandos com o nome do projeto. Se a VM do projeto tem outro nome, por exemplo porque foi criada com um `--name` diferente, confira na coluna SANDBOX do `sbx ls`, no host, e use esse nome nos comandos.
+
+**Setup no host ou dentro da VM:** o checklist muda conforme o lugar onde o setup roda. O script `scripts/sbx-context.sh` descobre isso pelos sinais que o `sbx` deixa na VM: o arquivo `/etc/sandbox-persistent.sh` ou a variável `PROXY_CA_CERT_B64`.
+- **No host:** todos os itens aparecem pendentes, menos o 5 quando os hooks do git já estão instalados.
+- **Dentro da VM:** os itens 1, 2 e a rede base do 3 aparecem feitos, porque a VM só existe depois deles, e o setup não manda criá-la de novo. O item 4 aparece feito quando o `GH_TOKEN` da VM é o marcador do proxy, e não um token real. Ficam pendentes a linha do Playwright, quando o projeto tem `make e2e`, e o item 6, que confere no host o que não dá para provar de dentro da VM: a política global e a regra base de rede.
+
+Nos dois casos, a linha do Playwright só aparece quando o `Makefile` do projeto tem o alvo `e2e:`.
 
 1. **Fechar a rede padrão (no host, uma vez por máquina).** O `sbx` nasce com a rede aberta. Confira com `sbx policy ls`: a política global deve ser a `default-deny-all`, que nega o que nenhuma regra decide. Se ela liberar tudo, refaça a inicialização:
 
@@ -36,26 +44,26 @@ O `sbx` é o comando do Docker Sandboxes. A fábrica não o instala nem roda: a 
 2. **Criar a VM (no host, na pasta do projeto).**
 
    ```bash
-   sbx create --name <projeto> claude .
+   sbx create --name claude-<projeto> claude .
    ```
 3. **Liberar a rede só para a VM (no host).** A base é o GitHub, o npm e o Docker Hub:
 
    ```bash
-   sbx policy allow network --sandbox <projeto> github.com,api.github.com,codeload.github.com,uploads.github.com,*.githubusercontent.com,registry.npmjs.org,registry-1.docker.io,auth.docker.io,production.cloudflare.docker.com
+   sbx policy allow network --sandbox claude-<projeto> github.com,api.github.com,codeload.github.com,uploads.github.com,*.githubusercontent.com,registry.npmjs.org,registry-1.docker.io,auth.docker.io,production.cloudflare.docker.com
    ```
-   A lista base não tem a API do Claude Code, e não precisa. Toda VM criada com o agente `claude` recebe do `sbx` uma política de origem `kit`, só dela, que você não edita e que é recriada no `sbx create`. Ela libera o que o próprio Claude Code usa: `api.anthropic.com`, `mcp-proxy.anthropic.com`, `claude.com`, `platform.claude.com`, `downloads.claude.ai` e `bridge.claudeusercontent.com`, mais `deb.debian.org` e `dhi.io`. Para ver as regras de uma VM, use `sbx policy ls <projeto>`.
+   A lista base não tem a API do Claude Code, e não precisa. Toda VM criada com o agente `claude` recebe do `sbx` uma política de origem `kit`, só dela, que você não edita e que é recriada no `sbx create`. Ela libera o que o próprio Claude Code usa: `api.anthropic.com`, `mcp-proxy.anthropic.com`, `claude.com`, `platform.claude.com`, `downloads.claude.ai` e `bridge.claudeusercontent.com`, mais `deb.debian.org` e `dhi.io`. Para ver as regras de uma VM, use `sbx policy ls claude-<projeto>`.
 
    **Projeto com `make e2e` (Playwright):** libere também os hosts de onde o Playwright baixa os navegadores (veja [Hosts da verificação de integração](#hosts-da-verificação-de-integração)):
 
    ```bash
-   sbx policy allow network --sandbox <projeto> cdn.playwright.dev,playwright.download.prss.microsoft.com
+   sbx policy allow network --sandbox claude-<projeto> cdn.playwright.dev,playwright.download.prss.microsoft.com
    ```
 4. **Entregar o token do GitHub ao proxy (no host).** O token não entra na VM: o proxy o põe nas requisições ao GitHub.
 
    ```bash
    sbx secret set github --command 'gh auth token'
    ```
-5. **Instalar o plugin e os hooks do git (dentro da VM).** Abra a sessão com `sbx run --name <projeto>`. O `~/.claude` do host não entra na VM, então instale o plugin nela:
+5. **Instalar o plugin e os hooks do git (dentro da VM).** Abra a sessão com `sbx run --name claude-<projeto>`. O `~/.claude` do host não entra na VM, então instale o plugin nela:
 
    ```
    /plugin marketplace add ftenorio99/fabrica
@@ -64,19 +72,19 @@ O `sbx` é o comando do Docker Sandboxes. A fábrica não o instala nem roda: a 
    ```
 
    O setup lê o modo do `.fabrica/isolamento.txt`, que chega à VM pela pasta do projeto, e instala os hooks do git no home da VM. **Repita este item depois de um `sbx rm`:** os hooks somem com a VM e, sem eles, o push na `main` passa.
-6. **Conferir a rede (no host).** Use `sbx policy log <projeto>`, que mostra o que o proxy liberou e o que bloqueou. Não confie num `curl` de dentro da VM: o proxy responde 200 ao CONNECT mesmo para um host bloqueado.
+6. **Conferir a rede (no host).** Use `sbx policy log claude-<projeto>`, que mostra o que o proxy liberou e o que bloqueou. Não confie num `curl` de dentro da VM: o proxy responde 200 ao CONNECT mesmo para um host bloqueado.
 
 ### Ampliar os domínios
-Quando uma etapa falhar com erro de rede, veja no `sbx policy log <projeto>` qual host foi bloqueado. Se o projeto precisa dele (a API de um serviço de pagamento em modo de teste, as fontes que o build baixa), libere só o host exato, só para a VM do projeto:
+Quando uma etapa falhar com erro de rede, veja no `sbx policy log claude-<projeto>` qual host foi bloqueado. Se o projeto precisa dele (a API de um serviço de pagamento em modo de teste, as fontes que o build baixa), libere só o host exato, só para a VM do projeto:
 
 ```bash
-sbx policy allow network --sandbox <projeto> api.stripe.com
+sbx policy allow network --sandbox claude-<projeto> api.stripe.com
 ```
 
 Um curinga largo (como `*.github.com`) abre caminhos para tirar dados do projeto (como o `gist.github.com`). Não libere os hosts de produção (veja [Produção fora do alcance](#produção-fora-do-alcance)).
 
 ### Teste de aceite
-O `scripts/test-sandbox-acceptance.sh` do plugin confere, de dentro da VM, se o isolamento está de pé. Rode-o numa VM nova, depois de trocar a versão do `sbx` e depois de mudar a política de rede. Na sessão aberta na VM (`sbx run --name <projeto>`), peça ao agente para rodar, na pasta do projeto, o script do plugin instalado (em `~/.claude/plugins/cache/fabrica/fabrica/<versão>/`):
+O `scripts/test-sandbox-acceptance.sh` do plugin confere, de dentro da VM, se o isolamento está de pé. Rode-o numa VM nova, depois de trocar a versão do `sbx` e depois de mudar a política de rede. Na sessão aberta na VM (`sbx run --name claude-<projeto>`), peça ao agente para rodar, na pasta do projeto, o script do plugin instalado (em `~/.claude/plugins/cache/fabrica/fabrica/<versão>/`):
 
 ```bash
 bash <pasta do plugin>/scripts/test-sandbox-acceptance.sh
@@ -95,7 +103,7 @@ Ele imprime `ok <verificação>` ou `falha <verificação>: <motivo>` e sai com 
 | `push-na-main-recusado` | Um push de teste na `main` é recusado pelo hook. O teste usa `--dry-run`, e nada chega ao remoto. |
 | `git-push` | O push de uma branch `test/sandbox-*` funciona. A branch é apagada em seguida. |
 
-O teste olha o corpo das respostas, e não o código HTTP, pelo motivo do item 6 do checklist. Com tudo `ok`, ele lembra de conferir o `sbx policy log <projeto>` no host, que é onde aparece o que o proxy bloqueou. Fora da VM, `token-marcador` e `home-isolado` falham, como devem.
+O teste olha o corpo das respostas, e não o código HTTP, pelo motivo do item 6 do checklist. Com tudo `ok`, ele lembra de conferir o `sbx policy log claude-<projeto>` no host, que é onde aparece o que o proxy bloqueou. Fora da VM, `token-marcador` e `home-isolado` falham, como devem.
 
 ## Modo sem sandbox
 Neste modo, não há isolamento. Os comandos do agente rodam com o seu usuário: leem o token do `gh`, as chaves SSH e os `.env` da máquina, escrevem fora do projeto e alcançam qualquer host. É uma exceção assumida, registrada no arquivo do projeto.
@@ -152,13 +160,13 @@ O `/fabrica:implementar`, o `/fabrica:revisar` e o revisor rodam a verificação
 
 Um projeto sem `.fabrica/isolamento.txt` também roda a verificação: a etapa não para e avisa no chat para você rodar o `/fabrica:setup`.
 
-**Reserva do CI:** quando o comando falha com uma assinatura de ambiente, o ambiente não roda a verificação, e a falha não conta como erro da implementação. As assinaturas são o socket do Docker negado, o daemon do Docker inacessível, o `localhost` recusado, o socket negado e o navegador do Playwright que não baixa ou não abre. A lista exata está no passo "Verificar" do [`/fabrica:implementar`](../../skills/implementar/SKILL.md#4-verificar). Nesse caso, o PR abre em rascunho, espera o CI do head e só sai do rascunho com o CI verde. Sem CI em `pull_request`, a etapa pede a verificação a você. O "Para a sua revisão" do PR diz o que conferir: no modo `sbx`, o Docker na VM e o `sbx policy log <projeto>` no host; no modo sem sandbox, se o Docker está ligado na máquina.
+**Reserva do CI:** quando o comando falha com uma assinatura de ambiente, o ambiente não roda a verificação, e a falha não conta como erro da implementação. As assinaturas são o socket do Docker negado, o daemon do Docker inacessível, o `localhost` recusado, o socket negado e o navegador do Playwright que não baixa ou não abre. A lista exata está no passo "Verificar" do [`/fabrica:implementar`](../../skills/implementar/SKILL.md#4-verificar). Nesse caso, o PR abre em rascunho, espera o CI do head e só sai do rascunho com o CI verde. Sem CI em `pull_request`, a etapa pede a verificação a você. O "Para a sua revisão" do PR diz o que conferir: no modo `sbx`, o Docker na VM e o `sbx policy log claude-<projeto>` no host; no modo sem sandbox, se o Docker está ligado na máquina.
 
 O CI continua rodando a verificação completa em todo PR, como conferência num ambiente descartável.
 
 ### Hosts da verificação de integração
 No modo `sbx`, a VM precisa alcançar o que a verificação baixa:
-- **Imagens do Compose:** o Docker Hub já está no comando base do item 3 do checklist. Uma imagem de outro registry (como o `ghcr.io` ou o `quay.io`) aparece bloqueada no `sbx policy log <projeto>`: libere só esse host, como em [Ampliar os domínios](#ampliar-os-domínios).
+- **Imagens do Compose:** o Docker Hub já está no comando base do item 3 do checklist. Uma imagem de outro registry (como o `ghcr.io` ou o `quay.io`) aparece bloqueada no `sbx policy log claude-<projeto>`: libere só esse host, como em [Ampliar os domínios](#ampliar-os-domínios).
 - **Navegadores do Playwright:** o Playwright os baixa de `cdn.playwright.dev`, com `playwright.download.prss.microsoft.com` como espelho. Libere os dois com a linha do item 3 para projetos com `make e2e`.
 - **Bibliotecas de sistema do navegador:** se o `make e2e` falhar com `Host system is missing dependencies`, rode na VM, uma vez, o comando que instala as dependências do Playwright do projeto (ex.: `pnpm exec playwright install --with-deps chromium`). A etapa não instala pacotes de sistema. Até lá, a verificação vai para a reserva do CI.
 

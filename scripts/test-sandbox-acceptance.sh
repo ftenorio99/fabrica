@@ -131,6 +131,6 @@ rm -f "$push_err"
 
 if [[ $failures -eq 0 ]]; then
   # Só o log do proxy, no host, mostra o que foi bloqueado.
-  echo "confira no host: sbx policy log $(basename "$root")"
+  echo "confira no host: sbx policy log claude-$(basename "$root")"
 fi
 [[ $failures -eq 0 ]]
