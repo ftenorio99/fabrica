@@ -23,6 +23,7 @@ Tudo acontece no GitHub do próprio projeto: as tarefas são issues, o estado de
 | [Projeto do zero](guias/projeto-do-zero.md) | Da ideia à primeira issue no fluxo. |
 | [Mudança no PRD](guias/mudanca-no-prd.md) | O produto mudou depois do backlog criado. |
 | [Issue escalonada](guias/issue-escalonada.md) | Um agente parou e pediu a sua decisão. |
+| [Ação externa](guias/acao-externa.md) | Um agente parou e pediu uma ação sua fora do GitHub, numa checklist. |
 | [Revisar um PR da fábrica](guias/revisar-pr.md) | O PR chegou com `pronto-revisao`. |
 | [Fechar um marco](guias/fechar-marco.md) | O marco atual está acabando e é hora de puxar o próximo. |
 | [Isolamento do agente](guias/isolamento-do-agente.md) | Escolher entre a VM do `sbx` e o modo sem sandbox, preparar a VM, ampliar os domínios e listar os padrões de produção. |

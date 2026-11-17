@@ -79,6 +79,20 @@ out="$(python3 "$script" 2026-11-04T08:00:00Z 2026-11-04T12:00:00Z "$tmp/escalon
 check CA3 "escalonamento depois do closed_at não conta" \
   '{"abertura_ao_merge": 240, "antes_do_fluxo": 60, "esperando_voce": 60, "com_o_agente": 120, "escalonamentos": 1}' "$out"
 
+# SPEC-95, CA9: acao-externa conta como espera do usuário. Criada 08:00,
+# agente 09:00, acao-externa 10:00 a 11:30, fechada 12:00.
+cat > "$tmp/acao-externa.json" <<'EOF'
+[
+ {"event": "labeled", "created_at": "2026-11-04T09:00:00Z", "label": {"name": "agente"}},
+ {"event": "labeled", "created_at": "2026-11-04T10:00:00Z", "label": {"name": "acao-externa"}},
+ {"event": "unlabeled", "created_at": "2026-11-04T11:30:00Z", "label": {"name": "acao-externa"}},
+ {"event": "closed", "created_at": "2026-11-04T12:00:00Z"}
+]
+EOF
+out="$(python3 "$script" 2026-11-04T08:00:00Z 2026-11-04T12:00:00Z "$tmp/acao-externa.json")"
+check CA9 "acao-externa conta em esperando_voce" \
+  '{"abertura_ao_merge": 240, "antes_do_fluxo": 60, "esperando_voce": 90, "com_o_agente": 90, "escalonamentos": 0}' "$out"
+
 # CA4: timelines sem reabertura nem escalonamento tardio. Os esperados são
 # a saída do durations.py da main antes da SPEC-75.
 cat > "$tmp/sem-agente.json" <<'EOF'

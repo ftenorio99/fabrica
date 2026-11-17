@@ -43,6 +43,8 @@ Você pode rodar cada etapa do agente pelo comando dela, ou deixar o [`/fabrica:
 
 Quando algo dá errado, o agente para, comenta na issue e aplica `escalonado`. Veja o guia [Issue escalonada](guias/issue-escalonada.md).
 
+Quando a implementação ou a revisão dependem de uma ação sua fora do GitHub (criar uma conta, cadastrar um secret, gerar uma chave), o agente publica na issue uma checklist passo a passo e aplica `acao-externa`. Você faz os passos, marca os itens e retoma com `/fabrica:avancar`. Veja o guia [Ação externa](guias/acao-externa.md).
+
 ## Atalho
 Uma issue pequena e sem ambiguidade não precisa da etapa de spec. Quando a triagem vê que a issue é pequena, simples ou de documentação, sem perguntas e sem arquivos sensíveis, ela publica no próprio comentário uma **spec curta**, com o objetivo, os critérios de aceite, o que fica fora do escopo e o nome da branch, e aplica `spec-pronta`.
 
@@ -53,7 +55,7 @@ Para tirar uma issue do atalho, comente na issue antes de aprovar. O próximo pa
 ## Onde está o estado
 Não existe arquivo de estado. O estado de cada issue é lido do GitHub:
 - as labels;
-- os comentários dos agentes, que começam com um marcador como `<!-- fabrica:spec -->`;
+- os comentários dos agentes, que começam com um marcador como `<!-- fabrica:spec -->`, e a checklist do comentário de ação externa;
 - o PR da branch da issue;
 - nas issues de backlog, a milestone `M<n>` e o marcador `<!-- fabrica:backlog item=<n> -->` no corpo, que dão o avanço por marco.
 

@@ -19,16 +19,17 @@ Esta skill executa as etapas em que o agente age e para nos portões do usuário
 
 ## 2. Selecionar
 - Aplique a tabela de estados de [estados.md](../status/estados.md) a cada issue.
-- **Entram** só as issues nos estados em que o agente age: 2, 4, 5, 6, 8, 10, 11 e 12.
+- **Entram** só as issues nos estados em que o agente age: 1b, 2, 4, 5, 6, 8, 10, 11 e 12. O estado da ação externa (1a e 1b) sai do `acao-status.py`, como no passo 1 do [`/fabrica:status`](../status/SKILL.md).
 - **Ficam de fora:**
   - a issue com `em-andamento` recente, que outra sessão está avançando. Já a issue com `em-andamento` esquecida entra normalmente, com um alerta no relatório;
   - a issue com uma inconsistência de [estados.md](../status/estados.md#inconsistências), que vai para os alertas do relatório. A exceção é a `em-andamento` esquecida, que não tira a issue da seleção.
-- **Com número**, se a issue estiver num estado do usuário (1, 3, 7, 9 ou 13), num estado de fora ou com `em-andamento` recente, não execute nada: mostre o estado e o que o usuário faz, e pare.
-- **Ordem:** primeiro a mais perto do merge. Os estados 10, 11 e 12 vêm antes do 8, que vem antes do 6, 5, 4 e 2. No mesmo grupo, vai antes o menor número de issue.
+- **Com número**, se a issue estiver num estado do usuário (1, 1a, 3, 7, 9 ou 13), num estado de fora ou com `em-andamento` recente, não execute nada: mostre o estado e o que o usuário faz, e pare.
+- **Ordem:** primeiro a mais perto do merge. Os estados 10, 11 e 12 vêm antes do 8, que vem antes do 6, 5, 4 e 2. O 1b vai junto do grupo da etapa do marcador: com `etapa=revisar`, no grupo do 10 ao 12; com `etapa=implementar`, no do 8. No mesmo grupo, vai antes o menor número de issue.
 
 ## 3. Etapa de cada estado
 | Estado | Etapa | Argumentos |
 |---|---|---|
+| 1b Ação concluída | a etapa do marcador do comentário de ação: [implementar](../implementar/SKILL.md) (que já segue para o `revisar`) ou [revisar](../revisar/SKILL.md). A etapa retoma pela seção "Retomar" de [acao-externa.md](../status/acao-externa.md) | `<nº>` |
 | 2 Aguardando triagem | [triagem](../triagem/SKILL.md) | `<nº>` |
 | 4 Respostas recebidas | [spec](../spec/SKILL.md) se o último comentário do agente antes da resposta for de spec (`<!-- fabrica:spec -->`); senão, [triagem](../triagem/SKILL.md) | `<nº>` |
 | 5 Triada | [spec](../spec/SKILL.md) | `<nº>` |
@@ -50,7 +51,7 @@ Para cada issue selecionada, na ordem:
 6. **Repetir** enquanto o estado novo for de agente e o teto não tiver sido atingido.
 
 O laço da issue para quando:
-- **Portão do usuário:** a issue chegou a um estado em que o usuário age (1, 3, 7, 9 ou 13). Este é o fim normal.
+- **Portão do usuário:** a issue chegou a um estado em que o usuário age (1, 1a, 3, 7, 9 ou 13). Este é o fim normal.
 - **Sem avanço:** depois da etapa, a issue continua no mesmo estado. Isso cobre a etapa que parou num pré-requisito, como o limite de 3 em andamento, uma label que falta ou o ambiente incompleto. Anote o motivo que a etapa deu.
 - **Falha:** a etapa terminou com erro. Anote o comando e o erro resumido.
 - **Inconsistência:** o estado relido tem uma inconsistência de [estados.md](../status/estados.md#inconsistências).

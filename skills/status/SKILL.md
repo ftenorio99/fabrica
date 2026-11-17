@@ -1,6 +1,6 @@
 ---
 name: status
-description: Mostra o quadro do fluxo da fábrica em todos os repositórios do usuário (ou em um só) - o que espera aprovação ou revisão do usuário, o que espera agente e com qual comando, o avanço por marco, a próxima issue de backlog a puxar, as lições registradas desde o último marco e alertas como limite de trabalho em andamento, CI vermelho e itens parados. Só lê, não altera nada. Use quando o usuário perguntar o que falta, o que fazer agora ou como estão as issues.
+description: Mostra o quadro do fluxo da fábrica em todos os repositórios do usuário (ou em um só) - o que espera aprovação ou revisão do usuário, as ações externas pendentes (checklist na issue), o que espera agente e com qual comando, o avanço por marco, a próxima issue de backlog a puxar, as lições registradas desde o último marco e alertas como limite de trabalho em andamento, CI vermelho e itens parados. Só lê, não altera nada. Use quando o usuário perguntar o que falta, o que fazer agora ou como estão as issues.
 argument-hint: "[repositório]"
 ---
 
@@ -19,6 +19,7 @@ Esta skill é o orquestrador em modo leitura: lê o estado de cada issue no GitH
 - Issues: `gh search issues --owner <dono> --label agente --state open --json repository,number,title,labels,updatedAt,url --limit 100`. Com filtro, use `--repo <dono>/<repositório>`.
 - Para cada issue com `em-andamento`, o horário do último evento `labeled em-andamento`: `gh api repos/<repo>/issues/<nº>/timeline --paginate --slurp` ([Etapa em andamento](estados.md#etapa-em-andamento)).
 - Para cada issue, `gh issue view <nº> -R <repo> --json comments,labels` e localize os comentários mais recentes com `<!-- fabrica:triagem -->` e `<!-- fabrica:spec -->`. A branch da issue sai da regra da spec da issue de [estados.md](estados.md): o `**Branch:**` do comentário de spec ou, no atalho, o da spec curta do comentário de triagem.
+- Para cada issue com `acao-externa`, o estado da ação ([Ação externa](estados.md#ação-externa)): `gh api repos/<repo>/issues/<nº>/comments --paginate --slurp > <arquivo>` e `python3 <diretório base desta skill>/../../scripts/acao-status.py <arquivo>`. Guarde `estado`, `etapa`, `marcados`, `total` e `url`.
 - Com a branch, procure o PR: `gh pr list -R <repo> --head <branch> --state all --json number,state,isDraft,url,reviewDecision,statusCheckRollup,updatedAt,body`.
 - Para cada PR aberto de issue do fluxo, `gh pr view <nº> -R <repo> --json comments,reviews`, para achar pedidos novos no PR (linha 11 de [estados.md](estados.md)). A referência é a linha `**Pedidos lidos até:**` do último comentário `<!-- fabrica:revisar -->`, ou a data dele quando a linha falta.
 - PRs abertos fora do fluxo (sem issue com `agente`): `gh search prs --owner <dono> --state open --json repository,number,title,url,updatedAt`.
@@ -32,14 +33,14 @@ Esta skill é o orquestrador em modo leitura: lê o estado de cada issue no GitH
 Rode as consultas independentes em paralelo.
 
 ## 2. Classificar
-- Aplique a tabela de [estados.md](estados.md) a cada issue e anote estado, quem age e próximo passo. Numa issue no atalho em "Spec para aprovar", o próximo passo é "Revisar a spec curta na triagem e aplicar `spec-aprovada`", com o link do comentário de triagem. Numa issue de agente com `em-andamento` recente, o próximo passo é "Em andamento", sem comando: uma execução automática está nela.
+- Aplique a tabela de [estados.md](estados.md) a cada issue e anote estado, quem age e próximo passo. Numa issue no atalho em "Spec para aprovar", o próximo passo é "Revisar a spec curta na triagem e aplicar `spec-aprovada`", com o link do comentário de triagem. Numa issue de agente com `em-andamento` recente, o próximo passo é "Em andamento", sem comando: uma execução automática está nela. Numa issue em "Ação externa pendente" (1a), ela vai para a seção "Ações externas". Numa issue em "Ação concluída" (1b), o comando é o da etapa do marcador (`/fabrica:<etapa> <nº>`).
 - **Diretório:** o comando de agente roda no clone do repositório. Use `~/projetos/<repositório>` se existir; senão, indique `gh repo clone <repo> ~/projetos/<repositório>`.
 - **Alertas:**
   - limite de trabalho em andamento: 3 ou mais issues abertas com `spec-aprovada` no mesmo repositório;
   - CI falhando em PR aberto;
   - item parado: sem atualização há mais de 3 dias;
   - `em-andamento` esquecida: aplicada há 2 h ou mais. Texto: "`<repo>#<nº>`: `em-andamento` aplicada há <tempo>; a execução pode ter parado no meio. Remova a label ou rode `/fabrica:avancar <nº>`." Este caso sai uma vez só, com este texto, e não repetido no alerta das inconsistências;
-  - inconsistências listadas em estados.md;
+  - inconsistências listadas em estados.md. Na ação externa, cite a saída do `acao-status.py`: "`<repo>#<nº>`: `acao-externa` com `estado=<saída>`; confira o comentário de ação da issue.";
   - backlog acabando: o marco atual está perto de fechar e o marco depois do próximo existe no GitHub sem nenhuma issue. Sugira "rode `/fabrica:backlog` em `<repo>`".
   - requisito instável: na tabela `### Mudanças` do histórico do `docs/prd.md` (o mesmo PRD lido para os marcos), um F com 3 ou mais linhas cuja coluna Decisão começa com `aceita`. Uma linha com vários F conta para cada um, e um PRD sem a tabela não gera alerta. Texto: "`<repo>`: F<n> mudou <k> vezes; vale revisitar esse requisito com `/fabrica:prd`."
 - **Marcos:** para cada repositório com milestones `M<n>`, ache o marco atual e o próximo e conte `fechadas/total` de cada um, conforme a seção "Backlog" de [estados.md](estados.md). Para saber se há item sem issue, leia o fatiamento do PRD (`gh api repos/<repo>/contents/docs/prd.md -q .content | base64 -d`). Um item é "com issue" quando tem a anotação ` · #<nº>` no PRD ou uma issue com o marcador `item=<n>` na lista do passo 1, aberta ou fechada ([estados.md](estados.md#backlog)).
@@ -79,6 +80,11 @@ Uma linha por repositório sem nada no fluxo: a próxima issue a puxar, ou o blo
 | Item | Marco | O que fazer |
 |---|---|---|
 | [kairo#12](url) Título curto | M2 · Tarefas | Aplicar `agente` (dependências fechadas) |
+
+## Ações externas
+| Item | Etapa | Itens marcados | Checklist |
+|---|---|---|---|
+| [kairo#9](url) Título curto | implementar | 1/3 | [comentário de ação](url do comentário) |
 
 ## Esperando agente
 | Item | Estado | Comando | Onde |

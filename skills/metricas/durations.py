@@ -20,7 +20,7 @@ import sys
 from datetime import datetime
 
 # Labels que, enquanto estão na issue, indicam espera pelo usuário.
-USER_GATES = {"precisa-info", "escalonado", "pronto-revisao"}
+USER_GATES = {"precisa-info", "escalonado", "acao-externa", "pronto-revisao"}
 
 
 def parse(ts):

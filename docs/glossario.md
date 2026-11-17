@@ -1,5 +1,7 @@
 # Glossário
 
+**Ação externa** — Algo que um agente precisa que você faça fora do GitHub, como criar uma conta ou cadastrar um secret. O agente publica uma checklist na issue, aplica `acao-externa` e retoma quando você marca todos os itens. Veja [Ação externa](guias/acao-externa.md).
+
 **ADR** — Registro de uma decisão de arquitetura que vale para além de uma issue, em `docs/adr/`. A spec cria um ADR quando a decisão afeta o projeto inteiro. Veja os [ADRs da fábrica](adr/).
 
 **Atalho** — Caminho de uma issue pequena e sem ambiguidade, em que a triagem publica uma spec curta e a etapa de spec não roda. Você aprova com a mesma `spec-aprovada`. Veja [Atalho](fluxo.md#atalho).

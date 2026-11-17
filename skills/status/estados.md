@@ -1,6 +1,6 @@
 # Máquina de estados do fluxo
 
-Fonte da verdade do estado de uma issue na fábrica. Não existe arquivo de estado à parte: o estado é lido das **labels**, dos **marcadores de comentário** (`<!-- fabrica:triagem -->`, `<!-- fabrica:spec -->`), do marcador de backlog no corpo da issue (`<!-- fabrica:backlog item=<n> -->`), das **milestones** e do **PR** da branch da issue. Esta tabela serve ao `/fabrica:status` hoje e ao dispatcher do GitHub Actions na Fase 1.
+Fonte da verdade do estado de uma issue na fábrica. Não existe arquivo de estado à parte: o estado é lido das **labels**, dos **marcadores de comentário** (`<!-- fabrica:triagem -->`, `<!-- fabrica:spec -->`, `<!-- fabrica:acao etapa=<etapa> -->`), do marcador de backlog no corpo da issue (`<!-- fabrica:backlog item=<n> -->`), das **milestones** e do **PR** da branch da issue. Esta tabela serve ao `/fabrica:status` hoje e ao dispatcher do GitHub Actions na Fase 1.
 
 O marcador `<!-- fabrica:retro -->` na primeira linha do corpo identifica a issue que o `/fabrica:retro` criou no fabrica com uma proposta de melhoria. Ele não muda o estado: a issue nasce sem `agente`, fora do fluxo, e segue a tabela abaixo quando o usuário aplicar `agente`.
 
@@ -14,6 +14,7 @@ Esta tabela é lida por `scripts/setup-labels.sh`, que cria ou corrige as labels
 | `spec-pronta` | triagem, spec | `0e8a16` | Spec na branch, ou spec curta na triagem, aguardando aprovação. |
 | `spec-aprovada` | usuário | `1d76db` | Implementação liberada. Conta para o limite de 3 em andamento. |
 | `escalonado` | implementar, revisar | `d93f0b` | O agente parou por falha e precisa do usuário. Sai quando a etapa é retomada. |
+| `acao-externa` | implementar, revisar | `e99695` | O agente espera uma ação do usuário fora do GitHub, numa checklist na issue. Sai na retomada. |
 | `pronto-revisao` | revisar | `c2e0c6` | PR com CI verde e revisão automática feita, aguardando o usuário. |
 | `licao` | triagem, implementar, revisar, licao | `f9d0c4` | Lição aprendida registrada num comentário fabrica:licao. |
 | `em-andamento` | avancar | `bfdadc` | Uma execução automática está rodando uma etapa nesta issue. Vale por 2 h. |
@@ -21,7 +22,7 @@ Esta tabela é lida por `scripts/setup-labels.sh`, que cria ou corrige as labels
 ## Estados
 Avalie de cima para baixo; vale a primeira linha cuja condição for verdadeira.
 
-Os agentes comentam com a mesma conta do GitHub do usuário, então o autor não serve para distinguir os dois. **Comentário do agente** é o que começa com um marcador `<!-- fabrica:<etapa> -->` (`triagem`, `spec`, `implementar`, `revisar`, `backlog`); **comentário do usuário** é qualquer outro, exceto o comentário de lição e o de [recusa de par](#backlog), que não são de nenhum dos dois. A regra vale na issue e no PR, onde contam os comentários da conversa, as reviews e os comentários em linha. Toda review do usuário conta, mesmo sem corpo: um comentário em linha avulso cria uma review `COMMENTED` de corpo vazio, e é por ela que o `/fabrica:status` o enxerga. A exceção é a review `APPROVED` de corpo vazio, que não é comentário do usuário; com corpo, ela conta. "Resposta nova" é um comentário do usuário posterior ao último comentário do agente com o marcador citado. "Pedido novo no PR" é um comentário ou review do usuário no PR posterior à referência do último comentário `<!-- fabrica:revisar -->` da conversa do PR. A referência é o instante da linha `**Pedidos lidos até:**` desse comentário, ou a data dele quando a linha falta. Sem esse comentário, todo comentário do usuário no PR conta. O **comentário de lição** começa com `<!-- fabrica:licao` ([formato](../licao/formato.md)) e é ignorado em todas as regras de estado: não é comentário do agente nem do usuário, não é resposta nova, não é o último comentário do agente e não é pedido novo no PR. A label `licao` também não entra em nenhuma condição da tabela. A **linha de custo** `<!-- fabrica:custo ... -->`, que as etapas acrescentam no fim dos seus comentários com o início, o fim e os tokens da execução, só serve ao `/fabrica:metricas`: ela não muda o estado da issue nem o tipo do comentário, que continua sendo decidido pelo marcador da primeira linha.
+Os agentes comentam com a mesma conta do GitHub do usuário, então o autor não serve para distinguir os dois. **Comentário do agente** é o que começa com um marcador `<!-- fabrica:<etapa> -->` (`triagem`, `spec`, `implementar`, `revisar`, `backlog`) ou com o marcador de ação externa `<!-- fabrica:acao` ([Ação externa](#ação-externa)); **comentário do usuário** é qualquer outro, exceto o comentário de lição e o de [recusa de par](#backlog), que não são de nenhum dos dois. A regra vale na issue e no PR, onde contam os comentários da conversa, as reviews e os comentários em linha. Toda review do usuário conta, mesmo sem corpo: um comentário em linha avulso cria uma review `COMMENTED` de corpo vazio, e é por ela que o `/fabrica:status` o enxerga. A exceção é a review `APPROVED` de corpo vazio, que não é comentário do usuário; com corpo, ela conta. "Resposta nova" é um comentário do usuário posterior ao último comentário do agente com o marcador citado. "Pedido novo no PR" é um comentário ou review do usuário no PR posterior à referência do último comentário `<!-- fabrica:revisar -->` da conversa do PR. A referência é o instante da linha `**Pedidos lidos até:**` desse comentário, ou a data dele quando a linha falta. Sem esse comentário, todo comentário do usuário no PR conta. O **comentário de lição** começa com `<!-- fabrica:licao` ([formato](../licao/formato.md)) e é ignorado em todas as regras de estado: não é comentário do agente nem do usuário, não é resposta nova, não é o último comentário do agente e não é pedido novo no PR. A label `licao` também não entra em nenhuma condição da tabela. A **linha de custo** `<!-- fabrica:custo ... -->`, que as etapas acrescentam no fim dos seus comentários com o início, o fim e os tokens da execução, só serve ao `/fabrica:metricas`: ela não muda o estado da issue nem o tipo do comentário, que continua sendo decidido pelo marcador da primeira linha.
 
 A **spec da issue** e a **branch da issue** vêm de um destes comentários, nesta ordem:
 - o comentário `<!-- fabrica:spec -->` mais recente: a spec é o arquivo que ele cita, e a branch é o `**Branch:**` dele;
@@ -32,6 +33,8 @@ Toda etapa e todo comando que lê a spec, a branch ou o PR de uma issue usa esta
 | # | Condição | Estado | Quem age | Próximo passo |
 |---|---|---|---|---|
 | 1 | `escalonado` | Bloqueado | usuário | Ler o último comentário do agente na issue (ou no PR) e decidir; depois retomar a etapa que parou. |
+| 1a | `acao-externa` com item desmarcado no comentário de ação | Ação externa pendente | usuário | Fazer os passos da checklist do comentário de ação e marcar cada item. |
+| 1b | `acao-externa` com todos os itens do comentário de ação marcados | Ação concluída | agente | `/fabrica:<etapa do marcador> <nº>` |
 | 2 | sem marcador de triagem | Aguardando triagem | agente | `/fabrica:triagem <nº>` |
 | 3 | `precisa-info` sem resposta nova | Perguntas abertas | usuário | Responder as perguntas na issue. |
 | 4 | `precisa-info` com resposta nova | Respostas recebidas | agente | `/fabrica:triagem <nº>` (ou `/fabrica:spec <nº>`, se as perguntas vieram da spec) |
@@ -44,6 +47,13 @@ Toda etapa e todo comando que lê a spec, a branch ou o PR de uma issue usa esta
 | 11 | PR aberto com review `CHANGES_REQUESTED` ou com pedido novo no PR. Com a conta do usuário, o caminho é o comentário: o GitHub não deixa o autor pedir mudanças no próprio PR; a review vale para PR aberto por outra conta, como um bot | Ajustes do PR pedidos | agente | `/fabrica:revisar <nº>` |
 | 12 | PR aberto sem `pronto-revisao` | Em revisão automática | agente | `/fabrica:revisar <nº>` (se não houver `em-andamento` recente) |
 | 13 | PR aberto com `pronto-revisao` | PR para revisar | usuário | Revisar o PR e fazer o merge com squash. |
+
+## Ação externa
+Quando o `implementar` ou o `revisar` depende de uma ação do usuário fora do GitHub (criar conta ou projeto, cadastrar secret, gerar chave), a etapa publica na issue um **comentário de ação**, com o marcador `<!-- fabrica:acao etapa=<implementar|revisar> -->` e uma checklist, aplica `acao-externa` e para ([ADR 0012](../../docs/adr/0012-acao-externa-com-checklist.md)). O formato do comentário e a retomada estão em [acao-externa.md](acao-externa.md).
+- **Leitura:** as linhas 1a e 1b usam o comentário de ação mais recente, lido por `python3 <diretório base da skill>/../../scripts/acao-status.py <comentários.json>`, com os comentários de `gh api repos/<repo>/issues/<nº>/comments --paginate --slurp`. A saída `estado=pendente` é a linha 1a, e `estado=concluida` é a 1b. As saídas `sem-comentario`, `sem-itens` e `etapa-invalida` são [inconsistências](#inconsistências).
+- **Gesto do usuário:** marcar os itens na própria checklist, editando o comentário. Não é preciso comentar.
+- **Precedência:** com `escalonado` e `acao-externa` ao mesmo tempo, vale o `escalonado` (linha 1).
+- A label `acao-externa` sai na retomada, pela etapa do marcador. Até lá, o `/fabrica:metricas` conta o tempo como espera do usuário.
 
 ## Etapa em andamento
 A label `em-andamento` não é um estado: a issue continua no estado da tabela acima, e a label só diz que uma execução automática, como o `/fabrica:avancar`, está rodando uma etapa nela ([ADR 0003](../../docs/adr/0003-sinal-de-etapa-em-andamento.md)).
@@ -81,6 +91,7 @@ Issue aberta **sem `agente`**, com milestone e com o marcador `<!-- fabrica:back
 Sinalize como alerta, sem tentar corrigir:
 - `spec-aprovada` sem spec da issue (nem comentário de spec, nem triagem com atalho), ou marcador de spec sem a branch que ele cita. No atalho, a branch só nasce no `/fabrica:implementar`, e a falta dela antes disso não é inconsistência.
 - `pronto-revisao` sem PR aberto.
+- `acao-externa` sem comentário de ação, com um comentário de ação sem itens de checklist ou com uma etapa no marcador fora de `implementar` e `revisar` (saídas `sem-comentario`, `sem-itens` e `etapa-invalida` do `acao-status.py`).
 - `spec-pronta` e `spec-aprovada` ao mesmo tempo é normal (nem a spec nem a triagem do atalho removem a primeira); não é inconsistência.
 - PR fechado sem merge com a issue ainda aberta.
 - `em-andamento` aplicada há 2 h ou mais (label esquecida). Ao contrário das outras, esta não tira a issue do fluxo: uma execução automática pode retomá-la ([Etapa em andamento](#etapa-em-andamento)).
