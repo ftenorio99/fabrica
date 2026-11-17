@@ -201,7 +201,12 @@ export function runHookScript(root: string, script: string, command: string, cwd
 // Guarda-corpo do Claude Code: nega as linhas de shell que citam o ~/.claude ou
 // o setup-statusline.sh e as edições dentro do ~/.claude. É uma regra de texto:
 // a linha de shell não diz se escreve, então toda citação conta.
-export function claudeGuard(action: string, items: string[], home: string): string | undefined {
+export function claudeGuard(
+  action: string,
+  items: string[],
+  home: string,
+  cwd: string = process.cwd(),
+): string | undefined {
   const claudeDir = join(home, ".claude")
   if (action === "shell") {
     const markers = ["~/.claude", "$HOME/.claude", "${HOME}/.claude", claudeDir, "setup-statusline.sh"]
@@ -212,8 +217,8 @@ export function claudeGuard(action: string, items: string[], home: string): stri
   if (action === "edit") {
     const inside = (item: string) => {
       const path = item.startsWith("~/") ? join(home, item.slice(2)) : item
-      if (!isAbsolute(path)) return false
-      const full = resolve(path)
+      // Caminho relativo vale a partir do diretório do projeto.
+      const full = isAbsolute(path) ? resolve(path) : resolve(cwd, path)
       return full === claudeDir || full.startsWith(claudeDir + "/")
     }
     return items.some(inside) ? CLAUDE_GUARD_MESSAGE : undefined
@@ -373,7 +378,7 @@ export default Plugin.define({
               console.error(`${LOG_PREFIX} shell negado (${origin}): ${line} | motivo: ${result.reason}`)
             }
           } else if (event?.action === "edit" && guard) {
-            const message = claudeGuard("edit", resources, homedir())
+            const message = claudeGuard("edit", resources, homedir(), cwd)
             if (message) {
               event.effect = "deny"
               event.message = message
