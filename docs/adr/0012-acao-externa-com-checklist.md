@@ -1,6 +1,6 @@
 # ADR 0012: Ação externa com checklist no comentário e label acao-externa
 
-**Status:** proposto · **Data:** 2026-11-17 · **Origem:** issue #95
+**Status:** aceito · **Data:** 2026-11-17 · **Origem:** issue #95
 
 ## Contexto
 A F3 do PRD pede um bloqueio próprio para quando o agente depende de uma ação do usuário fora do GitHub: criar conta ou projeto, cadastrar secret, gerar chave. O `precisa-info` serve a perguntas, e a retomada dele depende de um comentário novo do usuário. O `escalonado` serve a falhas e decisões. Nenhum dos dois descreve uma ação que se conclui fora do GitHub e que o usuário só precisa marcar como feita. O estado da fábrica fica todo no GitHub (labels, marcadores e PR), e o dispatcher da F5 vai ler o mesmo estado para saber quando retomar.

@@ -1,7 +1,7 @@
 # SPEC-95: Bloqueio de ação externa com checklist passo a passo, separado do precisa-info
 
 **Issue:** #95 · **PRD:** F3 (prepara a F5) · **Classe:** implementacao-complexa · **Tamanho:** G
-**Status:** rascunho · **Atualizada em:** 2026-11-17
+**Status:** aprovada · **Atualizada em:** 2026-11-17
 
 ## Contexto
 Hoje, quando uma etapa precisa de algo do usuário, ela usa o `precisa-info`, para perguntas, ou o `escalonado`, para falhas e decisões. Falta o caso em que o agente depende de uma **ação externa** do usuário: criar uma conta ou um projeto num serviço, cadastrar um secret no GitHub, gerar uma chave de API. A resposta para isso não é um texto, é uma ação feita fora do GitHub. A F3 do PRD pede que, nesse caso, o agente publique uma checklist passo a passo na issue e retome sozinho quando o usuário concluir. A F5 conta "checklist de ação externa concluída" como um dos gestos que disparam a etapa seguinte no dispatcher (#107).
@@ -117,3 +117,4 @@ nenhum
 
 ## Histórico
 - 2026-11-17: criação.
+- 2026-11-17: aprovada.
