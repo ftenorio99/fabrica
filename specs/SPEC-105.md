@@ -1,7 +1,7 @@
 # SPEC-105: Workflow que roda a etapa de agente quando a label `agente` é aplicada, validado num repositório de teste
 
 **Issue:** #105 · **PRD:** F4 (item 5 do fatiamento, M2) · **Classe:** implementacao-complexa · **Tamanho:** G
-**Status:** rascunho · **Atualizada em:** 2026-11-18
+**Status:** aprovada · **Atualizada em:** 2026-11-18
 
 ## Contexto
 A F4 do [PRD](../docs/prd.md) pede que aplicar `agente` numa issue dispare a etapa de agente no GitHub Actions, com o plugin instalado no job e sem sessão local. A [ADR 0015](../docs/adr/0015-dispatcher-no-github-actions.md) (#99) decidiu o caminho: o CLI direto no job, chamando o mesmo `scripts/stage-model.sh run` do `/fabrica:avancar`, em `ubuntu-latest`, com a assinatura (`CLAUDE_CODE_OAUTH_TOKEN`) e disparo por `issues: labeled` filtrado pela label `agente`. A ADR deixou para esta issue o passo de falha, o caminho do CI do PR do agente e a conferência, no runner, de que o modo `auto` deixa a etapa terminar. A #106 (isolamento do job), a #107 (retomada por evento) e a #108 (instalação pelo `/fabrica:setup`) partem do que esta issue entregar. A #94 está fechada e a #99 entrou no PR #194.
@@ -123,3 +123,4 @@ nenhum
 
 ## Histórico
 - 2026-11-18: criação.
+- 2026-11-18: aprovada.
