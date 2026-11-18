@@ -31,6 +31,12 @@ A triagem decide se a issue está pronta para virar spec. Ela não escreve códi
 - **Tamanho**, em trabalho humano: `P` (até meio dia), `M` (até 1 dia), `G` (1 a 2 dias). Acima de 2 dias, proponha a divisão (passo 3).
 - **Dependências:** outras issues que precisam estar concluídas antes (`gh issue list --state open`).
 - **Interface:** `sim` quando a issue muda algo que o usuário final vê na tela (página, componente, estilo, texto da interface); `não` nos outros casos (back-end, CLI, documentação, CI, skills da fábrica). Na dúvida, `sim`: uma descrição de tela a mais custa menos que uma tela sem descrição. A spec usa o campo para criar o `docs/design.md` do projeto ([ADR 0009](../../docs/adr/0009-aprovacao-visual-sem-ferramenta-de-design.md)).
+- **Modelo da implementação** ([ADR 0013](../../docs/adr/0013-modelo-por-etapa-e-por-issue.md)): escolha um apelido de [../avancar/modelos.md](../avancar/modelos.md) pela complexidade, com a razão em uma linha:
+  - `haiku`: classe `documentacao`, chore, renomeação ou teste simples, sem arquivo sensível;
+  - `opus`: classe `implementacao-complexa` que toca arquivo sensível (autenticação, pagamentos, migrações de banco, `.github/`), decisão de arquitetura ou ambiguidade que a spec vai resolver;
+  - `sonnet`: os demais casos.
+
+  Se a issue já tem uma label `modelo:*` (do usuário ou de uma rodada anterior), mantenha-a e só registre o valor na tabela, sem a trocar. Com duas ou mais labels `modelo:*`, não aplique nenhuma: registre os valores como estão e avise no chat, que é uma inconsistência de [estados.md](../status/estados.md#inconsistências).
 - **Atalho:** a issue cabe no atalho quando atende a todas estas condições ([ADR 0004](../../docs/adr/0004-atalho-da-triagem-com-spec-curta.md)):
   - tamanho `P`;
   - classe `implementacao-simples` ou `documentacao`;
@@ -78,6 +84,7 @@ Publique um comentário na issue (`gh issue comment <nº> --body-file <arquivo>`
 | PRD | F7 |
 | Depende de | #12 |
 | Interface | sim |
+| Modelo | sonnet — <razão em uma linha> |
 | Arquivos prováveis | `src/...` |
 
 **Resumo:** <uma ou duas frases do que a issue pede, nas palavras da triagem>
@@ -116,7 +123,7 @@ Os CAs seguem as mesmas regras da [spec](../spec/SKILL.md#4-escrever): numerados
 
 **Linha de custo:** logo antes de publicar, acrescente ao fim do arquivo do corpo a linha que registra o início, o fim e os tokens desta execução: `python3 <diretório base desta skill>/../../scripts/stage-usage.py --stage triagem --since <início> >> <arquivo>`. O script nunca falha: sem log da sessão, a linha sai com `tokens=nao-medido`. Ela vai no comentário de triagem com ou sem perguntas, e não no de lição.
 
-Depois, ajuste as labels:
+Depois, ajuste as labels. Em qualquer dos três casos abaixo, aplique também o modelo escolhido, se a issue ainda não tem uma `modelo:*` (`gh issue edit <nº> --add-label modelo:<apelido>`):
 - **Com lacunas:** `gh issue edit <nº> --add-label precisa-info` e registre uma lição com o gatilho `precisa-info`, resumindo as lacunas e por que a issue não as respondia, como diz [../licao/formato.md](../licao/formato.md). Pare aqui e diga ao usuário que as perguntas estão na issue. Depois de respondidas, a triagem deve ser rodada de novo. As recomendações do mesmo comentário seguem para a spec na rodada seguinte, se o usuário não as contestar.
 - **Sem lacunas e sem atalho:** vale também para a issue que só tem recomendações, que não abrem `precisa-info` nem geram lição. `gh issue edit <nº> --remove-label precisa-info` (se estiver lá). Se a issue tiver `spec-pronta` e nenhum comentário de spec, sobra de uma rodada anterior com atalho, remova também `spec-pronta`. Diga que a issue está pronta para `/fabrica:spec <nº>`.
 - **Atalho:** `gh issue edit <nº> --add-label spec-pronta --remove-label precisa-info`. Diga que a spec curta está no comentário de triagem e que o usuário aplica `spec-aprovada` para aprovar ou comenta na issue para pedir a spec completa.
