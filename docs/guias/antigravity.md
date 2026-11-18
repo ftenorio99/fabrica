@@ -7,7 +7,7 @@ Este guia é para quando você quer usar a fábrica pelo Antigravity CLI (`agy`)
 - **Proteções:** os hooks de proteção (`protect-main.sh`, `protect-production.sh`) negam de verdade, também com `--dangerously-skip-permissions`.
 - **Etapas:** os comandos `/fabrica:*` rodam em modo `-p` e recebem argumento (fase 0 da #149).
 - **Perguntas ao usuário:** o equivalente ao `AskUserQuestion` é a ferramenta `ask_question`. Nas etapas que perguntam (`prd`, `setup`), a pergunta sai como chamada da ferramenta, não como texto solto.
-- **Revisão automática:** o `/fabrica:revisar` funciona pelo fallback — um subagente genérico registrado com o conteúdo de `agents/revisor.md` (via `define_subagent`). No teste, ele devolveu a tabela de critérios de aceite com evidência e recusou um pedido de alterar arquivo, mantendo o repositório intacto.
+- **Revisão automática:** a chamada do revisor funciona pelo fallback — um subagente genérico registrado com o conteúdo de `agents/revisor.md` (via `define_subagent`). No teste, ele devolveu a tabela de critérios de aceite com evidência e recusou um pedido de alterar arquivo, mantendo o repositório intacto.
 
 ## O que funciona com ressalva
 - **Modo `-p` não espera resposta:** o `ask_question` retorna imediatamente com resposta vazia (`A1:`), sem bloquear. Cabe ao modelo parar ou seguir; no teste, com instrução explícita de parar na primeira pergunta, ele parou sem responder por conta própria. Em sessão interativa, a pergunta chega ao usuário normalmente.
