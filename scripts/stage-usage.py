@@ -31,7 +31,7 @@ import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-STAGES = ("triagem", "spec", "implementar", "revisar")
+STAGES = ("triagem", "spec", "implementar", "revisar", "lancamento")
 FIELDS = (
     ("entrada", "input_tokens"),
     ("saida", "output_tokens"),
