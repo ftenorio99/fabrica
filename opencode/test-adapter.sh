@@ -2,7 +2,7 @@
 # Teste de aceite do adaptador da fábrica para o OpenCode (fase 5 do
 # opencode/PLANO-OPENCODE.md). Rode dentro de uma VM do sbx criada com o agente
 # opencode, na pasta do clone. Sobe um `opencode serve` local, sem modelo, e
-# confere pela API o plugin, as 12 skills, os 12 comandos, o agente revisor e as
+# confere pela API o plugin, as 13 skills, os 13 comandos, o agente revisor e as
 # decisões de permissão dos hooks, na instalação por projeto, na global e nas
 # duas juntas.
 # Imprime "ok <verificação>" ou "falha <verificação>: <motivo>", uma por linha,
@@ -267,14 +267,14 @@ denial_reasons() {
 }
 
 # Pré-carrega a localização como um cliente faria: GET /api/command até listar
-# os 12 comandos fabrica:*. Com o plugin ativo, nenhuma avaliação seguinte passa
+# os 13 comandos fabrica:*. Com o plugin ativo, nenhuma avaliação seguinte passa
 # sem os hooks (ver "Fechar a janela" no README).
 preload_location() {
   local deadline=$((SECONDS + 30)) json n
   while (( SECONDS < deadline )); do
     json="$(api GET /api/command 2>/dev/null)" || json=""
     n="$(jq -r '[.data[]? | select(.name | startswith("fabrica:"))] | length' <<<"$json" 2>/dev/null)"
-    [[ $n == 12 ]] && return 0
+    [[ $n == 13 ]] && return 0
     sleep 0.2
   done
   return 1
@@ -467,7 +467,7 @@ run_mode() {
   # Janela de inicialização: servidor e localização novos, pré-carregamento e,
   # sem esperar mais, 8 avaliações seguidas de produção, todas negadas.
   local warm_problem="" warm_i warm_effect
-  preload_location || warm_problem="o pré-carregamento não listou os 12 comandos em 30 s"
+  preload_location || warm_problem="o pré-carregamento não listou os 13 comandos em 30 s"
 
   if ! new_session "$project"; then
     bad "$mode: plugin" "não criei a sessão de teste: ${session_json:-sem resposta}"
@@ -538,18 +538,18 @@ run_mode() {
   api_location="$project"
 
   commands_json="$(api GET /api/command 2>/dev/null)" || commands_json=""
-  expected_commands="fabrica:avancar fabrica:backlog fabrica:implementar fabrica:licao fabrica:metricas fabrica:prd fabrica:retro fabrica:revisar fabrica:setup fabrica:spec fabrica:status fabrica:triagem"
+  expected_commands="fabrica:avancar fabrica:backlog fabrica:implementar fabrica:lancamento fabrica:licao fabrica:metricas fabrica:prd fabrica:retro fabrica:revisar fabrica:setup fabrica:spec fabrica:status fabrica:triagem"
   got_commands="$(jq -r '.data[]? | select(.name | startswith("fabrica:")) | .name' <<<"$commands_json" 2>/dev/null | LC_ALL=C sort)"
   want_commands="$(printf '%s\n' $expected_commands | LC_ALL=C sort)"
   if [[ $got_commands == "$want_commands" ]]; then
     commands_ok=1
-    ok "$mode: 12 comandos"
+    ok "$mode: 13 comandos"
   else
-    bad "$mode: 12 comandos" "esperava os 12 comandos: ${want_commands//$'\n'/, }; veio: ${got_commands:-nenhum}"
+    bad "$mode: 13 comandos" "esperava os 13 comandos: ${want_commands//$'\n'/, }; veio: ${got_commands:-nenhum}"
   fi
 
   skills_json="$(api GET /api/skill 2>/dev/null)" || skills_json=""
-  expected_skills="fabrica-avancar fabrica-backlog fabrica-implementar fabrica-licao fabrica-metricas fabrica-prd fabrica-retro fabrica-revisar fabrica-setup fabrica-spec fabrica-status fabrica-triagem"
+  expected_skills="fabrica-avancar fabrica-backlog fabrica-implementar fabrica-lancamento fabrica-licao fabrica-metricas fabrica-prd fabrica-retro fabrica-revisar fabrica-setup fabrica-spec fabrica-status fabrica-triagem"
   got_skills="$(jq -r '.data[]? | select(.id | startswith("fabrica-")) | .id' <<<"$skills_json" 2>/dev/null | LC_ALL=C sort)"
   want_skills="$(printf '%s\n' $expected_skills | LC_ALL=C sort)"
   skills_problem=""
@@ -565,9 +565,9 @@ run_mode() {
     done
   fi
   if [[ -z $skills_problem ]]; then
-    ok "$mode: 12 skills"
+    ok "$mode: 13 skills"
   else
-    bad "$mode: 12 skills" "$skills_problem"
+    bad "$mode: 13 skills" "$skills_problem"
   fi
 
   # A origem do plugin: a pasta de onde ele veio e o path das skills.
@@ -632,11 +632,11 @@ run_mode() {
   fi
 
   # No `ambos`, a entrada global e a do projeto apontam para a mesma pasta: o
-  # OpenCode tem de manter 1 plugin, os 12 comandos e uma negação por comando.
+  # OpenCode tem de manter 1 plugin, os 13 comandos e uma negação por comando.
   if [[ $mode == ambos ]]; then
     local sem_duplicata=""
     [[ $plugin_count == 1 ]] || sem_duplicata+="plugins fabrica: ${plugin_count:-0}; "
-    (( commands_ok )) || sem_duplicata+="os 12 comandos não batem; "
+    (( commands_ok )) || sem_duplicata+="os 13 comandos não batem; "
     [[ -z $denials_problem ]] || sem_duplicata+="$denials_problem"
     if [[ -z $sem_duplicata ]]; then
       ok "ambos: sem duplicata"
