@@ -256,6 +256,30 @@ denial_line_count() {
   printf '%s' "$count"
 }
 
+# Motivos que o plugin escreveu, desde o offset, para o comando negado: o texto
+# depois de "| motivo: ", um por linha. A API de permissão devolve só o efeito;
+# o motivo está só na linha do servidor.
+denial_reasons() {
+  local needle="$1" offset="$2"
+  tail -c +$((offset + 1)) "$server_out" 2>/dev/null |
+    grep -aF -- "shell negado (resources): $needle" |
+    sed 's/.* | motivo: //'
+}
+
+# Pré-carrega a localização como um cliente faria: GET /api/command até listar
+# os 12 comandos fabrica:*. Com o plugin ativo, nenhuma avaliação seguinte passa
+# sem os hooks (ver "Fechar a janela" no README).
+preload_location() {
+  local deadline=$((SECONDS + 30)) json n
+  while (( SECONDS < deadline )); do
+    json="$(api GET /api/command 2>/dev/null)" || json=""
+    n="$(jq -r '[.data[]? | select(.name | startswith("fabrica:"))] | length' <<<"$json" 2>/dev/null)"
+    [[ $n == 12 ]] && return 0
+    sleep 0.2
+  done
+  return 1
+}
+
 # Nome da verificação, recursos, efeito esperado. A chamada é repetida até o
 # efeito esperado (até 15 s): a avaliação que chega durante a troca de
 # localização pode ser atendida pela instância anterior do plugin. Nas
@@ -342,6 +366,14 @@ run_mode() {
   fi
   printf 'host prod.exemplo.com\n' >"$project/.fabrica/producao.txt"
 
+  # O git global do servidor é um arquivo próprio, para um ~/.gitconfig da VM
+  # não mudar o resultado. O core.hooksPath dele aponta para o destino que o
+  # protect-main.sh espera nesse ambiente; sem isso, o primeiro ramo do hook
+  # negaria o commit ("hooks não instalados") e a regra de recusa do pulo de
+  # verificação nunca seria exercitada.
+  local git_cfg="$mode_work/gitconfig" hooks_dest="${HOME}/.config/fabrica/githooks"
+  serve_env=(env "GIT_CONFIG_GLOBAL=$git_cfg")
+  api_env=(env "GIT_CONFIG_GLOBAL=$git_cfg")
   if [[ $xdg_ok == 1 ]]; then
     mode_config="$mode_work/config"
     mode_data="$mode_work/data"
@@ -349,8 +381,13 @@ run_mode() {
       bad "$mode: limpeza" "não consegui criar a configuração isolada"
       return 1
     }
-    serve_env=(env "XDG_CONFIG_HOME=$mode_config" "XDG_DATA_HOME=$mode_data")
-    api_env=(env "XDG_CONFIG_HOME=$mode_config" "XDG_DATA_HOME=$mode_data")
+    hooks_dest="$mode_config/fabrica/githooks"
+    serve_env+=("XDG_CONFIG_HOME=$mode_config" "XDG_DATA_HOME=$mode_data")
+    api_env+=("XDG_CONFIG_HOME=$mode_config" "XDG_DATA_HOME=$mode_data")
+  fi
+  if ! printf '[core]\n\thooksPath = %s\n' "$hooks_dest" >"$git_cfg"; then
+    bad "$mode: limpeza" "não consegui escrever o git global isolado"
+    return 1
   fi
 
   case $mode in
@@ -427,9 +464,29 @@ run_mode() {
     return 1
   }
 
+  # Janela de inicialização: servidor e localização novos, pré-carregamento e,
+  # sem esperar mais, 8 avaliações seguidas de produção, todas negadas.
+  local warm_problem="" warm_i warm_effect
+  preload_location || warm_problem="o pré-carregamento não listou os 12 comandos em 30 s"
+
   if ! new_session "$project"; then
     bad "$mode: plugin" "não criei a sessão de teste: ${session_json:-sem resposta}"
     return 1
+  fi
+
+  if [[ -z $warm_problem ]]; then
+    for warm_i in 1 2 3 4 5 6 7 8; do
+      warm_effect="$(permission shell '["curl https://prod.exemplo.com"]')"
+      if [[ $warm_effect != deny ]]; then
+        warm_problem="a avaliação $warm_i de 8 saiu ${warm_effect:-sem resposta}, e não deny"
+        break
+      fi
+    done
+  fi
+  if [[ -z $warm_problem ]]; then
+    ok "$mode: aquecido: sem janela"
+  else
+    bad "$mode: aquecido: sem janela" "$warm_problem"
   fi
 
   local probe_before
@@ -447,9 +504,17 @@ run_mode() {
 
   if [[ $effect == deny ]]; then
     ok "$mode: plugin pronto"
-    ok "$mode: permissão: commit"
     count="$(denial_line_count "git commit --allow-empty -m teste --no-verify" "$probe_before")"
     [[ $count == 1 ]] || denials_problem+="$mode: permissão: commit: ${count:-0} linha(s); "
+    # O deny da API não diz por quê: só vale se o motivo for a recusa de
+    # --no-verify, e não o ramo "hooks do git não instalados".
+    local reasons
+    reasons="$(denial_reasons "git commit --allow-empty -m teste --no-verify" "$probe_before")"
+    if [[ -n $reasons ]] && ! grep -qv -- '--no-verify' <<<"$reasons"; then
+      ok "$mode: permissão: commit"
+    else
+      bad "$mode: permissão: commit" "negado por outro motivo: ${reasons:-sem linha de negação no log do servidor}"
+    fi
   else
     bad "$mode: plugin pronto" "a sonda de negação não respondeu em 30 s (efeito: ${effect:-sem resposta})"
     bad "$mode: permissão: commit" "esperava deny, veio ${effect:-sem resposta}"
