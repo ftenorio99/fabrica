@@ -1,7 +1,7 @@
 # SPEC-177: fix: registra o subagente revisor convertido no Antigravity para o revisar poder invocá-lo
 
 **Issue:** #177 · **PRD:** nenhuma (suporte ao Antigravity vem do estudo #149 e dos testes da #162) · **Classe:** implementacao-complexa · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-11-18
+**Status:** aprovada · **Atualizada em:** 2026-11-18
 
 ## Contexto
 A #162 mostrou que, depois do `agy plugin install`, o `agy` 1.5.10 reporta o agente `revisor` como instalado, mas não o registra: `agy agents` vem vazio, `--agent revisor` dá `unknown agent` e `invoke_subagent` dá `not found or not allowed`. O `/fabrica:revisar` só funciona no `agy` pelo fallback do subagente genérico (`define_subagent`), que não restringe ferramentas.
@@ -100,3 +100,4 @@ nenhum
 
 ## Histórico
 - 2026-11-18: criação.
+- 2026-11-18: aprovada.
