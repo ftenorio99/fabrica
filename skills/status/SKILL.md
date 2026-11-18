@@ -20,7 +20,7 @@ Esta skill é o orquestrador em modo leitura: lê o estado de cada issue no GitH
 - Para cada issue com `em-andamento`, o horário do último evento `labeled em-andamento`: `gh api repos/<repo>/issues/<nº>/timeline --paginate --slurp` ([Etapa em andamento](estados.md#etapa-em-andamento)).
 - Para cada issue, `gh issue view <nº> -R <repo> --json comments,labels` e localize os comentários mais recentes com `<!-- fabrica:triagem -->` e `<!-- fabrica:spec -->`. A branch da issue sai da regra da spec da issue de [estados.md](estados.md): o `**Branch:**` do comentário de spec ou, no atalho, o da spec curta do comentário de triagem.
 - Para cada issue com `acao-externa`, o estado da ação ([Ação externa](estados.md#ação-externa)): `gh api repos/<repo>/issues/<nº>/comments --paginate --slurp > <arquivo>` e `python3 <diretório base desta skill>/../../scripts/acao-status.py <arquivo>`. Guarde `estado`, `etapa`, `marcados`, `total` e `url`.
-- Issues de runbook do `/fabrica:lancamento` ([Lançamento](estados.md#lançamento)): `gh search issues "fabrica:lancamento" --owner <dono> --label acao-externa --state open --match body --json repository,number,title,body,url -- -label:agente`. Com filtro, use `--repo <dono>/<repositório>` no lugar de `--owner`. Fique só com as que têm `<!-- fabrica:lancamento -->` na primeira linha do corpo e, para cada uma, leia o estado com `gh api repos/<repo>/issues/<nº>/comments --paginate --slurp > <arquivo>` e `python3 <diretório base desta skill>/../../scripts/acao-status.py --lancamento <arquivo>`.
+- Issues de runbook do `/fabrica:lancamento` ([Lançamento](estados.md#lançamento)): `gh search issues --owner <dono> --label acao-externa --state open --json repository,number,title,body,url --limit 100 -- -label:agente`. Com filtro, use `--repo <dono>/<repositório>` no lugar de `--owner`. Esta coleta não é opcional: a issue de runbook não tem `agente` e não aparece na busca das issues do fluxo. Fique só com as que têm `<!-- fabrica:lancamento -->` na primeira linha do corpo e, para cada uma, leia o estado com `gh api repos/<repo>/issues/<nº>/comments --paginate --slurp > <arquivo>` e `python3 <diretório base desta skill>/../../scripts/acao-status.py --lancamento <arquivo>`.
 - Com a branch, procure o PR: `gh pr list -R <repo> --head <branch> --state all --json number,state,isDraft,url,reviewDecision,statusCheckRollup,updatedAt,body`.
 - Para cada PR aberto de issue do fluxo, `gh pr view <nº> -R <repo> --json comments,reviews`, para achar pedidos novos no PR (linha 11 de [estados.md](estados.md)). A referência é a linha `**Pedidos lidos até:**` do último comentário `<!-- fabrica:revisar -->`, ou a data dele quando a linha falta.
 - PRs abertos fora do fluxo (sem issue com `agente`): `gh search prs --owner <dono> --state open --json repository,number,title,url,updatedAt`.
@@ -89,11 +89,13 @@ Uma linha por repositório sem nada no fluxo: a próxima issue a puxar, ou o blo
 | Item | Etapa | Itens marcados | Checklist |
 |---|---|---|---|
 | [kairo#9](url) Título curto | implementar | 1/3 | [comentário de ação](url do comentário) |
+| [kairo#30](url) Lançamento: runbook da primeira ida para produção | lancamento | 2/7 | [comentário de ação](url do comentário) |
 
 ## Esperando agente
 | Item | Estado | Comando | Onde |
 |---|---|---|---|
 | [kairo#7](url) Título curto | Triada | `/fabrica:spec 7` | `~/projetos/kairo` |
+| [kairo#30](url) Lançamento: runbook da primeira ida para produção | Runbook concluído | `/fabrica:lancamento 30` | `~/projetos/kairo` |
 
 ## PRs para revisar
 ### [kairo#8](url) título do PR
