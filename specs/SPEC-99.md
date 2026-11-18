@@ -1,7 +1,7 @@
 # SPEC-99: Estudo: dispatcher da Fase 1 com a claude-code-action disparada pela label agente
 
 **Issue:** #99 · **PRD:** F4 (item 4 do fatiamento, M2) · **Classe:** documentacao · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-11-18
+**Status:** aprovada · **Atualizada em:** 2026-11-18
 
 ## Contexto
 A F4 do PRD pede que aplicar `agente` numa issue dispare a etapa de agente no GitHub Actions, com o plugin instalado no job e sem sessão local. O item 4 do fatiamento é o estudo que decide como: o caminho de execução (`anthropics/claude-code-action` ou o CLI), o runner e a autenticação. Duas "Perguntas em aberto" do PRD (runner e autenticação) remetem a este estudo. Ele destrava a #105 (workflow), a #106 (isolamento do job) e a #108 (instalação pelo `/fabrica:setup`). A dependência, #93, está fechada, e o isolamento local hoje segue a [ADR 0010](../docs/adr/0010-isolamento-pelo-sbx-com-opcao-sem-sandbox.md).
@@ -94,3 +94,4 @@ nenhum
 
 ## Histórico
 - 2026-11-18: criação.
+- 2026-11-18: aprovada.
