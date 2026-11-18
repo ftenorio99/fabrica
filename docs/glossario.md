@@ -10,7 +10,7 @@
 
 **Critério de aceite (CA)** — Comportamento observável que a spec numera como CA1, CA2…, cada um com a forma de verificação, antes do merge ou, sem caminho para isso, marcada `depois do merge` com o motivo. A revisão confere a implementação critério por critério. Veja [`/fabrica:spec`](comandos.md#fabricaspec-número-da-issue-ajustes-pedidos).
 
-**Em andamento** — Label `em-andamento`, que o `/fabrica:avancar` aplica enquanto roda uma etapa numa issue, para outra execução não pegar a mesma issue. Vale por 2 h; depois disso, é considerada esquecida. Veja [`estados.md`](../skills/status/estados.md#etapa-em-andamento).
+**Em andamento** — Label `em-andamento`, que o `/fabrica:avancar` e o [dispatcher](guias/dispatcher.md) aplicam enquanto rodam uma etapa numa issue, para outra execução não pegar a mesma issue. Vale por 2 h; depois disso, é considerada esquecida. Veja [`estados.md`](../skills/status/estados.md#etapa-em-andamento).
 
 **Escalonado** — Label que um agente aplica quando para e precisa da sua decisão: falha que não conseguiu corrigir, desvio da spec, pendência de revisão ou pedido no PR que muda a spec. Veja [Issue escalonada](guias/issue-escalonada.md).
 
@@ -24,7 +24,7 @@
 
 **Limite de trabalho em andamento** — No máximo 3 issues abertas com `spec-aprovada` por repositório. Veja [Princípios](principios.md#limite-de-3-em-andamento).
 
-**Marcador** — Comentário HTML invisível, como `<!-- fabrica:triagem -->`, que abre cada comentário de agente. Os agentes usam a sua conta do GitHub, e o marcador é o que distingue o comentário deles do seu. O comentário de [lição](fluxo.md#lições-aprendidas) tem marcador próprio, `<!-- fabrica:licao -->`, e não conta como comentário de agente nem seu. A linha de custo, `<!-- fabrica:custo ... -->`, que as etapas deixam no fim do comentário, não é marcador: não abre o comentário nem muda o estado, só alimenta o [`/fabrica:metricas`](comandos.md#fabricametricas-repositório-período-período-de-comparação). Veja [Tudo no GitHub](principios.md#tudo-no-github).
+**Marcador** — Comentário HTML invisível, como `<!-- fabrica:triagem -->`, que abre cada comentário de agente. Os agentes usam a sua conta do GitHub, e o marcador é o que distingue o comentário deles do seu. O comentário de [lição](fluxo.md#lições-aprendidas) tem marcador próprio, `<!-- fabrica:licao -->`, e não conta como comentário de agente nem seu, assim como o comentário de falha do [dispatcher](guias/dispatcher.md), `<!-- fabrica:dispatcher -->`. A linha de custo, `<!-- fabrica:custo ... -->`, que as etapas deixam no fim do comentário, não é marcador: não abre o comentário nem muda o estado, só alimenta o [`/fabrica:metricas`](comandos.md#fabricametricas-repositório-período-período-de-comparação). Veja [Tudo no GitHub](principios.md#tudo-no-github).
 
 **Marco** — Grupo de itens do fatiamento, com título `M<n> · <nome>`, que vira uma milestone no GitHub. O marco atual é o primeiro que ainda tem issue aberta ou item sem issue. Veja [Fechar um marco](guias/fechar-marco.md).
 

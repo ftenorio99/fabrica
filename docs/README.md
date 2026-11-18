@@ -29,6 +29,7 @@ Tudo acontece no GitHub do próprio projeto: as tarefas são issues, o estado de
 | [Isolamento do agente](guias/isolamento-do-agente.md) | Escolher entre a VM do `sbx` e o modo sem sandbox, preparar a VM, ampliar os domínios e listar os padrões de produção. |
 | [Migrar para o AGENTS.md](guias/migrar-para-agents-md.md) | O projeto tem as regras só no `CLAUDE.md`, ou tem os dois arquivos sem o import. |
 | [Antigravity](guias/antigravity.md) | Usar a fábrica pelo Antigravity CLI (`agy`): o que funciona, o que não funciona e as issues que acompanham os consertos. |
+| [Dispatcher no GitHub Actions](guias/dispatcher.md) | Ligar o piloto do workflow que roda a triagem quando a label `agente` é aplicada, com os secrets, o comentário de falha e os limites. |
 
 ## Fontes da verdade
 Este manual explica e remete. As regras ficam em:
