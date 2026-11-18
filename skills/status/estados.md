@@ -35,6 +35,8 @@ A **spec da issue** e a **branch da issue** vêm de um destes comentários, nest
 
 Toda etapa e todo comando que lê a spec, a branch ou o PR de uma issue usa esta regra.
 
+A branch da issue vive na **worktree da issue**, `<clone>/.worktrees/<nº>`, criada pela primeira etapa que precisa dela e removida depois do PR fechado pelo `scripts/issue-worktree.sh` ([ADR 0014](../../docs/adr/0014-uma-worktree-por-issue.md)). As etapas trabalham nela e nunca trocam a branch do clone principal.
+
 | # | Condição | Estado | Quem age | Próximo passo |
 |---|---|---|---|---|
 | 1 | `escalonado` | Bloqueado | usuário | Ler o último comentário do agente na issue (ou no PR) e decidir; depois retomar a etapa que parou. |
