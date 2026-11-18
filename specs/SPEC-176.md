@@ -1,7 +1,7 @@
 # SPEC-176: OpenCode: os primeiros comandos de shell de uma localização passam sem o hook de produção
 
 **Issue:** #176 · **PRD:** nenhuma (o OpenCode está fora do escopo do PRD, que fica "só no Claude Code"; mesma situação das #161, #162 e #173, ver Riscos) · **Classe:** implementacao-complexa · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-11-18
+**Status:** aprovada · **Atualizada em:** 2026-11-18
 
 ## Contexto
 A #173 mediu a **janela de inicialização** do adaptador `opencode/server.ts` no OpenCode 2.3.0: o plugin carrega por localização, de forma preguiçosa, no primeiro acesso que precisa dele, e leva cerca de 0,7 a 1,0 s. Nesse intervalo, a 1ª avaliação de permissão sai `deny` do próprio OpenCode e 1 a 3 seguintes saem `allow`, antes do 1º `deny` do `protect-production.sh`. Vale nas duas instalações, e o plugin não a fecha, porque os `allow` acontecem antes de o `setup` rodar. Hoje a janela só está documentada em `opencode/README.md`, que aponta para esta issue. A issue pede fechar a janela, ou provar que não dá e registrar o limite, por três caminhos (regra `deny` fixa na config, pré-carregamento, sessão com modelo), e corrigir um defeito de isolamento no `opencode/test-adapter.sh`, apontado na revisão do PR #175.
@@ -93,3 +93,4 @@ nenhum
 
 ## Histórico
 - 2026-11-18: criação.
+- 2026-11-18: aprovada.
