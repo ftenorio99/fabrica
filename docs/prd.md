@@ -67,8 +67,8 @@ O próprio usuário, dono dos repositórios, desenvolvedor e único revisor. Ele
 | Custo sobe sem ninguém ver | médio | Linha de custo por etapa e `/fabrica:metricas`. Teto mensal definido depois de medir. |
 
 ## Perguntas em aberto
-- **Runner:** Hetzner self-hosted ou runners do GitHub. Decide o estudo do dispatcher (item 4).
-- **Autenticação dos agentes:** assinatura (`claude_code_oauth_token`) ou API key, conforme os termos de uso automatizado. Decide o estudo do dispatcher (item 4).
+- **Runner:** decidido: runner hospedado pelo GitHub (`ubuntu-latest`) no M2, com a Hetzner self-hosted para quando as métricas pedirem ([ADR 0015](adr/0015-dispatcher-no-github-actions.md)).
+- **Autenticação dos agentes:** decidido: a assinatura (`CLAUDE_CODE_OAUTH_TOKEN`), que os termos permitem de forma explícita em CI, com a API key e o `--max-budget-usd` como plano B ([ADR 0015](adr/0015-dispatcher-no-github-actions.md)).
 - **Teto de gasto mensal:** definido pelo usuário depois das primeiras semanas do dispatcher, com os tokens medidos pelo `/fabrica:metricas`.
 
 ## Fatiamento
