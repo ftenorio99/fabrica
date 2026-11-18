@@ -21,8 +21,10 @@ A spec é o contrato entre o usuário e quem implementa: ela é aprovada **antes
 
 ## 2. Branch
 - Use o tipo da triagem e um resumo curto do título: `<tipo>/<nº>-<descricao-curta>`. Na saída do atalho, use o nome do `**Branch:**` da spec curta.
-- Se a branch já existir (local ou em `origin`), use-a: esta é uma rodada de ajuste. Senão, crie-a a partir da `main` atualizada (`git switch main && git pull && git switch -c <branch>`).
-- A spec e, depois, a implementação vivem na mesma branch e chegam juntas no PR da issue.
+- **Worktree da issue** ([ADR 0014](../../docs/adr/0014-uma-worktree-por-issue.md)): rode `bash <diretório base desta skill>/../../scripts/issue-worktree.sh clean`, que remove as worktrees de PRs já fechados, e depois `bash <diretório base desta skill>/../../scripts/issue-worktree.sh ensure <nº> <branch>`. Guarde a última linha impressa como `<wt>`, a pasta `<clone>/.worktrees/<nº>`. Se a branch já existia (local ou em `origin`), esta é uma rodada de ajuste e o `ensure` a reusa; senão, ele cria a branch a partir da `origin/main`.
+- Saída 3, 4 ou 5 do `ensure`: pare sem commit e repita no chat a mensagem do script. A saída 5 é o limite de 3 worktrees de issue por clone; não comente na issue. Se o `clean` sair com 1, avise no chat e siga com o `ensure`.
+- Daqui em diante, rode todo comando `git`, `make` e `gh pr` como `cd <wt> && …`, no mesmo comando, e leia e escreva os arquivos do repositório pelo caminho absoluto dentro de `<wt>`. Não troque a branch do clone principal: ele fica na branch em que o usuário o deixou.
+- A spec e, depois, a implementação vivem na mesma branch e na mesma worktree, e chegam juntas no PR da issue.
 
 ## 3. Ler
 - A issue, os comentários (inclusive respostas às perguntas da triagem) e o comentário de triagem mais recente, com a seção `**Recomendações levadas para a spec:**` dele, se houver. Ignore os comentários de lição (`<!-- fabrica:licao`), que não são resposta (veja [estados.md](../status/estados.md)).

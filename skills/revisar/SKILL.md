@@ -13,7 +13,8 @@ A revisão automática é a primeira passada antes da revisão humana. Ela confe
 
 ## 1. Pré-requisitos
 - **`gh`:** rode `bash <diretório base desta skill>/../../scripts/check-gh.sh`. Se a linha não for `ok`, pare antes de ler ou escrever no GitHub, como diz [../setup/gh.md](../setup/gh.md). Seguida a partir do `/fabrica:implementar`, que já fez a checagem, não a repita.
-- Você está na branch da issue (a da regra da spec da issue de [estados.md](../status/estados.md): o comentário `<!-- fabrica:spec -->` ou, no atalho, a spec curta da triagem), com commits além da `main` e tudo enviado (`git status` limpo, `git push` feito).
+- **Worktree da issue** ([ADR 0014](../../docs/adr/0014-uma-worktree-por-issue.md)): seguida a partir do `/fabrica:implementar`, use o `<wt>` dele. Rodada sozinha, pegue a branch pela regra da spec da issue de [estados.md](../status/estados.md) (o comentário `<!-- fabrica:spec -->` ou, no atalho, a spec curta da triagem) e rode `bash <diretório base desta skill>/../../scripts/issue-worktree.sh ensure <nº> <branch>`, que reusa a worktree criada pelo `implementar`; guarde a última linha impressa como `<wt>`. Saída 3, 4 ou 5: pare sem commit e repita no chat a mensagem do script. Daqui em diante, rode todo comando `git`, `make` e `gh pr` como `cd <wt> && …`, no mesmo comando, e leia e escreva os arquivos pelo caminho absoluto dentro de `<wt>`. Não troque a branch do clone principal.
+- A branch da issue, em `<wt>`, tem commits além da `main` e tudo enviado (`git status` limpo, `git push` feito).
 - **Modo de isolamento:** seguida a partir do `/fabrica:implementar`, use o modo que ele já leu. Rodada sozinha, leia-o com `bash <diretório base desta skill>/../../scripts/setup-isolation.sh --check` e siga a tabela "Modo de isolamento" do passo "Verificar" do [`/fabrica:implementar`](../implementar/SKILL.md#4-verificar): o modo não muda o caminho, só a anotação e a orientação, e a saída `ausente` ou `inválido` não para a etapa.
 - **Ação externa:** se a issue tiver `acao-externa`, é uma retomada depois de uma ação externa: siga a seção "Retomar" de [../status/acao-externa.md](../status/acao-externa.md). Só continue nesta etapa se ela mandar seguir.
 - `make lint` e `make test` passam, ou falham só com as assinaturas de ambiente do [`/fabrica:implementar`](../implementar/SKILL.md#4-verificar), com a verificação pendente para o CI anotada. Se falharem por outro motivo, volte para a etapa de implementação em vez de revisar.
@@ -65,7 +66,7 @@ Chame o subagente `revisor` deste plugin (no Agent tool, `fabrica:revisor`). Se 
 
 Passe ao revisor:
 - o número da issue e o caminho da spec ou, no atalho, o link do comentário de triagem com a spec curta;
-- a branch e a base (`origin/main`);
+- a branch, a base (`origin/main`) e o caminho `<wt>` da worktree da issue, onde ele lê o código e roda as verificações;
 - as anotações da implementação (verificações manuais feitas e desvios da spec), rotuladas como "afirmações do `implementar`, a conferir": o revisor só aceita como evidência o que ele mesmo encontra ou roda;
 - na retomada de uma verificação pedida ao usuário, o comando e a saída da resposta dele, com os CAs a que ela se refere;
 - a saída do `setup-isolation.sh --check`;
