@@ -537,7 +537,11 @@ caminhos em `opencode/`, e os testes bash atuais passando.
    passos de statusline? (recomendado, garante o contrato da §1)
 4. **Config global ou por projeto:** o adaptador entra em
    `~/.config/opencode` (vale para todos) ou só nos projetos da fábrica, pela
-   pasta `.opencode/plugins/` de cada um?
+   pasta `.opencode/plugins/` de cada um? **Resolvido na #173:** as duas
+   entradas valem, e o `opencode/test-adapter.sh --install
+   projeto|global|ambos|todos` cobre as três combinações; a global já lê o
+   `.fabrica/producao.txt` de cada projeto depois da janela de inicialização,
+   que vale nas duas. A pasta `.opencode/plugins/` não foi adotada.
 5. **README do repositório:** deixar a menção ao OpenCode só em
    `opencode/README.md` (zero edições) ou acrescentar uma seção no `README.md`
    em um PR separado?

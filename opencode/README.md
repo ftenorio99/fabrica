@@ -17,11 +17,13 @@ O plugin do Claude Code não muda: esta pasta é inerte para ele e nada em `~/.c
 
 - OpenCode 2.3.0, com a API de plugins v2. Ela é nova e pode mudar; o teste de aceite acusa a quebra.
 - `git` e `jq`: os dois hooks de `hooks/` usam os dois. Sem o `jq`, as proteções saem sem decidir e deixam passar, como no Claude Code.
-- Bash e os comandos básicos do sistema (`mktemp`, `realpath`, `od`) para o teste.
+- Bash e os comandos básicos do sistema (`mktemp`, `realpath`, `od`, `sha256sum`) para o teste.
 
 ## Instalação
 
-Não há instalador nem `package.json`. A instalação é uma entrada no `opencode.jsonc` da raiz do projeto, apontando para esta pasta:
+Não há instalador nem `package.json`. A instalação é uma entrada no `opencode.jsonc`, apontando para esta pasta. Ela pode ficar no projeto ou na configuração global do OpenCode.
+
+**Por projeto** (`<projeto>/opencode.jsonc`):
 
 ```jsonc
 // <projeto>/opencode.jsonc
@@ -30,9 +32,23 @@ Não há instalador nem `package.json`. A instalação é uma entrada no `openco
 }
 ```
 
+Vale só no projeto. É a opção quando a fábrica deve existir apenas nos projetos escolhidos.
+
+**Global** (`~/.config/opencode/opencode.jsonc`):
+
+```jsonc
+// ~/.config/opencode/opencode.jsonc
+{
+  "plugins": ["/home/<usuário>/projetos/fabrica/opencode"]
+}
+```
+
+Vale em todos os projetos: as 12 skills, os 12 comandos `/fabrica:*`, o `fabrica/revisor` e os hooks de proteção, avaliados com o diretório de cada projeto. Com ela, o `protect-production.sh` lê o `.fabrica/producao.txt` do projeto da sessão.
+
+As duas entradas podem conviver: o OpenCode mantém um plugin `fabrica`, sem duplicar os comandos nem as negações.
+
 - O caminho é uma **pasta** (a que tem o `server.ts`), não o arquivo. Caminho de arquivo é ignorado.
-- A entrada fica no **projeto**: a configuração global carrega as skills e o revisor, mas não registra os comandos nem o hook de produção no projeto (veja [Limites conhecidos](#limites-conhecidos)).
-- Se o `opencode.jsonc` do projeto já existe, acrescente a pasta à lista de `"plugins"` que estiver lá.
+- Se o `opencode.jsonc` já existe, acrescente a pasta à lista de `"plugins"` que estiver lá.
 - Recarregue com `opencode reload` (ou `/reload` no TUI). Se o plugin não aparecer, reinicie o serviço com `opencode service restart` e abra o projeto de novo.
 - Para conferir, abra o TUI do OpenCode **na pasta do projeto** e digite `/fabrica:`; os 12 comandos aparecem. Pela API, `GET /api/plugin` com `location[directory]=<projeto>` mostra o `fabrica` com `state.status: "active"`.
 - Projetos com `AGENTS.md` recebem as regras sozinhos. Num projeto só com `CLAUDE.md`, acrescente `"instructions": ["CLAUDE.md"]` ao mesmo `opencode.jsonc` do projeto.
@@ -56,15 +72,20 @@ sbx exec opencode-<projeto> bash opencode/test-adapter.sh
 
 O `sbx run` abre o TUI do agente, não um shell: para o teste, use o `sbx exec`. O `sbx exec` inicia a VM se ela estiver parada, e a VM enxerga a branch que está no clone do host.
 
-Ele sobe um `opencode serve` local, sem modelo, num projeto temporário com o plugin carregado pelo `opencode.jsonc` do projeto, e confere pela API:
+O `--install` escolhe a instalação: `projeto`, `global`, `ambos` (a entrada global e a do projeto juntas) ou `todos`, o padrão. Cada modo roda uma vez, com servidor e projetos temporários próprios: o projeto A tem `.fabrica/producao.txt` com `host prod.exemplo.com`, e o projeto B não tem o arquivo. Um valor desconhecido ou ausente no `--install` sai com 1 e mostra o uso.
 
-- o plugin `fabrica` ativo, vindo desta raiz;
+Ele sobe um `opencode serve` local, sem modelo, e confere pela API, em cada modo:
+
+- o plugin `fabrica` ativo, vindo desta raiz, com um único plugin mesmo com as duas entradas;
 - os 12 comandos e as 12 skills, com o `autoinvoke` certo;
 - o subagente `fabrica/revisor`;
-- as decisões de permissão: commit com `--no-verify` e padrão de produção negados, escrita no `~/.claude` negada, `git status` liberado e a linha encadeada negada;
+- as decisões de permissão: commit com `--no-verify` e padrão de produção negados no projeto A, `curl https://prod.exemplo.com` liberado no projeto B, escrita no `~/.claude` negada, `git status` liberado e a linha encadeada negada;
+- uma linha de negação por comando negado no modo `ambos`;
 - nenhum erro do plugin na saída do servidor e no log do OpenCode, desde o começo do servidor.
 
-Imprime `ok <verificação>` ou `falha <verificação>: <motivo>`, uma por linha, e sai com 1 se alguma falhar. `--root <pasta>` aponta para outra cópia da fábrica (útil para provar que o teste falha com um hook desligado). A VM de teste não deve ter o adaptador na configuração global: o teste usa o projeto temporário e falha se achar mais de um plugin `fabrica`.
+A configuração global do OpenCode é isolada por `XDG_CONFIG_HOME` e `XDG_DATA_HOME` numa pasta temporária, definidas só no ambiente do servidor e do cliente da API (nunca no resto do script). Se a versão instalada não respeitar as variáveis, o teste copia o `opencode.jsonc` global existente e o restaura no `trap`, no sucesso e na falha (inclusive em `INT` e `TERM`). Em nenhum caso ele deixa a entrada do plugin na configuração global, e o `ok config global intacta` confere isso.
+
+Imprime `ok <verificação>` ou `falha <verificação>: <motivo>`, uma por linha, e sai com 1 se alguma falhar. `--root <pasta>` aponta para outra cópia da fábrica: é assim que se prova que o teste falha, com uma cópia sem o registro de comandos (`falha global: 12 comandos`) e outra com o `cwd` do `setup` no diretório pessoal (`falha global: produção do projeto`). Na VM, a configuração global do OpenCode deve ficar sem o adaptador: o teste isola a configuração global que o servidor lê, então a instalação global da VM não interfere, e o modo `projeto` confere exatamente um plugin `fabrica`, vindo do projeto.
 
 ## Rollback
 
@@ -76,12 +97,11 @@ Nada em `~/.claude/` é tocado em nenhum dos dois sentidos.
 
 ## Limites conhecidos
 
-- **A entrada global não registra os comandos nem o hook de produção no projeto:** com `"plugins"` em `~/.config/opencode/opencode.jsonc`, as 12 skills e o `fabrica/revisor` carregam em todos os projetos, mas `GET /api/command` com a localização do projeto não lista os `/fabrica:*`, e o `protect-production.sh` roda com o `cwd` global, sem achar o `.fabrica/producao.txt` do projeto (OpenCode 2.3.0). Instale pelo `opencode.jsonc` do projeto.
 - **O shell digitado pelo usuário não passa pelo hook de permissão.** O hook protege o agente, não você: o comando digitado no TUI (ou em `opencode run`) só passa pelo `shell.create.before`, como no Claude Code.
 - **Uma regra `deny` sua é final:** ela é aplicada antes e o hook do plugin não é chamado.
 - **`opencode run "/fabrica:<etapa>"` não executa o comando.** O `run` trata o texto como mensagem comum. Para uma etapa, use o TUI ou `POST /api/session/<id>/command`.
 - **A statusline não existe** no OpenCode; ela não foi portada.
 - **O custo sai como `tokens=nao-medido`:** o `stage-usage.py` lê o log do Claude Code, não o do OpenCode.
-- **Janela de inicialização:** logo depois de subir o servidor, alguma avaliação de permissão pode passar antes de o plugin carregar. Numa sessão com modelo, a chamada dura mais que a janela; o teste espera a sonda de negação antes de conferir.
+- **Janela de inicialização:** o plugin carrega por localização e de forma preguiçosa, no primeiro acesso que precisa dele (não no boot do servidor nem na criação da sessão), e leva cerca de 0,7 a 1,0 s. Nesse intervalo, as primeiras avaliações de permissão da localização passam sem os hooks do plugin. Medido com `curl https://prod.exemplo.com` repetido em sequência: a 1ª avaliação sai `deny` do próprio OpenCode, 1 a 3 seguintes saem `allow`, e o 1º `deny` do plugin chega entre 0,68 e 1,03 s (10 execuções por projeto, 3 só global, 2 com as duas entradas). Vale nas **duas instalações**, e o plugin não consegue fechá-la: os `allow` acontecem antes de o `setup` rodar, então não há código do plugin para negar antes disso. A mesma janela aparece quando o servidor passa a atender outra localização: a primeira avaliação pode cair na instância anterior do plugin (medido: sessão do projeto B, sem `.fabrica/producao.txt`, negada com o arquivo do projeto A, e `allow` na avaliação seguinte). O teste espera a sonda de negação e repete a conferência de B até o efeito esperado. **Não medido:** uma sessão com modelo, que a VM sem provedor não exercita; fechar a janela está na issue separada "OpenCode: os primeiros comandos de shell de uma localização passam sem o hook de produção".
 - **O guarda-corpo do `~/.claude` é por texto:** ele nega as linhas de shell que citam o caminho ou o `setup-statusline.sh` e as edições dentro do `~/.claude`. Um script que escreve lá dentro sem citar o caminho passa. O formato do `edit` com uma ferramenta real não foi conferido.
 - **O nome com `:`** foi aceito pela API. Se o TUI recusar o nome digitado, troque o separador para `/` na constante `COMMAND_SEPARATOR` do `server.ts`.
