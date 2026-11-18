@@ -41,6 +41,18 @@ Os retângulos são etapas de agente, que você dispara com o comando. Os hexág
 
 Você pode rodar cada etapa do agente pelo comando dela, ou deixar o [`/fabrica:avancar`](comandos.md#fabricaavancar-número-da-issue) executar as etapas em sequência. Ele para sozinho onde a tabela diz "você".
 
+## Modelo por etapa
+O `/fabrica:avancar` roda cada etapa no modelo que a [tabela da fábrica](../skills/avancar/modelos.md) dá para ela:
+
+| Etapa | Modelo |
+|---|---|
+| Triagem | Sonnet |
+| Spec | Opus, esforço médio |
+| Implementação | o da label `modelo:haiku`, `modelo:sonnet` ou `modelo:opus` da issue (Sonnet sem label) |
+| Revisão | Sonnet; Opus nas issues `modelo:opus` |
+
+A triagem sugere a label pela complexidade da issue, e você pode trocá-la até aplicar `spec-aprovada`. A triagem fica fora do Opus porque é a primeira etapa a ler texto de issue, e o Opus segue instrução plantada em texto bem mais que o Sonnet. Se a implementação falha por qualidade, o `avancar` sobe o modelo da issue: Haiku passa para Sonnet na primeira falha e Sonnet passa para Opus na segunda. A decisão e as alternativas estão no [ADR 0013](adr/0013-modelo-por-etapa-e-por-issue.md).
+
 Quando algo dá errado, o agente para, comenta na issue e aplica `escalonado`. Veja o guia [Issue escalonada](guias/issue-escalonada.md).
 
 Quando a implementação ou a revisão dependem de uma ação sua fora do GitHub (criar uma conta, cadastrar um secret, gerar uma chave), o agente publica na issue uma checklist passo a passo e aplica `acao-externa`. Você faz os passos, marca os itens e retoma com `/fabrica:avancar`. Veja o guia [Ação externa](guias/acao-externa.md).

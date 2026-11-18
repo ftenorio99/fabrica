@@ -31,9 +31,10 @@ O próprio usuário, dono dos repositórios, desenvolvedor e único revisor. Ele
 | F7 | Aprovação visual | obrigatória | Cada projeto com interface tem um design system versionado (`docs/design.md`). A spec descreve as telas, e a implementação anexa ao PR screenshots reais, no celular e no computador, para o usuário aprovar. |
 | F8 | Runbook de lançamento | obrigatória | Antes da primeira ida para produção, o agente gera numa issue o runbook com checklist (migrações com backup, chaves de teste, isolamento de dados, teste em produção) e verifica o que dá para verificar. O usuário executa os passos de produção. |
 | F9 | Métricas persistentes | desejável | Tokens, custo e tempos guardados fora do GitHub (Postgres ou exportador OTLP), para comparar períodos longos sem refazer as consultas. |
+| F10 | Modelo por etapa e por issue | desejável | Cada etapa do `/fabrica:avancar` roda no modelo do Claude Code que a tabela da fábrica dá para ela: a triagem no Sonnet, a spec no Opus e a implementação e a revisão pela label `modelo:*` da issue, com subida de modelo quando a etapa falha ([ADR 0013](adr/0013-modelo-por-etapa-e-por-issue.md)). |
 
 ## Fora de escopo
-- **Roteamento entre modelos e ferramentas (Fase 3, OpenRouter e OpenCode):** o foco é só o Claude Code.
+- **Roteamento entre provedores e ferramentas (Fase 3, OpenRouter e OpenCode):** o foco é só o Claude Code. A escolha entre os modelos do próprio Claude Code (Opus, Sonnet e Haiku) faz parte do escopo, na F10.
 - **Fase 4 (melhoria):** a melhoria contínua já acontece pela trilha da retro (veja "Restrições e premissas").
 - **Execução em ondas com subagentes paralelos (#16):** o dispatcher roda um job por issue, o que pode dar o paralelismo sozinho. Vale rever só se as métricas mostrarem gargalo no meio do fluxo.
 - **Preview protegido da Vercel (#97):** os testes do MVP rodam contra o app subido no CI. O preview da Vercel fica para quando um projeto usar a Vercel.
@@ -97,3 +98,4 @@ Itens de 1 a 2 dias de trabalho humano, agrupados por marco e em ordem de depend
 ### Mudanças
 | Data | Tipo | F | Motivo | Decisão | Issues |
 |---|---|---|---|---|---|
+| 2026-11-18 | incluir | F10 | A fábrica roda tudo no modelo da sessão; o usuário quer o modelo mais caro só onde o julgamento compensa, com a triagem fora do Opus por causa da injeção de prompt (#120) | aceita | #179 |

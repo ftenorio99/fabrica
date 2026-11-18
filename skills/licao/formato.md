@@ -14,7 +14,7 @@ Um comentário por issue (ou PR) e por gatilho. A primeira linha é o marcador, 
 - **Origem:** <usuario | triagem | implementar | revisar>
 ```
 
-- **Gatilho:** um de `precisa-info`, `escalonado`, `rodadas`, `desvio`, `achado-pendente` ou `usuario`.
+- **Gatilho:** um de `precisa-info`, `escalonado`, `rodadas`, `desvio`, `achado-pendente`, `modelo` ou `usuario`.
 - **Marcador próprio:** este comentário começa com `<!-- fabrica:licao`, não com o marcador da etapa que o publica. Ele não conta como comentário do agente nem do usuário em nenhuma regra de estado (veja [estados.md](../status/estados.md)).
 - **Campo `Retro`:** opcional, escrito só pelo `/fabrica:retro` ([../retro/SKILL.md](../retro/SKILL.md)), como última linha do bloco, depois de `Origem`: `- **Retro:** <AAAA-MM-DD> · <dono>/fabrica#<nº>` quando a lição virou proposta numa issue do fabrica, ou `- **Retro:** <AAAA-MM-DD> · descartada`. Ele marca a lição como considerada, e ela não volta na próxima retrospectiva. O campo não muda a contagem de lições do `/fabrica:status`, que conta os blocos `**Lição · `, nem o estado da issue. As etapas que registram lições não o escrevem.
 
@@ -28,8 +28,10 @@ Um comentário por issue (ou PR) e por gatilho. A primeira linha é o marcador, 
 | `revisar` | aplica `escalonado` por um pedido no PR que muda a spec | `escalonado` |
 | `revisar` | precisou de 2 ou mais correções por CI vermelho | `rodadas` |
 | `revisar` | um achado `bloqueante` ou `importante` ficou sem corrigir, por discordância ou por pendência; um bloco por achado | `achado-pendente` |
+| `avancar` | uma etapa `implementar` ou `revisar` teve falha de qualidade no modelo da issue (a lição `modelo` guarda as linhas `**Falha:**` e `**Troca:**` da [escada de modelos](../avancar/SKILL.md#escalonamento-de-modelo)) | `modelo` |
 
 - **Sem lição:** sugestões do revisor e desvios cosméticos (texto, nome, uma linha a mais num arquivo previsto) não geram lição.
+- **Lição `modelo`:** é um registro de contagem, escrito só pelo `avancar`. Ela convive com a lição `rodadas` ou `achado-pendente` do mesmo evento, porque diz em que modelo a falha aconteceu. Cada falha é um bloco normal, e o campo `O que aconteceu` traz a linha `**Falha:** modelo=<apelido> etapa=<etapa> motivo=<rodadas|achado-pendente|erro>`. Quando o modelo sobe, o campo `Ação sugerida` do mesmo bloco traz `**Troca:** <de> → <para>`; sem subida, ele diz "nenhuma, só registro". O `avancar` conta as linhas `**Falha:**` do modelo atual para decidir a subida.
 - **Um evento, uma lição:** quando um evento cai em dois gatilhos, use o mais específico. Escalonamento por rodadas de correção registra `rodadas`; escalonamento por achados pendentes registra `achado-pendente`. Os demais escalonamentos registram `escalonado`.
 - **Onde:** as lições automáticas vão sempre na issue, mesmo quando o evento aconteceu no PR. Cite o PR na evidência.
 

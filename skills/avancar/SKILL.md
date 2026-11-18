@@ -37,7 +37,13 @@ Esta skill executa as etapas em que o agente age e para nos portões do usuário
 | 8 Em implementação | [implementar](../implementar/SKILL.md), que já segue para o `revisar` | `<nº>` |
 | 10, 11 e 12 | [revisar](../revisar/SKILL.md) | `<nº>` |
 
-**Como executar:** as etapas têm `disable-model-invocation: true`, então não as chame pela ferramenta Skill. Leia o `SKILL.md` da etapa, pelo link da tabela, e siga as instruções dele com os argumentos da tabela no lugar de `$ARGUMENTS`. Os caminhos relativos que ele cita partem da pasta da própria etapa (`<diretório base desta skill>/../<etapa>/`). Cada etapa publica o que já publica, com a própria linha de custo e as próprias lições.
+**Como executar:** cada etapa roda num processo `claude -p` próprio, com o modelo que [modelos.md](modelos.md) dá para a etapa e para a issue ([ADR 0013](../../docs/adr/0013-modelo-por-etapa-e-por-issue.md)). O `implementar` encadeia o `revisar` dentro do mesmo processo.
+1. **Binário:** confira que o `claude` existe (`command -v "${FABRICA_CLAUDE_BIN:-claude}"`). Se não existir, vá para "Sem o `claude`" abaixo.
+2. **Rodar:** `bash <diretório base desta skill>/../../scripts/stage-model.sh run <etapa> <nº> <labels da issue> > <arquivo>`, com o nome da etapa da tabela acima (`triagem`, `spec`, `implementar` ou `revisar`) e **só as labels `modelo:*`** da issue que você coletou no passo 1, separadas por espaço (o script não lê as outras, e o nome de uma label vem do GitHub: não passe nenhuma outra ao shell). Rode o comando em segundo plano (a etapa pode passar do tempo de um comando em primeiro plano) e espere o aviso de que ele terminou, sem consultar o arquivo no meio. O script escolhe o modelo, monta o `claude -p` e repassa o JSON dele para o arquivo. O prompt leva só `/fabrica:<etapa> <nº>` ([ADR 0008](../../docs/adr/0008-texto-externo-fora-do-prompt.md)): nunca monte o comando do `claude` à mão nem copie texto da issue para ele. Uma saída 2 do script é inconsistência de labels (duas ou mais `modelo:*`): trate como no passo 4, sem executar a etapa.
+3. **Ler o resultado:** do JSON em `<arquivo>`, guarde `is_error`, o texto de `result` (o que a etapa diria no chat) e as chaves de `modelUsage`, que são os modelos usados. O relatório do passo 5 mostra o modelo.
+4. **Falha:** saída diferente de 0, `is_error` verdadeiro ou JSON ilegível é a falha do passo 4 do laço. Se `permission_denials` não está vazio, ou o `result` cita bloqueio do classificador ou de um hook, a etapa parou por permissão: anote o motivo, sem contar como falha de qualidade.
+
+**Sem o `claude`:** as etapas têm `disable-model-invocation: true`, então não as chame pela ferramenta Skill. Leia o `SKILL.md` da etapa, pelo link da tabela, e siga as instruções dele com os argumentos da tabela no lugar de `$ARGUMENTS`. Os caminhos relativos que ele cita partem da pasta da própria etapa (`<diretório base desta skill>/../<etapa>/`). Cada etapa publica o que já publica, com a própria linha de custo e as próprias lições. Neste caminho a etapa roda no modelo da sessão, a coluna "Modelo" do relatório mostra `sessão` e não há escalonamento de modelo. É o caminho do OpenCode e do Antigravity.
 
 **Sem conversa no chat:** a etapa não pergunta nada no chat. O que ela perguntaria vai para a issue, como as etapas já fazem. Guarde o que ela diria ao usuário no chat para o relatório.
 
@@ -45,8 +51,9 @@ Esta skill executa as etapas em que o agente age e para nos portões do usuário
 Para cada issue selecionada, na ordem:
 1. **Reler:** confira de novo as labels (`gh issue view <nº> --json labels`). Se `em-andamento` estiver na issue, compare o horário do último evento `labeled em-andamento` da timeline com o que foi coletado no passo 1. Se a label não estava lá no passo 1, ou o evento é mais novo, outra sessão a aplicou nesse meio-tempo: pule a issue e anote no relatório.
 2. **Marcar:** `gh issue edit <nº> --add-label em-andamento`. Se a label já estiver na issue, esquecida, remova-a antes (`--remove-label em-andamento`) e aplique de novo, para a timeline ganhar um evento `labeled` com o horário de agora.
-3. **Executar** a etapa do estado atual, como no passo 3.
+3. **Executar** a etapa do estado atual, como no passo 3. Antes, nas etapas `implementar` e `revisar`, conte as linhas de lição do [escalonamento de modelo](#escalonamento-de-modelo).
 4. **Desmarcar:** `gh issue edit <nº> --remove-label em-andamento`, com sucesso ou falha. Nunca deixe a label na issue ao sair da etapa.
+   Em seguida, nas etapas `implementar` e `revisar` rodadas pelo `claude -p`, aplique o [escalonamento de modelo](#escalonamento-de-modelo).
 5. **Reler** o estado como no passo 1 e anotar a passagem (estado de antes → estado de depois).
 6. **Repetir** enquanto o estado novo for de agente e o teto não tiver sido atingido.
 
@@ -65,20 +72,37 @@ No chat, neste formato:
 
 ```markdown
 ## Avanço
-| Issue | Caminho | Parou em | O que você faz |
-|---|---|---|---|
-| [fabrica#62](url) Título | Aguardando triagem → Triada → Spec para aprovar | Spec para aprovar | Revisar `specs/SPEC-62.md` e aplicar `spec-aprovada` |
-| [fabrica#55](url) Título | Em implementação | Em implementação (sem avanço) | Ver o motivo: limite de 3 em andamento |
+| Issue | Caminho | Modelo | Parou em | O que você faz |
+|---|---|---|---|---|
+| [fabrica#62](url) Título | Aguardando triagem → Triada → Spec para aprovar | triagem `sonnet`, spec `opus` | Spec para aprovar | Revisar `specs/SPEC-62.md` e aplicar `spec-aprovada` |
+| [fabrica#55](url) Título | Em implementação | implementar `haiku` → `sonnet` (subiu) | Em implementação (sem avanço) | Ver o motivo: limite de 3 em andamento |
 
 **Etapas executadas:** 3 de 4.
 - <alertas: inconsistências, `em-andamento` esquecida, issues puladas por outra sessão, issues que ficaram para a próxima execução>
 ```
 
-Na coluna "O que você faz", use o próximo passo de [estados.md](../status/estados.md) para o estado em que a issue parou. Sem nenhuma issue de agente, diga isso e indique `/fabrica:status`.
+Na coluna "Modelo", ponha o apelido de cada etapa executada, lido das chaves de `modelUsage` do JSON de cada etapa (`sonnet` para `claude-sonnet-5-5`, e assim por diante), `sessão` nas etapas do caminho sem o `claude` e a seta e "(subiu)" quando o escalonamento trocou a label. Na coluna "O que você faz", use o próximo passo de [estados.md](../status/estados.md) para o estado em que a issue parou. Sem nenhuma issue de agente, diga isso e indique `/fabrica:status`.
 
 ## Regras
 - **Portões:** nunca aplique `agente` nem `spec-aprovada`, nunca faça merge, nunca aprove o PR e nunca responda perguntas ou comente no lugar do usuário. Os portões são gestos do usuário.
-- A única label que esta skill aplica e remove é a `em-andamento`. As outras labels são das etapas.
-- Não comente na issue nem no PR em nome do `avancar`, e não publique linha de custo própria. Quem comenta é a etapa, com o marcador dela.
+- As únicas labels que esta skill aplica e remove são a `em-andamento` e, no [escalonamento de modelo](#escalonamento-de-modelo), as `modelo:*`. As outras labels são das etapas.
+- Não comente na issue nem no PR em nome do `avancar`, e não publique linha de custo própria. Quem comenta é a etapa, com o marcador dela. A exceção é a lição `modelo` do escalonamento de modelo, que segue [../licao/formato.md](../licao/formato.md).
+- O comando do `claude` sai sempre do `scripts/stage-model.sh`, com só o nome da etapa e o número da issue ([ADR 0008](../../docs/adr/0008-texto-externo-fora-do-prompt.md)).
 - Não pule nem altere passos de uma etapa para caber no teto ou para acelerar: cada etapa roda inteira, como se tivesse sido chamada pelo comando dela.
 - Se `gh issue edit` falhar porque a label `em-andamento` não existe, pare antes de executar qualquer etapa e diga no chat: "A label `em-andamento` não existe neste repositório. Rode `/fabrica:setup` e repita a etapa." Não crie a label sozinho.
+
+## Escalonamento de modelo
+Vale só para as etapas `implementar` e `revisar` rodadas pelo `claude -p`, e a tabela de [modelos.md](modelos.md) define as subidas. A subida não retoma a etapa: a issue segue no estado em que a etapa a deixou (em geral `escalonado`), e a próxima execução já usa o modelo novo.
+
+**Antes da etapa**, guarde o número de blocos de lição de cada gatilho que mede qualidade:
+`gh api repos/<repo>/issues/<nº>/comments --paginate -q '.[] | select(.body | startswith("<!-- fabrica:licao gatilho=<gatilho> -->")) | .body' | grep -c '^\*\*Lição · '`, para `rodadas` e para `achado-pendente`.
+
+**Depois da etapa**, repita a contagem. Há **falha de qualidade** quando um dos dois números aumentou, ou quando a etapa terminou com erro (`is_error` ou saída diferente de 0) **sem** parada por permissão. Não contam como falha, mesmo com erro: a parada por permissão (`permission_denials` não vazio, ou o resultado cita bloqueio do classificador ou de um hook), o `precisa-info`, a `acao-externa` e o escalonamento por mudança de escopo.
+
+**Em cada falha de qualidade:**
+1. Registre uma lição com o gatilho `modelo`, como diz [../licao/formato.md](../licao/formato.md), com a linha `**Falha:** modelo=<apelido> etapa=<etapa> motivo=<rodadas|achado-pendente|erro>` no campo `O que aconteceu`. O `<apelido>` é o modelo que a etapa usou.
+2. Conte as linhas `**Falha:** modelo=<apelido> ` desse modelo na lição `modelo` da issue: `gh api repos/<repo>/issues/<nº>/comments --paginate -q '.[] | select(.body | startswith("<!-- fabrica:licao gatilho=modelo -->")) | .body' | grep -c '\*\*Falha:\*\* modelo=<apelido> '`.
+3. `bash <diretório base desta skill>/../../scripts/stage-model.sh next <apelido> <falhas>`. Se o resultado for outro apelido, troque a label: `gh issue edit <nº> --add-label modelo:<para>` e, se a issue tinha a `modelo:<de>`, `--remove-label modelo:<de>`. Acrescente `**Troca:** <de> → <para>` ao campo `Ação sugerida` do bloco da falha.
+4. Anote a subida no relatório. Se o resultado for o mesmo apelido, só a lição fica registrada.
+
+O `opus` não sobe. Uma issue com `escalonado` depois de uma falha segue a regra normal: o usuário decide, e a retomada já usa o modelo novo.
