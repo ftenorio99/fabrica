@@ -1,6 +1,6 @@
 # ADR 0013: Modelo por etapa e por issue
 
-**Status:** proposto · **Data:** 2026-11-18 · **Origem:** issue #179
+**Status:** aceito · **Data:** 2026-11-18 · **Origem:** issue #179
 
 ## Contexto
 Todas as etapas da fábrica rodavam no modelo da sessão. O usuário trabalha com três modelos do Claude Code (Opus 5.5, Sonnet 5.5 e Haiku 5.5) e quer o mais caro só onde o julgamento compensa. Dois critérios pesam:

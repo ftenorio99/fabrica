@@ -1,7 +1,7 @@
 # SPEC-179: roteia as etapas da fábrica por modelo com rótulos modelo:* e despacho no avancar
 
 **Issue:** #179 · **PRD:** F10 (nova, veja "Decisões") · **Classe:** implementacao-complexa · **Tamanho:** G
-**Status:** rascunho · **Atualizada em:** 2026-11-18
+**Status:** aprovada · **Atualizada em:** 2026-11-18
 
 ## Contexto
 Hoje toda etapa roda no modelo da sessão. O `/fabrica:avancar` executa a etapa lendo o `SKILL.md` na própria sessão, então uma issue de documentação gasta o mesmo modelo de uma migração. O usuário decidiu usar três modelos do Claude Code (Opus 5.5, Sonnet 5.5 e Haiku 5.5), com o mais caro só onde o julgamento compensa. Os estudos #98 e #120 trazem os dados de capacidade e de robustez a injeção que sustentam a tabela abaixo. O PRD hoje não tem funcionalidade para isso, e a linha "Roteamento entre modelos e ferramentas" do "Fora de escopo" fala da Fase 3 (OpenRouter e OpenCode).
@@ -134,3 +134,4 @@ nenhum
 - 2026-11-18: criação.
 - 2026-11-18: aprovada.
 - 2026-11-18: mudança (alterar) — o `--permission-mode auto` bloqueou a etapa `spec` no `claude -p` em 3 de 3 execuções na verificação manual, e o usuário escolheu a opção 1 do comentário de escalonamento (`bypassPermissions` só dentro da VM do sbx, `auto` nos outros casos). CAs: incluídos CA13, CA14; removidos nenhum; alterados CA5 (o modo `auto` vale fora da VM), CA8 e CA10 (verificação na VM).
+- 2026-11-18: aprovada (segunda rodada, com a mudança do modo de permissão).
