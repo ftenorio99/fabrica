@@ -1,6 +1,6 @@
 # ADR 0014: Uma worktree por issue
 
-**Status:** proposto · **Data:** 2026-11-18 · **Origem:** issue #182
+**Status:** aceito · **Data:** 2026-11-18 · **Origem:** issue #182
 
 ## Contexto
 As etapas `spec` e `implementar` trocavam a branch do próprio clone com `git switch`. Com duas sessões no mesmo clone, uma trocava a branch da outra: entre 2026-11-17 e 2026-11-18 isso aconteceu três vezes no repositório da fábrica, com um commit indo para a branch errada. Rodar várias issues ao mesmo tempo, e depois um orquestrador (#16, #99), exige isolamento por issue. A solução precisa funcionar no Claude Code, no OpenCode, no `claude -p` do `/fabrica:avancar` e dentro da VM do `sbx` (ADR 0010).

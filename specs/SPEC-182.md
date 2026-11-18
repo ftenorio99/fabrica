@@ -1,7 +1,7 @@
 # SPEC-182: cada issue em andamento roda na própria worktree
 
 **Issue:** #182 · **PRD:** nenhuma funcionalidade específica (infraestrutura da fábrica; base das issues #16 e #99) · **Classe:** implementacao-complexa · **Tamanho:** G
-**Status:** rascunho · **Atualizada em:** 2026-11-18
+**Status:** aprovada · **Atualizada em:** 2026-11-18
 
 ## Contexto
 As etapas `spec` e `implementar` fazem `git switch` no próprio clone (`skills/spec/SKILL.md` passo 2, `skills/implementar/SKILL.md` passo 2), e o `revisar` supõe que o clone já está na branch da issue. Com duas sessões no mesmo clone, uma troca a branch da outra: entre 2026-11-17 e 2026-11-18 isso aconteceu três vezes no `~/projetos/fabrica` (a #162 commitou na branch da #176; o ajuste do PR #180 encontrou o clone na branch de outras duas issues). Rodar várias issues ao mesmo tempo, e mais tarde um orquestrador (#16, #99), exige isolamento por issue. Só a `backlog` já usa uma worktree temporária.
@@ -132,3 +132,4 @@ nenhum
 
 ## Histórico
 - 2026-11-18: criação.
+- 2026-11-18: aprovada.
