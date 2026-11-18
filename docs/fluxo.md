@@ -64,6 +64,16 @@ Os seus portões são os mesmos: você aprova a spec curta com `spec-aprovada`, 
 
 Para tirar uma issue do atalho, comente na issue antes de aprovar. O próximo passo passa a ser o `/fabrica:spec`, que escreve a spec completa levando o seu comentário em conta. O critério está na [triagem](../skills/triagem/SKILL.md), e a decisão, no [ADR 0004](adr/0004-atalho-da-triagem-com-spec-curta.md).
 
+## Uma worktree por issue
+Cada issue com branch trabalha na própria worktree do git, em `<clone>/.worktrees/<nº>`. Assim, duas sessões, ou duas etapas do `/fabrica:avancar`, em issues diferentes do mesmo repositório nunca trocam a branch uma da outra, e o clone principal fica na branch em que você o deixou.
+- **Quem cria:** a primeira etapa que precisa da branch (o `/fabrica:spec` ou, no atalho, o `/fabrica:implementar`). As seguintes reusam a mesma pasta.
+- **Quem remove:** o merge é sempre seu, fora da fábrica. Por isso, o `/fabrica:spec`, o `/fabrica:implementar` e o `/fabrica:avancar` removem no começo as worktrees e as branches locais de PRs já fechados. Uma worktree com trabalho não enviado nunca é removida sozinha. O `/fabrica:status` aponta as que sobraram.
+- **Limite:** no máximo 3 worktrees de issue por clone, contando as specs ainda não aprovadas.
+- **Arquivos fora do git:** um `.env` e afins não vão para a worktree. Liste no `.worktreeinclude` do clone, no mesmo formato do Claude Code, os arquivos ignorados que a worktree nova deve receber.
+- **Dependências:** a worktree nova não tem `node_modules` nem outras dependências instaladas; o `make` do projeto decide como instalá-las.
+
+O script é o `scripts/issue-worktree.sh`, e a decisão está no [ADR 0014](adr/0014-uma-worktree-por-issue.md). As mensagens do script estão em [Solução de problemas](solucao-de-problemas.md#a-etapa-parou-no-issue-worktreesh-ensure).
+
 ## Onde está o estado
 Não existe arquivo de estado. O estado de cada issue é lido do GitHub:
 - as labels;

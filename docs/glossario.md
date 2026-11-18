@@ -37,3 +37,5 @@
 **Spec** — O contrato de uma issue, em `specs/SPEC-<nº>.md`: objetivo, comportamento, critérios de aceite e desenho técnico. No [atalho](fluxo.md#atalho), é a spec curta do comentário de triagem, só com o objetivo, os critérios e os limites. É escrita antes do código e aprovada por você com `spec-aprovada`. Veja [`/fabrica:spec`](comandos.md#fabricaspec-número-da-issue-ajustes-pedidos).
 
 **Triagem** — Primeira etapa de uma issue no fluxo: classifica tipo, classe e tamanho e pergunta na issue o que só você sabe. Veja [`/fabrica:triagem`](comandos.md#fabricatriagem-número-da-issue).
+
+**Worktree da issue** — Pasta `<clone>/.worktrees/<nº>`, com a branch da issue, onde as etapas trabalham sem trocar a branch do clone principal. Nasce na primeira etapa que precisa da branch e sai depois do PR fechado. Veja [Uma worktree por issue](fluxo.md#uma-worktree-por-issue).
