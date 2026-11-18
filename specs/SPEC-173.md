@@ -1,7 +1,7 @@
 # SPEC-173: OpenCode: registrar comandos e hooks por projeto na instalação global
 
 **Issue:** #173 · **PRD:** nenhuma (o OpenCode está fora do escopo do PRD, que fica "só no Claude Code"; mesma situação das #161 e #162, ver Riscos) · **Classe:** implementacao-complexa · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-11-18
+**Status:** aprovada · **Atualizada em:** 2026-11-18
 
 ## Contexto
 O adaptador `opencode/server.ts` (#167 a #172) leva ao OpenCode as 12 skills, os comandos `/fabrica:*`, o subagente `fabrica/revisor` e os hooks de proteção. O README da #161 manda instalá-lo por projeto, porque, com o plugin só na entrada global (`~/.config/opencode/opencode.jsonc`), a #161 viu `GET /api/command` do projeto sem os comandos e o hook de produção sem efeito. A #173 nasceu dessa observação e pedia mudar o `server.ts`.
@@ -114,3 +114,4 @@ nenhum
 - 2026-11-17: criação.
 - 2026-11-17: aprovada.
 - 2026-11-18: mudança (alterar) — a implementação mediu que, com a entrada global, os comandos e o hook de produção já funcionam por projeto depois da janela de inicialização, que existe também na instalação por projeto e que o plugin não fecha; o usuário pediu a opção 1, com a checagem da janela nas duas instalações e um CA para fechá-la ou o registro do porquê. CAs: incluídos CA9 (estabilidade do teste); removidos o CA9 anterior (diretório da sessão no evento); alterados CA4 (1 plugin, 12 comandos, uma negação por comando), CA8 (prova de falha por duas cópias alteradas), CA10 (README com a janela medida) e CA11 (o `server.ts` não muda). A decisão 1 anterior (investigar na VM) foi feita; a decisão 2 (diretório a cada avaliação) caiu. O CA de fechar a janela não existe: não é possível pelo plugin, e a proposta de issue separada está em "Fora de escopo".
+- 2026-11-18: aprovada de novo, depois da mudança.
