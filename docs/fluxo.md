@@ -57,6 +57,9 @@ Quando algo dá errado, o agente para, comenta na issue e aplica `escalonado`. V
 
 Quando a implementação ou a revisão dependem de uma ação sua fora do GitHub (criar uma conta, cadastrar um secret, gerar uma chave), o agente publica na issue uma checklist passo a passo e aplica `acao-externa`. Você faz os passos, marca os itens e retoma com `/fabrica:avancar`. Veja o guia [Ação externa](guias/acao-externa.md).
 
+## Primeira ida para produção
+Produção fica fora do alcance dos agentes ([ADR 0006](adr/0006-producao-fora-do-alcance-do-agente.md)). Quando você decidir lançar o projeto, rode [`/fabrica:lancamento`](comandos.md#fabricalancamento-número-da-issue-de-runbook): ele confere o que dá para conferir no repositório e em dev ou homologação e abre uma issue de runbook com a checklist dos passos que você faz em produção, partindo dos "Passos de produção" das specs. A etapa fica fora do ciclo das issues e do `/fabrica:avancar`, e vale só para o primeiro lançamento. Veja o guia [Lançamento](guias/lancamento.md).
+
 ## Atalho
 Uma issue pequena e sem ambiguidade não precisa da etapa de spec. Quando a triagem vê que a issue é pequena, simples ou de documentação, sem perguntas e sem arquivos sensíveis, ela publica no próprio comentário uma **spec curta**, com o objetivo, os critérios de aceite, o que fica fora do escopo e o nome da branch, e aplica `spec-pronta`.
 
