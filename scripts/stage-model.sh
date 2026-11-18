@@ -108,6 +108,7 @@ cmd_next() {
   local alias="$1" fails="$2" need to
   model_id "$alias" >/dev/null || fail "apelido desconhecido: $alias."
   [[ "$fails" =~ ^[0-9]+$ ]] || fail "falhas precisa ser um inteiro não negativo."
+  fails=$((10#$fails)) # 08 e 09 não são octais
   read -r need to <<< "$(step_rows | awk -F'\t' -v a="$alias" '$1 == a { print $2, $3 }')"
   if [[ -n "${need:-}" && "$fails" -ge "$need" ]]; then
     echo "$to"
