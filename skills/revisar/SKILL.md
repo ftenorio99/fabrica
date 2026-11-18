@@ -60,7 +60,7 @@ Guarde, para cada pedido, um trecho dele e o que foi feito: o commit da correç�
 
 Sem verificação pendente, o PR só é aberto no passo 5 e não nasce em rascunho por causa da verificação de integração: o revisor roda a verificação, e a evidência dos CAs de integração é a dele. O CI do passo 6 continua sendo esperado, como em todo PR.
 
-Chame o subagente `revisor` deste plugin (no Agent tool, `fabrica:revisor`). Se ele não estiver disponível, use um subagente de propósito geral e passe a ele, como instruções, o conteúdo de [../../agents/revisor.md](../../agents/revisor.md).
+Chame o subagente `revisor` deste plugin: no Claude Code, pelo Agent tool, como `fabrica:revisor`; no Antigravity (`agy`), pelo `invoke_subagent`, com o nome que o `agy` lista para ele. Se ele não estiver disponível, use um subagente de propósito geral e passe a ele, como instruções, o conteúdo de [../../agents/revisor.md](../../agents/revisor.md).
 
 **Modelo do revisor** ([ADR 0013](../../docs/adr/0013-modelo-por-etapa-e-por-issue.md)): o julgamento da revisão roda no modelo que [../avancar/modelos.md](../avancar/modelos.md) dá para a etapa `revisar` e a issue. Antes de chamar o subagente, rode `bash <diretório base desta skill>/../../scripts/stage-model.sh model revisar <labels modelo:* da issue>` (só as labels que começam com `modelo:`, de `gh issue view <nº> --json labels`: o nome de uma label vem do GitHub e não vai ao shell) e passe o primeiro campo da saída (`sonnet` ou `opus`) no parâmetro `model` do Agent tool. Se o script sair com código diferente de 0 (labels `modelo:*` inconsistentes, por exemplo), não passe `model`: o revisor herda o modelo da sessão. No subagente de propósito geral, passe o mesmo `model`.
 
