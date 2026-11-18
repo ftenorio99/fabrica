@@ -1,7 +1,7 @@
 # SPEC-177: fix: registra o subagente revisor convertido no Antigravity para o revisar poder invocá-lo
 
 **Issue:** #177 · **PRD:** nenhuma (suporte ao Antigravity vem do estudo #149 e dos testes da #162) · **Classe:** implementacao-complexa · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-11-18
+**Status:** aprovada · **Atualizada em:** 2026-11-18
 
 ## Contexto
 A #162 mostrou que, depois do `agy plugin install`, o `agy` 1.5.10 reporta o agente `revisor` como instalado, mas não o registra: `agy agents` vem vazio, `--agent revisor` dá `unknown agent` e `invoke_subagent` dá `not found or not allowed`. O `/fabrica:revisar` só funciona no `agy` pelo fallback do subagente genérico (`define_subagent`), que não restringe ferramentas.
@@ -96,3 +96,4 @@ nenhum
 - 2026-11-18: mudança (alterar) — a execução real no `agy` mostrou que nenhuma lista única de `tools` serve aos dois CLIs; o usuário pediu a opção 1 do escalonamento (arquivo de agente separado para o `agy`, declarado no `agents.json`). CAs: incluídos nenhum; removidos nenhum; alterados CA1, CA2, CA3, CA4, CA5, CA8.
 - 2026-11-18: aprovada (após a mudança).
 - 2026-11-18: mudança (alterar) — o `/agents` do `agy` só lista agentes principais e o revisor é subagente (`mainAgent: false`), então o CA5 não pode exigir que ele apareça lá; o usuário pediu para ajustar o critério. O CA2 passa a descrever a saída real do `agy plugin validate --strict` (erro do `agents/revisor.md`, exit 1, `agents 1`), registrada na lição `desvio`. CAs: incluídos nenhum; removidos nenhum; alterados CA2, CA5 e CA8.
+- 2026-11-18: aprovada (após o ajuste de CA2, CA5 e CA8).

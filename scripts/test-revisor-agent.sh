@@ -101,6 +101,7 @@ else
   # só reclama do agents/revisor.md, que ele pula por causa do tools em string.
   out="$(validate_agy --agents-json --agents --agy-agents)"
   check CA2 "agy: plugin completo conta agents 1" "agents 1" "$(count_agents "$out")"
+  check CA2 "agy: plugin completo sai com 1" "exit=1" "$(tail -n 1 <<<"$out")"
   check CA2 "agy: o único erro é o agents/revisor.md pulado" 1 "$(errors "$out")"
   check CA2 "agy: o erro é sobre o agents/revisor.md" sim "$(yesno grep -q '✗ agents/revisor.md' <<<"$out")"
   check CA2 "agy: nenhum erro sobre agy-agents/" não "$(yesno grep -q '✗ agy-agents/' <<<"$out")"
