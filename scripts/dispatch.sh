@@ -74,6 +74,24 @@ print("" if last is None else int(now - last))
 ' "${FABRICA_NOW:-}"
 }
 
+# Resumo seguro do JSON do claude para o log do Actions: só campos de controle,
+# nunca o texto de result nem argumentos de ferramentas.
+stage_summary() {
+  python3 -I -c '
+import json, re, sys
+try:
+    d = json.load(open(sys.argv[1]))
+except Exception:
+    sys.exit()
+if not isinstance(d, dict):
+    sys.exit()
+def safe(v):
+    return re.sub(r"[^A-Za-z0-9_.:-]", "", str(v))[:40]
+keys = ("subtype", "is_error", "api_error_status", "num_turns", "duration_ms")
+print(" ".join("%s=%s" % (k, safe(d.get(k))) for k in keys))
+' "$json_file" 2>/dev/null
+}
+
 cmd_run() {
   rm -rf "$state_dir"
   mkdir -p "$state_dir" || { say "não consegui criar $state_dir."; return 1; }
@@ -114,6 +132,7 @@ cmd_run() {
   bash "$script_dir/stage-model.sh" run "$stage" "$number" "${models[@]}" > "$json_file"
   rc=$?
   echo "$rc" > "$exit_file"
+  [[ $rc -eq 0 || $rc -eq 2 ]] || say "resumo da saída: $(stage_summary)"
   if [[ $rc -eq 2 ]]; then say "duas ou mais labels modelo:* na issue #$number."; return 2; fi
   if [[ $rc -ne 0 ]]; then say "o claude saiu com $rc."; return 1; fi
 
@@ -129,7 +148,7 @@ print("falso" if isinstance(d, dict) and d.get("is_error") is False else "verdad
   case $is_error in
     falso) echo "etapa $stage da issue #$number concluída"; return 0 ;;
     ilegivel) say "a saída do claude não é um JSON legível."; return 1 ;;
-    *) say "o claude terminou com is_error verdadeiro."; return 1 ;;
+    *) say "o claude terminou com is_error verdadeiro. Resumo: $(stage_summary)"; return 1 ;;
   esac
 }
 

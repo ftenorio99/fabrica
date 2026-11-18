@@ -192,6 +192,10 @@ setup OPEN agente; echo '{"is_error":true,"result":"x"}' > "$tmp/claude.json"
 check CA9 "is_error verdadeiro sai com 1" "1" "$(dispatch run)"
 setup OPEN agente; echo '{"result":"x"}' > "$tmp/claude.json"
 check CA9 "is_error ausente sai com 1" "1" "$(dispatch run)"
+setup OPEN agente; echo '{"is_error":true,"subtype":"success","api_error_status":401,"num_turns":1,"result":"texto secreto do result"}' > "$tmp/claude.json"; echo 1 > "$tmp/claude.exit"
+dispatch run >/dev/null
+check CA9 "falha registra no log o resumo seguro" "1" "$(grep -c 'resumo da saída: subtype=success is_error=True api_error_status=401 num_turns=1' "$tmp/err.txt")"
+check CA9 "o resumo do log não traz result nem secret" "0" "$(grep -c 'texto secreto do result\|sk-ant-oat-valor-do-teste' "$tmp/err.txt" "$tmp/out.txt" | awk -F: '{ s += $NF } END { print s }')"
 
 # CA11: comentário de falha.
 body() { cat "$tmp/comment.txt" 2>/dev/null; }
