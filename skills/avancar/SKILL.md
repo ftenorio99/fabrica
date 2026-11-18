@@ -13,6 +13,7 @@ Esta skill executa as etapas em que o agente age e para nos portões do usuário
 
 ## 1. Coletar
 - **Repositório:** `gh repo view --json nameWithOwner -q .nameWithOwner`. Fora de um clone com remote no GitHub, pare e diga que o comando roda dentro do clone do repositório.
+- **Worktrees:** antes de coletar, rode `bash <diretório base desta skill>/../../scripts/issue-worktree.sh clean` no repositório atual ([ADR 0014](../../docs/adr/0014-uma-worktree-por-issue.md)). Guarde as linhas `removida <nº> <branch>` e `mantida <nº> <branch> trabalho-local` para os alertas do relatório. Se ele sair com 1 (o `gh` falhou), nada foi removido: anote isso nos alertas e siga.
 - **Issues:** com número, só ela. Sem número, todas as abertas com `agente`: `gh issue list --label agente --state open --json number,title,labels,url --limit 100`.
 - Para cada issue, colete o estado como no passo 1 do [`/fabrica:status`](../status/SKILL.md): comentários e labels, a branch da issue (pela regra da spec da issue de [estados.md](../status/estados.md)), o PR da branch e os pedidos novos no PR. Use só o repositório atual.
 - **Em andamento:** para cada issue com `em-andamento`, pegue o horário do último evento `labeled em-andamento`: `gh api repos/<repo>/issues/<nº>/timeline --paginate --slurp`. Siga a regra de [estados.md](../status/estados.md#etapa-em-andamento).
@@ -59,7 +60,7 @@ Para cada issue selecionada, na ordem:
 
 O laço da issue para quando:
 - **Portão do usuário:** a issue chegou a um estado em que o usuário age (1, 1a, 3, 7, 9 ou 13). Este é o fim normal.
-- **Sem avanço:** depois da etapa, a issue continua no mesmo estado. Isso cobre a etapa que parou num pré-requisito, como o limite de 3 em andamento, uma label que falta ou o ambiente incompleto. Anote o motivo que a etapa deu.
+- **Sem avanço:** depois da etapa, a issue continua no mesmo estado. Isso cobre a etapa que parou num pré-requisito, como o limite de 3 em andamento, o limite de 3 worktrees de issue (saída 5 do `issue-worktree.sh ensure`), uma label que falta ou o ambiente incompleto. Anote o motivo que a etapa deu.
 - **Falha:** a etapa terminou com erro. Anote o comando e o erro resumido.
 - **Inconsistência:** o estado relido tem uma inconsistência de [estados.md](../status/estados.md#inconsistências).
 
@@ -78,7 +79,7 @@ No chat, neste formato:
 | [fabrica#55](url) Título | Em implementação | implementar `haiku` → `sonnet` (subiu) | Em implementação (sem avanço) | Ver o motivo: limite de 3 em andamento |
 
 **Etapas executadas:** 3 de 4.
-- <alertas: inconsistências, `em-andamento` esquecida, issues puladas por outra sessão, issues que ficaram para a próxima execução>
+- <alertas: inconsistências, `em-andamento` esquecida, issues puladas por outra sessão, issues que ficaram para a próxima execução, worktrees `removida` e `mantida … trabalho-local` do `clean`>
 ```
 
 Na coluna "Modelo", ponha o apelido de cada etapa executada, lido das chaves de `modelUsage` do JSON de cada etapa (`sonnet` para `claude-sonnet-5-5`, e assim por diante), `sessão` nas etapas do caminho sem o `claude` e a seta e "(subiu)" quando o escalonamento trocou a label. Na coluna "O que você faz", use o próximo passo de [estados.md](../status/estados.md) para o estado em que a issue parou. Sem nenhuma issue de agente, diga isso e indique `/fabrica:status`.

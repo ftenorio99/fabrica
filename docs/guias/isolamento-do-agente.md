@@ -164,6 +164,9 @@ Um projeto sem `.fabrica/isolamento.txt` também roda a verificação: a etapa n
 
 O CI continua rodando a verificação completa em todo PR, como conferência num ambiente descartável.
 
+### Worktrees das issues
+A VM do projeto monta a pasta do clone inteira, então enxerga também as worktrees das issues em `<clone>/.worktrees/<nº>` ([Uma worktree por issue](../fluxo.md#uma-worktree-por-issue)). O `issue-worktree.sh` cria cada worktree com caminhos relativos, e o `.git` dela aponta para o clone sem depender do caminho de montagem: a mesma worktree funciona no host e dentro da VM, sem uma VM por issue.
+
 ### Hosts da verificação de integração
 No modo `sbx`, a VM precisa alcançar o que a verificação baixa:
 - **Imagens do Compose:** o Docker Hub já está no comando base do item 3 do checklist. Uma imagem de outro registry (como o `ghcr.io` ou o `quay.io`) aparece bloqueada no `sbx policy log claude-<projeto>`: libere só esse host, como em [Ampliar os domínios](#ampliar-os-domínios).

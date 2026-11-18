@@ -29,6 +29,7 @@ Esta skill é o orquestrador em modo leitura: lê o estado de cada issue no GitH
 - Issues com marcador de backlog de cada repositório com PRD, abertas e fechadas: `gh issue list -R <repo> --state all --limit 1000 --json number,state,body`. Fique só com as que têm o marcador `<!-- fabrica:backlog item=<n> -->`. Elas servem para decidir "item com issue" nos marcos, e uma issue fechada também conta, mesmo antes do merge do PR `docs/backlog` que anota o número no PRD.
 - Para as issues citadas no `Depende de` das issues de backlog do marco atual, confira se estão fechadas (`gh issue view <nº> -R <repo> --json state`).
 - Lições: `gh search issues --owner <dono> --label licao --include-prs --json repository,number,url --limit 100` (com filtro, use `--repo`) e, para cada resultado, `gh api repos/<repo>/issues/<nº>/comments --paginate`. Nos comentários que começam com `<!-- fabrica:licao`, anote a data de cada bloco `**Lição · <AAAA-MM-DD>**` ([formato](../licao/formato.md)). Para cada repositório com lição, use as milestones `M<n>` já coletadas, ou colete-as se o repositório não tiver PRD.
+- **Worktrees das issues** ([ADR 0014](../../docs/adr/0014-uma-worktree-por-issue.md)): só quando o comando roda dentro de um clone (`git rev-parse --is-inside-work-tree`), rode `bash <diretório base desta skill>/../../scripts/issue-worktree.sh list`, que só lê e não chama o `gh`, e, para cada linha `<nº> <branch> <caminho>`, `gh pr list --head <branch> --state all --json number,state` no próprio clone. Fora de um clone, pule este item.
 
 Rode as consultas independentes em paralelo.
 
@@ -37,6 +38,7 @@ Rode as consultas independentes em paralelo.
 - **Diretório:** o comando de agente roda no clone do repositório. Use `~/projetos/<repositório>` se existir; senão, indique `gh repo clone <repo> ~/projetos/<repositório>`.
 - **Alertas:**
   - limite de trabalho em andamento: 3 ou mais issues abertas com `spec-aprovada` no mesmo repositório;
+  - worktree que sobrou: uma linha do `list` cujo PR mais recente está `MERGED` ou `CLOSED`. Texto: "`<repo>`: a worktree da #<nº> sobrou depois do PR fechado; a próxima etapa ou o `/fabrica:avancar` a remove.";
   - CI falhando em PR aberto;
   - item parado: sem atualização há mais de 3 dias;
   - `em-andamento` esquecida: aplicada há 2 h ou mais. Texto: "`<repo>#<nº>`: `em-andamento` aplicada há <tempo>; a execução pode ter parado no meio. Remova a label ou rode `/fabrica:avancar <nº>`." Este caso sai uma vez só, com este texto, e não repetido no alerta das inconsistências;

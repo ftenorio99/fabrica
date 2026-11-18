@@ -169,6 +169,28 @@ run "$MAIN" 'git push -q origin feat'
 [[ $? -eq 0 && $(git -C "$tmp/remote.git" rev-parse feat) == $(head_of "$MAIN" feat) ]]
 result $? CA2 "passa: git push origin feat, com a main em checkout"
 
+# CA14 (SPEC-182): numa worktree criada pelo issue-worktree.sh, commit e push
+# da feature passam, e o push para a main feito dela é recusado.
+ISSUE_WT="$(cd "$MAIN" && bash "$script_dir/issue-worktree.sh" ensure 5 fix/5-x 2>/dev/null | tail -n 1)"
+before=$(head_of "$ISSUE_WT")
+run "$ISSUE_WT" 'git commit --allow-empty -m "na worktree da issue"'
+[[ $? -eq 0 && $(head_of "$ISSUE_WT") != "$before" ]]
+result $? CA14 "commit na worktree da issue (.worktrees/5)"
+run "$ISSUE_WT" 'git push -q -u origin fix/5-x'
+[[ $? -eq 0 && $(git -C "$tmp/remote.git" rev-parse fix/5-x) == $(head_of "$ISSUE_WT") ]]
+result $? CA14 "push da branch da issue a partir da worktree"
+run "$ISSUE_WT" 'git push origin HEAD:main'
+[[ $? -ne 0 && $(git -C "$tmp/remote.git" rev-parse main) == "$remote_main" ]] && grep -q "Push para a main bloqueado" "$tmp/err"
+result $? CA14 "git push origin HEAD:main a partir da worktree é recusado"
+for c in 'git commit --no-verify -m x' 'git commit -m x'; do
+  expected=allow
+  [[ $c == *no-verify* ]] && expected=deny
+  if jq -n --arg c "$c" --arg d "$ISSUE_WT" '{tool_input: {command: $c}, cwd: $d}' |
+    bash "$hook" 2>&1 | grep -q '"permissionDecision": *"deny"'; then got=deny; else got=allow; fi
+  [[ $got == "$expected" ]]
+  result $? CA14 "protect-main.sh na worktree da issue, $expected: $c"
+done
+
 run "$EMPTY" 'git commit --allow-empty -m inicial && git push -q origin main'
 result $? CA3 "commit inicial e primeiro push num repositório sem remoto"
 

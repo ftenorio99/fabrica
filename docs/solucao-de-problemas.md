@@ -74,3 +74,12 @@ Problemas que já apareceram no uso real e como resolver cada um.
   - **Exceção de verdade, num repositório seu:** use `--no-verify` no seu terminal.
 
   O commit inicial e o primeiro push de um repositório novo passam sem bloqueio.
+
+## A etapa parou no `issue-worktree.sh ensure`
+- **Sintoma:** o `/fabrica:spec`, o `/fabrica:implementar` ou o `/fabrica:revisar` para antes de qualquer commit e repete no chat uma mensagem do `issue-worktree.sh` ([Uma worktree por issue](fluxo.md#uma-worktree-por-issue)).
+- **O que fazer**, conforme a mensagem:
+  - **A worktree está noutra branch (saída 3):** a pasta `<clone>/.worktrees/<nº>` existe com uma branch diferente da issue, ou não é uma worktree. Confira se a branch da issue mudou; se a pasta não serve mais, remova-a com `git worktree remove <pasta>` e repita a etapa.
+  - **A branch está em uso noutra pasta (saída 4):** em geral, o clone principal está na branch da issue, como numa issue que começou antes das worktrees. Troque essa pasta de branch uma vez (`git -C <pasta> switch main`) e repita a etapa.
+  - **Limite de worktrees (saída 5):** o clone já tem 3 worktrees de issue. Termine uma (merge ou fechamento do PR) e rode o `/fabrica:avancar`, ou a próxima etapa, que remove as de PR fechado.
+- **`gh pr merge --delete-branch` avisa que não apagou a branch local:** rodado no clone, o `gh` não consegue apagar a branch que está presa numa worktree. O merge acontece mesmo assim, e a próxima etapa ou o `/fabrica:avancar` remove a worktree e a branch local.
+- **Uma worktree de PR fechado não some:** ela tem mudança não commitada ou commit que não chegou ao PR, e aparece como `mantida … trabalho-local` no relatório do `/fabrica:avancar`. Decida você: envie o trabalho ou remova a worktree com `git worktree remove --force <pasta>`.
