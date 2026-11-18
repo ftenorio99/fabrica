@@ -1,7 +1,7 @@
 # SPEC-96: Runbook de lançamento gerado pelo agente antes da produção
 
 **Issue:** #96 · **PRD:** F8 (com F2 e F3) · **Classe:** implementacao-complexa · **Tamanho:** G
-**Status:** rascunho · **Atualizada em:** 2026-11-18
+**Status:** aprovada · **Atualizada em:** 2026-11-18
 
 ## Contexto
 A F8 do [PRD](../docs/prd.md) pede que, antes da primeira ida de um projeto para produção, o agente gere numa issue um runbook com checklist (migrações com backup, chaves de teste, isolamento de dados, teste em produção) e confira o que dá para conferir. O usuário executa os passos de produção. A F2 e a [ADR 0006](../docs/adr/0006-producao-fora-do-alcance-do-agente.md) deixam produção fora do alcance do agente e dizem que o runbook parte da seção "Passos de produção" das specs. A F3 e a [ADR 0012](../docs/adr/0012-acao-externa-com-checklist.md) já definem como o usuário executa passos fora do GitHub e os marca numa checklist. O primeiro uso previsto é o M8 do kairo.
@@ -137,3 +137,4 @@ nenhum
 
 ## Histórico
 - 2026-11-18: criação.
+- 2026-11-18: aprovada.
