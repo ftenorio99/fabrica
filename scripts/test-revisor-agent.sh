@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
-# Testes do frontmatter de agents/revisor.md (SPEC-177): o mesmo arquivo serve ao
-# Claude Code, ao Antigravity (agy) e ao OpenCode. Usa só `agy plugin validate` e
-# `claude plugin validate`, que não instalam nada nem mexem em ~/.gemini ou
-# ~/.claude. Sem o binário no PATH, o caso sai como pulado.
+# Testes dos dois arquivos do revisor (SPEC-177): agents/revisor.md, lido pelo
+# Claude Code e pelo OpenCode, e agy-agents/revisor.md, declarado no agents.json
+# e lido pelo Antigravity (agy). Os dois têm o mesmo corpo. Usa só
+# `agy plugin validate` e `claude plugin validate`, que não instalam nada nem
+# mexem em ~/.gemini ou ~/.claude. Sem o binário no PATH, o caso sai como pulado.
 # Uso: scripts/test-revisor-agent.sh
 set -uo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 root="$(cd "$script_dir/.." && pwd)"
 agent="$root/agents/revisor.md"
+agy_agent="$root/agy-agents/revisor.md"
+agents_json="$root/agents.json"
 
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
@@ -27,55 +30,86 @@ skip() { # skip <CA> <descrição> <motivo>
   skipped=$((skipped + 1))
   printf 'pulado  %-4s %s (%s)\n' "$1" "$2" "$3"
 }
+yesno() { if "$@"; then echo sim; else echo não; fi; }
 
 # frontmatter <arquivo>: as linhas entre o primeiro e o segundo `---`.
 frontmatter() { awk 'NR == 1 && $0 == "---" { inside = 1; next } inside && $0 == "---" { exit } inside' "$1"; }
 # body <arquivo>: tudo depois do segundo `---`.
 body() { awk 'count >= 2 { print; next } $0 == "---" { count++ }' "$1"; }
+# field <arquivo> <campo>: a linha `<campo>: ...` do frontmatter.
+field() { frontmatter "$1" | grep -m 1 "^$2: "; }
 
-# --- CA1: frontmatter novo e corpo igual ao da main ---
-fm="$(frontmatter "$agent")"
-has() { grep -qxF "$1" <<<"$fm" && echo sim || echo não; }
-check CA1 "tools em lista com os nomes do Claude Code e do agy" sim \
-  "$(has 'tools: [Read, Grep, Glob, Bash, read_file, run_command, manage_task]')"
-check CA1 "subagent: true" sim "$(has 'subagent: true')"
-check CA1 "mainAgent: false" sim "$(has 'mainAgent: false')"
-check CA1 "name continua revisor" sim "$(has 'name: revisor')"
-
-if base="$(git -C "$root" show origin/main:agents/revisor.md 2>/dev/null)"; then
-  printf '%s\n' "$base" > "$tmp/revisor-main.md"
-  if diff -q <(body "$tmp/revisor-main.md") <(body "$agent") >/dev/null; then same=sim; else same=não; fi
-  check CA1 "corpo igual ao da origin/main" sim "$same"
+# --- CA1: agents/revisor.md igual ao da main; agy-agents/revisor.md com o mesmo corpo ---
+if git -C "$root" show origin/main:agents/revisor.md > "$tmp/revisor-main.md" 2>/dev/null; then
+  check CA1 "agents/revisor.md igual ao da origin/main" sim \
+    "$(yesno cmp -s "$tmp/revisor-main.md" "$agent")"
 else
-  skip CA1 "corpo igual ao da origin/main" "origin/main ausente"
+  skip CA1 "agents/revisor.md igual ao da origin/main" "origin/main ausente"
 fi
 
-# --- CA2: o carregador do agy aceita o agente; o tools antigo é recusado ---
-# validate_agy <arquivo do agente>: monta um plugin mínimo do agy com o agente e
-# imprime a saída de `agy plugin validate --strict` seguida de `exit=<código>`.
+if [[ -f "$agy_agent" ]]; then
+  fm="$(frontmatter "$agy_agent")"
+  has() { grep -qxF "$1" <<<"$fm"; }
+  check CA1 "agy: tools com os nomes do agy" sim "$(yesno has 'tools: [read_file, run_command, manage_task]')"
+  check CA1 "agy: subagent: true" sim "$(yesno has 'subagent: true')"
+  check CA1 "agy: mainAgent: false" sim "$(yesno has 'mainAgent: false')"
+  check CA1 "agy: sem edit_file nem write_file" não "$(yesno grep -qE 'edit_file|write_file' <<<"$fm")"
+  check CA1 "agy: mesmo name" "$(field "$agent" name)" "$(field "$agy_agent" name)"
+  check CA1 "agy: mesma description" "$(field "$agent" description)" "$(field "$agy_agent" description)"
+  check CA1 "agy: corpo igual ao do agents/revisor.md" sim \
+    "$(yesno diff -q <(body "$agent") <(body "$agy_agent"))"
+else
+  check CA1 "agy-agents/revisor.md existe" sim não
+fi
+
+# --- CA2: agents.json declara o agente do agy, e o carregador do agy o aceita ---
+check CA2 "agents.json declara agy-agents/revisor.md" '{"entries":[{"path":"agy-agents/revisor.md"}]}' \
+  "$(tr -d ' \n' < "$agents_json" 2>/dev/null)"
+
+# validate_agy [--agents-json] [--agents] [--agy-agents]: monta um plugin mínimo
+# do agy com as peças pedidas e imprime a saída de `agy plugin validate --strict`
+# seguida de `exit=<código>`.
 validate_agy() {
   local dir
   dir="$(mktemp -d "$tmp/agy.XXXXXX")"
-  mkdir -p "$dir/.antigravity-plugin" "$dir/agents"
+  mkdir -p "$dir/.antigravity-plugin"
   printf '{"name":"fabrica-revisor-test","version":"0.0.0"}\n' > "$dir/.antigravity-plugin/plugin.json"
-  cp "$1" "$dir/agents/revisor.md"
+  for part in "$@"; do
+    case "$part" in
+      --agents-json) cp "$agents_json" "$dir/agents.json" ;;
+      --agents) mkdir -p "$dir/agents" && cp "$agent" "$dir/agents/revisor.md" ;;
+      --agy-agents) mkdir -p "$dir/agy-agents" && cp "$agy_agent" "$dir/agy-agents/revisor.md" ;;
+    esac
+  done
   agy plugin validate "$dir" --strict 2>&1
   echo "exit=$?"
 }
+count_agents() { grep -o 'agents [0-9]*' <<<"$1" | head -n 1; }
+errors() { grep -c '✗' <<<"$1"; }
 
-if command -v agy >/dev/null 2>&1; then
-  out="$(validate_agy "$agent")"
-  check CA2 "agy plugin validate --strict passa" exit=0 "$(tail -n 1 <<<"$out")"
-  if grep -q 'agents 1 ' <<<"$out"; then n=sim; else n=não; fi
-  check CA2 "agy conta agents 1" sim "$n"
-
-  sed 's/^tools: \[.*\]$/tools: Read, Grep, Glob, Bash/' "$agent" > "$tmp/revisor-old.md"
-  out="$(validate_agy "$tmp/revisor-old.md")"
-  check CA2 "regressão: tools em string falha no agy" exit=1 "$(tail -n 1 <<<"$out")"
-  if grep -q 'The loader skips this agent' <<<"$out"; then n=sim; else n=não; fi
-  check CA2 "regressão: agy avisa que pula o agente" sim "$n"
-else
+if ! command -v agy >/dev/null 2>&1; then
   skip CA2 "agy plugin validate" "agy ausente"
+elif [[ ! -f "$agy_agent" || ! -f "$agents_json" ]]; then
+  check CA2 "agy-agents/revisor.md e agents.json existem" sim não
+else
+  # Só o agente do agy: o validate estrito passa.
+  out="$(validate_agy --agents-json --agy-agents)"
+  check CA2 "agy: agents.json com agy-agents/revisor.md passa no --strict" exit=0 "$(tail -n 1 <<<"$out")"
+  check CA2 "agy: agents.json com agy-agents/revisor.md conta agents 1" "agents 1" "$(count_agents "$out")"
+
+  # O plugin como a fábrica o entrega: o agy carrega o agente do agents.json e
+  # só reclama do agents/revisor.md, que ele pula por causa do tools em string.
+  out="$(validate_agy --agents-json --agents --agy-agents)"
+  check CA2 "agy: plugin completo conta agents 1" "agents 1" "$(count_agents "$out")"
+  check CA2 "agy: o único erro é o agents/revisor.md pulado" 1 "$(errors "$out")"
+  check CA2 "agy: o erro é sobre o agents/revisor.md" sim "$(yesno grep -q '✗ agents/revisor.md' <<<"$out")"
+  check CA2 "agy: nenhum erro sobre agy-agents/" não "$(yesno grep -q '✗ agy-agents/' <<<"$out")"
+
+  # Regressão: sem o agents.json, o agy não carrega nenhum agente.
+  out="$(validate_agy --agents --agy-agents)"
+  check CA2 "regressão: sem agents.json, agents 0" "agents 0" "$(count_agents "$out")"
+  check CA2 "regressão: sem agents.json, agy avisa que pula o agente" sim \
+    "$(yesno grep -q 'The loader skips this agent' <<<"$out")"
 fi
 
 # --- CA3: o Claude Code aceita o plugin e lista o fabrica:revisor ---
@@ -83,10 +117,11 @@ if command -v claude >/dev/null 2>&1; then
   out="$(claude plugin validate "$root" 2>&1)"
   code=$?
   check CA3 "claude plugin validate passa" 0 "$code"
-  if grep -q 'agents: fabrica:revisor' <<<"$out"; then n=sim; else n=não; fi
-  check CA3 "claude lista agents: fabrica:revisor" sim "$n"
-  if grep -q 'agents/revisor.md' <<<"$out"; then n=sim; else n=não; fi
-  check CA3 "nenhum aviso sobre agents/revisor.md" não "$n"
+  check CA3 "claude lista agents: fabrica:revisor" sim "$(yesno grep -q 'agents: fabrica:revisor' <<<"$out")"
+  check CA3 "claude lista um só agente" 1 "$(grep -c 'agents: ' <<<"$out")"
+  check CA3 "nenhum aviso sobre agents/revisor.md" não "$(yesno grep -q 'agents/revisor.md' <<<"$out")"
+  check CA3 "nenhum aviso sobre agy-agents/ nem agents.json" não \
+    "$(yesno grep -qE 'agy-agents|agents\.json' <<<"$out")"
 else
   skip CA3 "claude plugin validate" "claude ausente"
 fi
