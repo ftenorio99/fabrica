@@ -18,6 +18,11 @@ Esta tabela é lida por `scripts/setup-labels.sh`, que cria ou corrige as labels
 | `pronto-revisao` | revisar | `c2e0c6` | PR com CI verde e revisão automática feita, aguardando o usuário. |
 | `licao` | triagem, implementar, revisar, licao | `f9d0c4` | Lição aprendida registrada num comentário fabrica:licao. |
 | `em-andamento` | avancar | `bfdadc` | Uma execução automática está rodando uma etapa nesta issue. Vale por 2 h. |
+| `modelo:haiku` | triagem, usuário, avancar | `c5def5` | Modelo da implementação: Haiku 5.5, para issue mecânica (docs, chore, teste simples). |
+| `modelo:sonnet` | triagem, usuário, avancar | `5ebeef` | Modelo da implementação: Sonnet 5.5, o padrão quando a issue não tem label de modelo. |
+| `modelo:opus` | triagem, usuário, avancar | `0b3d91` | Modelo da implementação e da revisão: Opus 5.5, para issue de risco ou arquitetura. |
+
+As labels `modelo:*` escolhem o modelo da implementação e da revisão ([ADR 0013](../../docs/adr/0013-modelo-por-etapa-e-por-issue.md), tabela em [`skills/avancar/modelos.md`](../avancar/modelos.md)). Elas **não mudam o estado** da issue e não entram em nenhuma condição da tabela de estados. A triagem aplica uma; o usuário pode trocá-la até aplicar `spec-aprovada`; o `avancar` a troca quando uma falha de qualidade sobe o modelo. Sem label de modelo, vale `sonnet`.
 
 ## Estados
 Avalie de cima para baixo; vale a primeira linha cuja condição for verdadeira.
@@ -94,4 +99,5 @@ Sinalize como alerta, sem tentar corrigir:
 - `acao-externa` sem comentário de ação, com um comentário de ação sem itens de checklist ou com uma etapa no marcador fora de `implementar` e `revisar` (saídas `sem-comentario`, `sem-itens` e `etapa-invalida` do `acao-status.py`).
 - `spec-pronta` e `spec-aprovada` ao mesmo tempo é normal (nem a spec nem a triagem do atalho removem a primeira); não é inconsistência.
 - PR fechado sem merge com a issue ainda aberta.
+- Duas ou mais labels `modelo:*` na mesma issue (o `stage-model.sh` sai com código 2). O usuário remove a que não vale.
 - `em-andamento` aplicada há 2 h ou mais (label esquecida). Ao contrário das outras, esta não tira a issue do fluxo: uma execução automática pode retomá-la ([Etapa em andamento](#etapa-em-andamento)).
