@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "[ \"$(bash \"${CLAUDE_PLUGIN_ROOT}/scripts/setup-githooks.sh\" --check 2>/dev/null)\" != ausente ] || echo 'Os hooks do git da fábrica não estão instalados nesta máquina. Rode /fabrica:setup.'",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh",
             "timeout": 15
           },
           {
