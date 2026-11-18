@@ -1,0 +1,73 @@
+# Dispatcher da fábrica (SPEC-105, ADR 0015): quando a label `agente` é
+# aplicada numa issue aberta, roda o /fabrica:triagem no runner, com o plugin
+# instalado. Copie este arquivo para .github/workflows/agente.yml do projeto.
+# Secrets do repositório: CLAUDE_CODE_OAUTH_TOKEN (claude setup-token) e
+# FABRICA_PLUGIN_TOKEN (fine-grained, só contents: read no ftenorio99/fabrica).
+# Guia: docs/guias/dispatcher.md do plugin.
+name: agente
+
+on:
+  issues:
+    types: [labeled]
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: fabrica-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  etapa:
+    if: github.event.label.name == 'agente' && github.event.issue.state == 'open'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout do projeto
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Instala o Claude Code
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          claude --version
+
+      - name: Instala o plugin da fábrica
+        id: plugin
+        env:
+          GH_TOKEN: ${{ secrets.FABRICA_PLUGIN_TOKEN }}
+          CLAUDE_CODE_PLUGIN_PREFER_HTTPS: "1"
+        run: |
+          gh auth setup-git
+          claude plugin marketplace add ftenorio99/fabrica
+          claude plugin install fabrica@fabrica
+          path="$(claude plugin list --json | python3 -I -c 'import json, sys; print(next(p["installPath"] for p in json.load(sys.stdin) if p.get("id") == "fabrica@fabrica"))')"
+          test -f "$path/scripts/dispatch.sh"
+          echo "path=$path" >> "$GITHUB_OUTPUT"
+
+      - name: Roda a etapa
+        timeout-minutes: 30
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          FABRICA_PLUGIN_DIR: ${{ steps.plugin.outputs.path }}
+        run: bash "$FABRICA_PLUGIN_DIR/scripts/dispatch.sh" run "$ISSUE_NUMBER"
+
+      - name: Desmarca a issue
+        if: always() && steps.plugin.outputs.path != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          FABRICA_PLUGIN_DIR: ${{ steps.plugin.outputs.path }}
+        run: bash "$FABRICA_PLUGIN_DIR/scripts/dispatch.sh" unmark "$ISSUE_NUMBER"
+
+      - name: Publica a falha
+        if: failure() && steps.plugin.outputs.path != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          FABRICA_PLUGIN_DIR: ${{ steps.plugin.outputs.path }}
+        run: bash "$FABRICA_PLUGIN_DIR/scripts/dispatch.sh" fail "$ISSUE_NUMBER"
