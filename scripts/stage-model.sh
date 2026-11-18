@@ -9,6 +9,8 @@
 #
 # Variáveis: FABRICA_CLAUDE_BIN (binário, padrão claude) e
 # FABRICA_MODELS_FILE (troca o caminho de modelos.md, só para os testes).
+# O modo de permissão do run é bypassPermissions só dentro da VM do sbx com o
+# projeto em modo sbx (sbx-context.sh e setup-isolation.sh); senão, auto.
 # Saída: 0 sucesso; 1 uso inválido; 2 duas ou mais labels modelo:*.
 set -uo pipefail
 export LC_ALL=C.UTF-8
@@ -114,6 +116,20 @@ cmd_next() {
   fi
 }
 
+# Modo de permissão do processo da etapa (SPEC-179, ADR 0013): bypassPermissions
+# só dentro da VM do sbx com o projeto em modo sbx; auto em todos os outros
+# casos, inclusive quando um dos scripts de isolamento falha.
+permission_mode() {
+  local where mode
+  where="$(bash "$script_dir/sbx-context.sh" --project "$PWD" 2>/dev/null | awk '$1 == "onde" { print $2; exit }')" || where=""
+  mode="$(bash "$script_dir/setup-isolation.sh" --check --project "$PWD" 2>/dev/null)" || mode=""
+  if [[ "$where" == "vm" && "$mode" == "sbx" ]]; then
+    echo bypassPermissions
+  else
+    echo auto
+  fi
+}
+
 cmd_run() {
   [[ $# -ge 2 ]] || fail "uso: stage-model.sh run <etapa> <nº> [label...]"
   local stage="$1" number="$2" selection rc alias id effort
@@ -125,7 +141,7 @@ cmd_run() {
 
   local args=(-p --model "$id")
   [[ "$effort" == "padrao" ]] || args+=(--effort "$effort")
-  args+=(--permission-mode auto --output-format json)
+  args+=(--permission-mode "$(permission_mode)" --output-format json)
   # Fora de ~/.claude/plugins/ o plugin roda de um clone: o processo novo
   # precisa carregar esse clone, e não a versão instalada.
   local plugin_root plugins_dir

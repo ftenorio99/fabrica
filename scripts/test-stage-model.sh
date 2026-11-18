@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Testa scripts/stage-model.sh (SPEC-179, CA2 a CA6) com um `claude` falso.
+# Testa scripts/stage-model.sh (SPEC-179, CA2 a CA6 e CA13) com um `claude` falso.
 # Uso: bash scripts/test-stage-model.sh
 set -uo pipefail
 
@@ -69,7 +69,8 @@ EOF
 chmod +x "$fake"
 
 # run <etapa> <nº> [label...]: com HOME fora do clone, como numa máquina comum
-run() { HOME="$tmp/home" FABRICA_CLAUDE_BIN="$fake" bash "$script" run "$@" 2>/dev/null; }
+# (e fora da VM do sbx, para o modo de permissão ser sempre auto, onde quer que o teste rode)
+run() { env -u PROXY_CA_CERT_B64 HOME="$tmp/home" FABRICA_SBX_PERSISTENT_FILE="$tmp/ausente.sh" FABRICA_CLAUDE_BIN="$fake" bash "$script" run "$@" 2>/dev/null; }
 args() { tr '\n' ' ' < "$args_file" | sed 's/ $//'; }
 
 # CA5: argumentos do claude.
@@ -109,6 +110,45 @@ rm -f "$args_file"
 HOME="$tmp/home" FABRICA_CLAUDE_BIN="$fake" bash "$installed/scripts/stage-model.sh" run triagem 12 >/dev/null 2>&1
 check CA6 "de dentro de ~/.claude/plugins/ não leva --plugin-dir" "no" \
   "$(grep -qx -- '--plugin-dir' "$args_file" && echo yes || echo no)"
+
+# CA13: modo de permissão pela VM e pelo modo de isolamento.
+proj="$tmp/proj"
+mkdir -p "$proj/.fabrica"
+vm_file="$tmp/sandbox-persistent.sh"
+: > "$vm_file"
+perm_mode() { awk 'prev == "--permission-mode" { print; exit } { prev = $0 }' "$args_file"; }
+# mode_of <vm|host> <conteúdo de isolamento.txt | -sem-arquivo>: valor de --permission-mode
+mode_of() {
+  local where="$1" iso="$2" persistent="$tmp/ausente.sh"
+  [[ "$where" == "vm" ]] && persistent="$vm_file"
+  rm -f "$proj/.fabrica/isolamento.txt" "$args_file"
+  [[ "$iso" == "-sem-arquivo" ]] || printf '%s\n' "$iso" > "$proj/.fabrica/isolamento.txt"
+  (cd "$proj" && env -u PROXY_CA_CERT_B64 HOME="$tmp/home" FABRICA_SBX_PERSISTENT_FILE="$persistent" \
+    FABRICA_CLAUDE_BIN="$fake" bash "$script" run triagem 12 >/dev/null 2>&1)
+  perm_mode
+}
+check CA13 "VM com modo sbx usa bypassPermissions" "bypassPermissions" "$(mode_of vm sbx)"
+check CA13 "VM com sem-sandbox usa auto" "auto" "$(mode_of vm sem-sandbox)"
+check CA13 "host com modo sbx usa auto" "auto" "$(mode_of host sbx)"
+check CA13 "host com sem-sandbox usa auto" "auto" "$(mode_of host sem-sandbox)"
+check CA13 "VM sem arquivo de modo (ausente) usa auto" "auto" "$(mode_of vm -sem-arquivo)"
+check CA13 "VM com modo inválido usa auto" "auto" "$(mode_of vm valor-estranho)"
+
+# Um dos scripts de isolamento falhando também cai em auto: cópia do script com
+# os dois auxiliares trocados por versões falsas.
+broken="$tmp/broken"
+mkdir -p "$broken/scripts" "$broken/skills/avancar"
+cp "$script" "$broken/scripts/stage-model.sh"
+cp "$script_dir/../skills/avancar/modelos.md" "$broken/skills/avancar/modelos.md"
+run_broken() { (cd "$proj" && env -u PROXY_CA_CERT_B64 HOME="$tmp/home" FABRICA_CLAUDE_BIN="$fake" bash "$broken/scripts/stage-model.sh" run triagem 12 >/dev/null 2>&1); }
+printf '#!/usr/bin/env bash\nexit 3\n' > "$broken/scripts/sbx-context.sh"
+printf '#!/usr/bin/env bash\necho sbx\n' > "$broken/scripts/setup-isolation.sh"
+rm -f "$args_file"; run_broken
+check CA13 "sbx-context.sh falhando usa auto" "auto" "$(perm_mode)"
+printf '#!/usr/bin/env bash\necho "onde vm"\n' > "$broken/scripts/sbx-context.sh"
+printf '#!/usr/bin/env bash\nexit 3\n' > "$broken/scripts/setup-isolation.sh"
+rm -f "$args_file"; run_broken
+check CA13 "setup-isolation.sh falhando usa auto" "auto" "$(perm_mode)"
 
 echo
 echo "$((total - failures)) de $total passaram."
