@@ -1,7 +1,7 @@
 # SPEC-200: roda a etapa no modelo da sessão quando a harness é o OpenCode
 
 **Issue:** #200 · **PRD:** F10 (item do fatiamento não vinculado) · **Classe:** implementacao-simples · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-11-19
+**Status:** aprovada · **Atualizada em:** 2026-11-19
 
 ## Contexto
 O `/fabrica:avancar` escolhe entre `claude -p` e a sessão pela presença do binário `claude` ([ADR 0013](../docs/adr/0013-modelo-por-etapa-e-por-issue.md)). Numa máquina com o Claude Code instalado e a sessão no OpenCode, essa regra manda a etapa para um `claude -p` aninhado e aplica a tabela de [modelos.md](../skills/avancar/modelos.md). A #20 do ankyra mostrou o efeito: a triagem tentou aplicar `modelo:opus` num repositório sem a label e parou. A escolha precisa ser pela harness, não pelo binário. O adaptador do OpenCode já entrega `OPENCODE_SESSION_ID` ao shell das ferramentas e pode injetar uma variável própria.
@@ -113,3 +113,4 @@ nenhum
 
 ## Histórico
 - 2026-11-19: criação.
+- 2026-11-19: aprovada.
