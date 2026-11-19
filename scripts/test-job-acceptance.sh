@@ -71,7 +71,10 @@ sha="$(as_agent git -c credential.helper= -c "http.extraHeader=Authorization: Ba
 if [[ "$sha" =~ ^[0-9a-f]{40}$ ]]; then
   ok git-pelo-proxy
 else
-  bad git-pelo-proxy "git ls-remote não devolveu um commit: $(head -c 200 "$work/git.err")"
+  # Diagnóstico sem valores: o token alcança o conteúdo do repositório pela API?
+  contents="$(as_agent gh api "repos/$repo/contents" -q 'length' 2>&1 | head -c 120)"
+  other="$(as_agent git -c credential.helper= -c "http.extraHeader=Authorization: Basic $(printf 'git:%s' "$marker" | base64 -w0)" ls-remote "https://github.com/$repo" HEAD 2>&1 | head -c 160)"
+  bad git-pelo-proxy "git ls-remote não devolveu um commit: $(head -c 200 "$work/git.err") | contents pela API: ${contents:-vazio} | com outro usuário: ${other:-vazio}"
 fi
 
 # 5. O ambiente do agente só tem marcadores.
