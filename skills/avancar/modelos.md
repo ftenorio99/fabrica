@@ -1,6 +1,6 @@
 # Modelo por etapa
 
-Fonte da verdade do modelo de cada etapa do `/fabrica:avancar` ([ADR 0013](../../docs/adr/0013-modelo-por-etapa-e-por-issue.md)). O `scripts/stage-model.sh` lê as duas tabelas abaixo; para trocar a versão de um modelo ou a regra de uma etapa, edite só este arquivo.
+Fonte da verdade do modelo de cada etapa do `/fabrica:avancar` no caminho `claude -p` ([ADR 0013](../../docs/adr/0013-modelo-por-etapa-e-por-issue.md)). No caminho de sessão (`opencode` ou `antigravity`), esta tabela não é usada: a etapa roda no modelo da sessão, sem label `modelo:*` e sem escalonamento. O `scripts/stage-model.sh` lê as duas tabelas abaixo; para trocar a versão de um modelo ou a regra de uma etapa, edite só este arquivo.
 
 ## Modelos
 | Apelido | ID |
