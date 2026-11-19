@@ -104,10 +104,15 @@ check CA4 "server.ts só define quando a variável está vazia" "sim" \
 check CA4 "erro do hook de harness é logado" "sim" \
   "$(grep -q 'hook shell.create.before não registrado' "$server" && echo sim || echo não)"
 
-# CA8: as suítes existentes do stage-model continuam passando; o teste delas
-# limpa os sinais de sessão nas chamadas que simulam o runner.
-check CA8 "test-stage-model.sh existe" "sim" \
-  "$([[ -f "$script_dir/test-stage-model.sh" ]] && echo sim || echo não)"
+# CA8: a suíte do stage-model continua passando, inclusive chamada de dentro do
+# OpenCode, porque as chamadas que simulam o runner limpam os sinais de sessão.
+if bash "$script_dir/test-stage-model.sh" >"$tmp/stage-model.out" 2>&1; then
+  stage_model="ok"
+else
+  stage_model="falhou"
+  tail -n 10 "$tmp/stage-model.out" >&2
+fi
+check CA8 "test-stage-model.sh passa com os sinais de sessão limpos" "ok" "$stage_model"
 
 echo
 echo "$((total - failures))/$total verificações passaram."
