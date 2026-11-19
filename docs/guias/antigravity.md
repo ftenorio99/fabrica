@@ -3,7 +3,7 @@
 Este guia é para quando você quer usar a fábrica pelo Antigravity CLI (`agy`) em vez do Claude Code. A fábrica é um plugin do Claude Code, e o `agy plugin install <clone-da-fábrica>` converte skills, agentes e hooks para o formato dele. O resultado da conversão depende das versões dos dois lados: este guia registra o que foi testado com o **plugin 0.38.0** e o **`agy` 1.5.10**, em 2026-11-18, numa VM do `sbx` com modelo real (fase 0 em [#149](https://github.com/ftenorio99/fabrica/issues/149), pontos restantes em [#162](https://github.com/ftenorio99/fabrica/issues/162)). O registro do subagente `revisor` foi testado com o **plugin 0.42.0** e o `agy` 1.5.10 no host e 1.5.11 na VM do `sbx` ([#177](https://github.com/ftenorio99/fabrica/issues/177)).
 
 ## O que funciona
-- **Instalação:** `agy plugin install` converte as 12 skills (comandos `/fabrica:*`), o agente `revisor` e os hooks `PreToolUse` e `SessionStart`.
+- **Instalação:** `agy plugin install` converte as 13 skills (comandos `/fabrica:*`), o agente `revisor` e os hooks `PreToolUse` e `SessionStart`.
 - **Proteções:** os hooks de proteção (`protect-main.sh`, `protect-production.sh`) negam de verdade, também com `--dangerously-skip-permissions`.
 - **Etapas:** os comandos `/fabrica:*` rodam em modo `-p` e recebem argumento (fase 0 da #149).
 - **Perguntas ao usuário:** o equivalente ao `AskUserQuestion` é a ferramenta `ask_question`. Nas etapas que perguntam (`prd`, `setup`), a pergunta sai como chamada da ferramenta, não como texto solto.

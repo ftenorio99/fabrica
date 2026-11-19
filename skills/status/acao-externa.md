@@ -2,6 +2,8 @@
 
 Contrato entre as etapas que param por uma ação do usuário fora do GitHub (`/fabrica:implementar` e `/fabrica:revisar`) e quem lê o estado (`/fabrica:status`, `/fabrica:avancar` e a própria etapa na retomada). O estado está em [estados.md](estados.md#ação-externa), e a decisão, no [ADR 0012](../../docs/adr/0012-acao-externa-com-checklist.md).
 
+Uma terceira etapa usa o mesmo comentário de ação: o `/fabrica:lancamento`, só na issue de runbook que ele cria, sem `agente`, com `etapa=lancamento` no marcador. Ela lê o estado com `acao-status.py --lancamento`, que só aceita essa etapa, e tem a própria retomada ([lancamento](../lancamento/SKILL.md)). O formato do comentário, os itens, a linha de custo e a regra de segredos abaixo valem para ela também; as seções "Parar" e "Retomar" não.
+
 ## Quando usar
 A etapa só consegue seguir depois de uma ação que o usuário faz fora do GitHub e que o agente não pode nem deve fazer: criar uma conta ou um projeto num serviço, cadastrar um secret ou uma variável no repositório, gerar uma chave de API, ligar uma integração.
 
@@ -14,7 +16,7 @@ Não é ação externa:
 Publique na issue (`gh issue comment <nº> --body-file <arquivo>`), neste formato:
 
 ```markdown
-<!-- fabrica:acao etapa=<implementar|revisar> -->
+<!-- fabrica:acao etapa=<implementar|revisar|lancamento> -->
 ## Ação externa pendente
 
 **Por que:** <o que a etapa precisa, para qual CA, e o que acontece depois>
@@ -26,7 +28,7 @@ Publique na issue (`gh issue comment <nº> --body-file <arquivo>`), neste format
 Marque cada item aqui mesmo quando concluir, editando este comentário. Com todos marcados, rode `/fabrica:avancar <nº>` (ou `/fabrica:<etapa> <nº>`). Se um passo não der para fazer como está descrito, comente na issue e rode a etapa: ela propõe outro caminho ou escala.
 ```
 
-- **Marcador:** a primeira linha, com a etapa que vai retomar. Só `implementar` e `revisar` valem.
+- **Marcador:** a primeira linha, com a etapa que vai retomar. Numa issue com `agente`, só `implementar` e `revisar` valem; na issue de runbook, só `lancamento`.
 - **Itens:** pelo menos um, cada um com uma ação só, na ordem em que o usuário faz. O `acao-status.py` conta as linhas `- [ ]`, `- [x]` e `- [X]` (também com `*` e com indentação) e ignora as que estão dentro de blocos de código. Não ponha um exemplo de checklist fora de bloco de código.
 - **Linha de custo:** logo antes de publicar, acrescente ao fim do arquivo a linha de custo da etapa, como num escalonamento.
 - **Segredos:** nenhum item, motivo ou comentário de retomada traz o valor de um segredo. Cite só o nome (ex.: `VERCEL_TOKEN`) e onde cadastrar (ex.: Settings › Secrets and variables › Actions). Se o usuário colar um valor num comentário, não o repita em comentário, commit nem log.
