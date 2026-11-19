@@ -90,9 +90,19 @@ fi
 # consegue abri-lo: o proxy.env, por exemplo, tem os valores e o agente não o lê.
 # Os valores nunca chegam ao agente. Passar do tempo é falha, não "nada achado".
 printf '%s\n%s\n%s\n' "$CLAUDE_CODE_OAUTH_TOKEN" "$FABRICA_GH_TOKEN" "$FABRICA_PLUGIN_TOKEN" > "$work/needles"
-timeout 900 grep -r -I -l -a -F -f "$work/needles" \
-  --exclude-dir=hostedtoolcache --exclude-dir=docker --exclude-dir=containerd --exclude-dir=snapd \
-  /home /etc /tmp /var/tmp /var/log /var/lib /run /opt/fabrica-plugin /usr/local 2>/dev/null > "$work/found.txt"
+# Escopo: o que este job escreve ou onde um segredo iria parar (o home do agente, o
+# checkout e os temporários do runner, a configuração do Claude e do npm do
+# runner, /etc, /tmp, /var/log, /run e as pastas do plugin e do proxy). Ficam
+# de fora as ferramentas do runner (/usr/local, /opt/hostedtoolcache, ~/.cargo,
+# ~/.rustup): são dezenas de GB, e a busca passaria de 15 minutos.
+scan_roots=()
+for dir_ in /home/fabrica-agent /home/runner/work /home/runner/.claude /home/runner/.config \
+            /home/runner/.npm /etc /tmp /var/tmp /var/log /run /var/lib/fabrica-proxy /opt/fabrica-plugin; do
+  [[ -e "$dir_" ]] && scan_roots+=("$dir_")
+done
+timeout 600 grep -r -I -l -a -F -f "$work/needles" \
+  --exclude-dir=_tool --exclude-dir=hostedtoolcache --exclude-dir=node_modules \
+  "${scan_roots[@]}" 2>/dev/null > "$work/found.txt"
 rc_scan=$?
 # O grep sai com 2 quando algum arquivo não abre, mesmo com resultados: só 124
 # (tempo) e códigos acima de 2 são falha da busca.
@@ -105,7 +115,7 @@ done < "$work/found.txt"
 as_agent timeout 60 bash -c 'for f in /proc/[0-9]*/environ /proc/[0-9]*/cmdline; do [ -r "$f" ] && echo "$f"; done' > "$work/proc.txt" 2>/dev/null
 proc_hits="$(tr '\n' '\0' < "$work/proc.txt" | xargs -0 -r grep -l -a -F -f "$work/needles" 2>/dev/null | head -n 5)"
 if [[ $rc_scan -eq 124 ]]; then
-  bad segredo-fora-do-alcance "a busca passou de 15 minutos e foi cortada"
+  bad segredo-fora-do-alcance "a busca passou de 10 minutos e foi cortada"
 elif [[ $rc_scan -gt 2 ]]; then
   bad segredo-fora-do-alcance "a busca terminou com código $rc_scan"
 elif [[ -n "$leaks$proc_hits" ]]; then
