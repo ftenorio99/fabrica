@@ -1,13 +1,13 @@
 # Adaptador da fábrica para o OpenCode
 
-O `opencode/server.ts` leva ao OpenCode o que o plugin do Claude Code faz: as 12 skills, um comando `/fabrica:<etapa>` por skill, o subagente `fabrica/revisor` e os hooks de proteção da main, de produção e do `~/.claude`. O texto das skills e do revisor vem dos arquivos do repositório, lidos a cada reload; o adaptador não guarda cópia.
+O `opencode/server.ts` leva ao OpenCode o que o plugin do Claude Code faz: as 13 skills, um comando `/fabrica:<etapa>` por skill, o subagente `fabrica/revisor` e os hooks de proteção da main, de produção e do `~/.claude`. O texto das skills e do revisor vem dos arquivos do repositório, lidos a cada reload; o adaptador não guarda cópia.
 
 O plugin do Claude Code não muda: esta pasta é inerte para ele e nada em `~/.claude/` é criado ou alterado pela instalação.
 
 | Recurso | No OpenCode |
 |---|---|
-| Skills | as 12, com ID `fabrica-<pasta>`; `autoinvoke: false` nas 10 com `disable-model-invocation: true` |
-| Comandos | os 12 `/fabrica:<etapa>`, com o argumento no lugar de `$ARGUMENTS` |
+| Skills | as 13, com ID `fabrica-<pasta>`; `autoinvoke: false` nas 11 com `disable-model-invocation: true` |
+| Comandos | os 13 `/fabrica:<etapa>`, com o argumento no lugar de `$ARGUMENTS` |
 | Revisor | `fabrica/revisor`, subagente com o prompt do `agents/revisor.md`; não edita arquivos |
 | Proteções | `hooks/protect-main.sh`, `hooks/protect-production.sh` e o guarda-corpo do `~/.claude` e da statusline, com as mesmas mensagens |
 | Statusline | não existe no OpenCode; não foi portada |
@@ -43,14 +43,14 @@ Vale só no projeto. É a opção quando a fábrica deve existir apenas nos proj
 }
 ```
 
-Vale em todos os projetos: as 12 skills, os 12 comandos `/fabrica:*`, o `fabrica/revisor` e os hooks de proteção, avaliados com o diretório de cada projeto. Com ela, o `protect-production.sh` lê o `.fabrica/producao.txt` do projeto da sessão.
+Vale em todos os projetos: as 13 skills, os 13 comandos `/fabrica:*`, o `fabrica/revisor` e os hooks de proteção, avaliados com o diretório de cada projeto. Com ela, o `protect-production.sh` lê o `.fabrica/producao.txt` do projeto da sessão.
 
 As duas entradas podem conviver: o OpenCode mantém um plugin `fabrica`, sem duplicar os comandos nem as negações.
 
 - O caminho é uma **pasta** (a que tem o `server.ts`), não o arquivo. Caminho de arquivo é ignorado.
 - Se o `opencode.jsonc` já existe, acrescente a pasta à lista de `"plugins"` que estiver lá.
 - Recarregue com `opencode reload` (ou `/reload` no TUI). Se o plugin não aparecer, reinicie o serviço com `opencode service restart` e abra o projeto de novo.
-- Para conferir, abra o TUI do OpenCode **na pasta do projeto** e digite `/fabrica:`; os 12 comandos aparecem. Pela API, `GET /api/plugin` com `location[directory]=<projeto>` mostra o `fabrica` com `state.status: "active"`.
+- Para conferir, abra o TUI do OpenCode **na pasta do projeto** e digite `/fabrica:`; os 13 comandos aparecem. Pela API, `GET /api/plugin` com `location[directory]=<projeto>` mostra o `fabrica` com `state.status: "active"`.
 - Projetos com `AGENTS.md` recebem as regras sozinhos. Num projeto só com `CLAUDE.md`, acrescente `"instructions": ["CLAUDE.md"]` ao mesmo `opencode.jsonc` do projeto.
 
 ## Atualização
@@ -77,17 +77,17 @@ O `--install` escolhe a instalação: `projeto`, `global`, `ambos` (a entrada gl
 Ele sobe um `opencode serve` local, sem modelo, e confere pela API, em cada modo:
 
 - o plugin `fabrica` ativo, vindo desta raiz, com um único plugin mesmo com as duas entradas;
-- os 12 comandos e as 12 skills, com o `autoinvoke` certo;
+- os 13 comandos e as 13 skills, com o `autoinvoke` certo;
 - o subagente `fabrica/revisor`;
 - as decisões de permissão: commit com `--no-verify` e padrão de produção negados no projeto A, `curl https://prod.exemplo.com` liberado no projeto B, escrita no `~/.claude` negada, `git status` liberado e a linha encadeada negada;
-- a janela de inicialização fechada pelo pré-carregamento (`aquecido: sem janela`): num servidor novo, depois de `GET /api/command` listar os 12 comandos, 8 avaliações seguidas de `curl https://prod.exemplo.com` saem `deny`;
+- a janela de inicialização fechada pelo pré-carregamento (`aquecido: sem janela`): num servidor novo, depois de `GET /api/command` listar os 13 comandos, 8 avaliações seguidas de `curl https://prod.exemplo.com` saem `deny`;
 - o motivo do `permissão: commit`: a API devolve só o `deny`, então o teste lê a linha `shell negado` do servidor e só dá `ok` se o motivo for a recusa de `--no-verify`, e não "hooks do git não instalados". Para isso o servidor roda com um `git config --global` próprio, com o `core.hooksPath` apontando para a pasta de hooks que o `protect-main.sh` espera no ambiente isolado; um `~/.gitconfig` da VM não interfere;
 - uma linha de negação por comando negado no modo `ambos`;
 - nenhum erro do plugin na saída do servidor e no log do OpenCode, desde o começo do servidor.
 
 A configuração global do OpenCode é isolada por `XDG_CONFIG_HOME` e `XDG_DATA_HOME` numa pasta temporária, definidas só no ambiente do servidor e do cliente da API (nunca no resto do script). Se a versão instalada não respeitar as variáveis, o teste copia o `opencode.jsonc` global existente e o restaura no `trap`, no sucesso e na falha (inclusive em `INT` e `TERM`). Em nenhum caso ele deixa a entrada do plugin na configuração global, e o `ok config global intacta` confere isso.
 
-Imprime `ok <verificação>` ou `falha <verificação>: <motivo>`, uma por linha, e sai com 1 se alguma falhar. `--root <pasta>` aponta para outra cópia da fábrica: é assim que se prova que o teste falha, com uma cópia sem o registro de comandos (`falha global: 12 comandos`) e outra com o `cwd` do `setup` no diretório pessoal (`falha global: produção do projeto`), e outra sem a linha da recusa de `--no-verify` no `hooks/protect-main.sh` (`falha projeto: permissão: commit`, porque nada mais nega o commit com o git global isolado). Na VM, a configuração global do OpenCode deve ficar sem o adaptador: o teste isola a configuração global que o servidor lê, então a instalação global da VM não interfere, e o modo `projeto` confere exatamente um plugin `fabrica`, vindo do projeto.
+Imprime `ok <verificação>` ou `falha <verificação>: <motivo>`, uma por linha, e sai com 1 se alguma falhar. `--root <pasta>` aponta para outra cópia da fábrica: é assim que se prova que o teste falha, com uma cópia sem o registro de comandos (`falha global: 13 comandos`) e outra com o `cwd` do `setup` no diretório pessoal (`falha global: produção do projeto`), e outra sem a linha da recusa de `--no-verify` no `hooks/protect-main.sh` (`falha projeto: permissão: commit`, porque nada mais nega o commit com o git global isolado). Na VM, a configuração global do OpenCode deve ficar sem o adaptador: o teste isola a configuração global que o servidor lê, então a instalação global da VM não interfere, e o modo `projeto` confere exatamente um plugin `fabrica`, vindo do projeto.
 
 ## Rollback
 
@@ -111,7 +111,7 @@ Nada em `~/.claude/` é tocado em nenhum dos dois sentidos.
   | Regra estática em `permissions` no topo do `opencode.jsonc` (`{ "action": "shell", "resource": "*prod.exemplo.com*", "effect": "deny" }`, também com `"action": "*"` e com `"curl *prod.exemplo.com*"`) | o `opencode debug config` lista a regra, mas ela **nunca negou**: `allow` nas 8 avaliações, também depois de carregar (a regra padrão `* * allow` vem depois) | não |
   | Regra estática em `agents.build.permissions`, no projeto | nega, mas só a partir de 0,73 s; as 3 primeiras avaliações (0 a 0,6 s) saíram `allow`, porque a config também é carregada por localização | não |
   | A mesma regra em `agents.build.permissions` da config global | nega a partir de 0,76 s; 1ª `deny` do OpenCode e 3 `allow` antes | não |
-  | Pré-carregar a localização pelo cliente (`GET /api/command` até os 12 `fabrica:*`, ou `GET /api/agent` e 2 s) antes da sessão | as 8 avaliações seguintes saíram `deny`, desde a 1ª (1 a 2 ms) | **sim**, se o cliente faz isso antes da 1ª ferramenta |
+  | Pré-carregar a localização pelo cliente (`GET /api/command` até os 13 `fabrica:*`, ou `GET /api/agent` e 2 s) antes da sessão | as 8 avaliações seguintes saíram `deny`, desde a 1ª (1 a 2 ms) | **sim**, se o cliente faz isso antes da 1ª ferramenta |
   | Sessão com modelo | **não medido**: a VM não tem provedor, e um `opencode run` sem provedor não terminou em 120 s | desconhecido |
 
   Nenhuma regra estática fecha a janela, porque a config é carregada junto com a localização; só o pré-carregamento fecha, e ele é do **cliente**, não do plugin. O TUI e o `opencode run` não foram observados nesse ponto: se já pré-carregam antes da primeira ferramenta do modelo, a janela não alcança o agente. Veja "Fechar a janela" e "Medir com modelo".
@@ -123,7 +123,7 @@ Nada em `~/.claude/` é tocado em nenhum dos dois sentidos.
 O que fecha a janela de inicialização é **pré-carregar a localização** antes da primeira etapa de agente, e isso é do cliente (TUI, `opencode run`, quem chama a API), não do plugin:
 
 1. Chame `GET /api/command` com `location[directory]=<projeto>`.
-2. Espere a resposta listar os 12 comandos `fabrica:*`. Esse é o sinal de "pronto": a localização carregou com o plugin. Outro sinal é `GET /api/plugin` mostrar o `fabrica` com `state.status: "active"`.
+2. Espere a resposta listar os 13 comandos `fabrica:*`. Esse é o sinal de "pronto": a localização carregou com o plugin. Outro sinal é `GET /api/plugin` mostrar o `fabrica` com `state.status: "active"`.
 3. Só então abra a sessão e deixe o agente rodar.
 
 Depois disso, nenhuma avaliação de permissão passa sem o hook: o teste de aceite prova com `ok <modo>: aquecido: sem janela`, que pré-carrega num servidor e numa localização novos e avalia `curl https://prod.exemplo.com` 8 vezes seguidas, todas `deny`, nos três modos de instalação.

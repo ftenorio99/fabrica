@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Testa scripts/acao-status.py (SPEC-95, CA2 a CA4) com comentários de exemplo.
+# Testa scripts/acao-status.py (SPEC-95, CA2 a CA4; SPEC-96, CA1 e CA2) com
+# comentários de exemplo.
 # Uso: bash scripts/test-acao-status.sh
 set -uo pipefail
 
@@ -108,6 +109,41 @@ check CA4 "arquivo ausente sai com código 2" "2" "$?"
 printf 'isto não é json' > "$tmp/invalido.json"
 python3 "$script" "$tmp/invalido.json" >/dev/null 2>&1
 check CA4 "JSON inválido sai com código 2" "2" "$?"
+
+# SPEC-96: a opção --lancamento, da issue de runbook do /fabrica:lancamento.
+# run_launch <arquivo>: saída do script com a opção
+run_launch() { python3 "$script" --lancamento "$1" 2>/dev/null; }
+
+# CA1: 1 de 3 itens marcados, pendente.
+cat > "$tmp/lanc-pendente.json" <<'EOF'
+[[
+ {"body": "<!-- fabrica:lancamento -->\nRunbook criado.", "created_at": "2026-11-18T09:00:00Z", "html_url": "https://github.com/o/r/issues/1#c"},
+ {"body": "<!-- fabrica:acao etapa=lancamento -->\n## Ação externa pendente\n- [x] P1 Backup\n- [ ] P2 Chaves\n- [ ] P5 Ponta a ponta", "created_at": "2026-11-18T10:00:00Z", "html_url": "https://github.com/o/r/issues/1#a"}
+]]
+EOF
+check CA1 "--lancamento: 1 de 3 marcados é pendente" \
+  "estado=pendente etapa=lancamento marcados=1 total=3 url=$U#a" "$(run_launch "$tmp/lanc-pendente.json")"
+
+# CA1: os 3 itens marcados, concluída.
+cat > "$tmp/lanc-concluida.json" <<'EOF'
+[
+ {"body": "<!-- fabrica:acao etapa=lancamento -->\n## Ação externa pendente\n- [x] P1 Backup\n- [X] P2 Chaves\n- [x] P5 Ponta a ponta", "created_at": "2026-11-18T10:00:00Z", "html_url": "https://github.com/o/r/issues/1#a"}
+]
+EOF
+check CA1 "--lancamento: 3 de 3 marcados é concluída" \
+  "estado=concluida etapa=lancamento marcados=3 total=3 url=$U#a" "$(run_launch "$tmp/lanc-concluida.json")"
+
+# CA2: sem a opção, etapa=lancamento continua inválida.
+check CA2 "sem a opção, etapa=lancamento é inválida" \
+  "estado=etapa-invalida etapa=lancamento marcados=1 total=3 url=$U#a" "$(run "$tmp/lanc-pendente.json")"
+
+# CA2: com a opção, etapa=implementar é inválida.
+check CA2 "--lancamento: etapa=implementar é inválida" \
+  "estado=etapa-invalida etapa=implementar marcados=1 total=2 url=$U#a" "$(run_launch "$tmp/pendente.json")"
+
+# CA2: com a opção e sem arquivo, sai com código 2.
+python3 "$script" --lancamento >/dev/null 2>&1
+check CA2 "--lancamento sem arquivo sai com código 2" "2" "$?"
 
 echo
 if [[ $failures -eq 0 ]]; then

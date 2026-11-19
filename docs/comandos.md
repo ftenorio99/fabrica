@@ -93,6 +93,14 @@ Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de 
 - **Cria:** com a sua confirmação, as issues no fabrica, sem `agente`, e a linha `Retro` nas lições consideradas, para elas não voltarem na próxima retrospectiva. Não edita o fabrica.
 - Detalhes: [`skills/retro/SKILL.md`](../skills/retro/SKILL.md).
 
+## `/fabrica:lancamento [número da issue de runbook]`
+- **Quando:** quando você decidir levar o projeto para produção pela primeira vez. Rode no clone do repositório. A etapa fica fora do `/fabrica:avancar`: o momento é seu.
+- **O que faz:** sem argumento, confere o projeto sem tocar em produção (padrões de produção, `.env` de produção fora do git, chaves de teste na configuração de deploy, variáveis do `.env.example`, migrações, testes e e2e contra dev ou homologação, testes de isolamento entre usuários e issues ainda no fluxo) e abre uma issue de runbook com o resultado de cada conferência e uma checklist dos passos que você faz em produção: os bloqueios que as conferências acharam, o backup, as chaves, as migrações, os "Passos de produção" das specs, o isolamento entre contas e o teste de ponta a ponta com casos adversariais. Com o número da issue de runbook e a checklist toda marcada, fecha o runbook. Não gera outro runbook depois do primeiro lançamento; um runbook fechado como "not planned" é descartado e não conta.
+- **Lê:** as regras do projeto (`AGENTS.md`; num projeto não migrado, `CLAUDE.md`), `.fabrica/producao.txt`, `.gitignore`, `.env.example`, a configuração de deploy, as migrações, os testes, as specs da branch padrão e as issues com `agente`. Nunca lê `.env.production*` nem os secrets do provedor.
+- **Cria:** a issue de runbook, sem `agente`, com o comentário de ação da checklist; na retomada, o comentário "Lançamento concluído", e fecha a issue. Não cria branch, PR nem commit.
+- **Labels:** cria a issue com `acao-externa` e a remove quando você marca todos os passos ([Lançamento](guias/lancamento.md)).
+- Detalhes: [`skills/lancamento/SKILL.md`](../skills/lancamento/SKILL.md).
+
 ## `/fabrica:licao [<dono>/<repo>#]<número> <texto da lição>`
 - **Quando:** quando você quiser anotar algo que deu errado, ou que vale lembrar na retrospectiva, numa issue ou num PR.
 - **O que faz:** organiza o seu texto no formato de lição (o que aconteceu, causa provável, ação sugerida e origem), mostra o resultado e só publica depois que você confirma. Campos que o texto não preenche ficam "não informado". Sem número, pergunta o destino. Com `<dono>/<repo>#<nº>`, registra em outro repositório, como uma lição sobre a fábrica vista no kairo.

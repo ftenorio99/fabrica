@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Estado da ação externa de uma issue (SPEC-95, ADR 0012).
 
-Uso: python3 scripts/acao-status.py <comentários.json>
+Uso: python3 scripts/acao-status.py [--lancamento] <comentários.json>
 
 A entrada é a saída de
 `gh api repos/<repo>/issues/<nº>/comments --paginate --slurp` (lista de
@@ -12,6 +12,11 @@ páginas) ou uma lista simples de comentários, com `body`, `created_at` e
 
 Vale o comentário de ação mais recente pela data de criação. Arquivo ausente
 ou JSON inválido sai com código 2.
+
+Sem opção, as etapas válidas no marcador são `implementar` e `revisar`. Com
+`--lancamento` (SPEC-96), a única válida é `lancamento`, a da issue de runbook
+do `/fabrica:lancamento`; assim uma issue de agente com `etapa=lancamento`
+continua sendo `etapa-invalida`.
 """
 import json
 import re
@@ -21,6 +26,7 @@ MARKER = re.compile(r"^<!-- fabrica:acao(?:\s+etapa=(\S*))?\s*-->")
 ITEM = re.compile(r"^\s*[-*] \[( |x|X)\] ")
 FENCE = re.compile(r"^\s*```")
 STAGES = {"implementar", "revisar"}
+LAUNCH_STAGES = {"lancamento"}
 
 
 def flatten(data):
@@ -54,7 +60,7 @@ def count_items(body):
     return checked, total
 
 
-def status(comments):
+def status(comments, stages=STAGES):
     actions = []
     for comment in comments:
         if not isinstance(comment, dict):
@@ -70,7 +76,7 @@ def status(comments):
     _, comment, stage = actions[-1]
     url = comment.get("html_url") or "-"
     checked, total = count_items(comment.get("body") or "")
-    if stage not in STAGES:
+    if stage not in stages:
         state = "etapa-invalida"
         stage = stage or "-"
     elif total == 0:
@@ -83,16 +89,22 @@ def status(comments):
 
 
 def main(argv):
-    if len(argv) != 2:
-        print("uso: acao-status.py <comentários.json>", file=sys.stderr)
+    args = argv[1:]
+    stages = STAGES
+    if args and args[0] == "--lancamento":
+        stages = LAUNCH_STAGES
+        args = args[1:]
+    if len(args) != 1:
+        print("uso: acao-status.py [--lancamento] <comentários.json>", file=sys.stderr)
         return 2
+    path = args[0]
     try:
-        with open(argv[1], encoding="utf-8") as handle:
+        with open(path, encoding="utf-8") as handle:
             comments = flatten(json.load(handle))
     except (OSError, ValueError) as error:
-        print(f"acao-status: não consegui ler {argv[1]}: {error}", file=sys.stderr)
+        print(f"acao-status: não consegui ler {path}: {error}", file=sys.stderr)
         return 2
-    print(status(comments))
+    print(status(comments, stages))
     return 0
 
 
