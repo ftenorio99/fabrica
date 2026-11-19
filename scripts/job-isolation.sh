@@ -154,11 +154,14 @@ cmd_lock() {
   chmod 0644 "$ca_dir/ca.pem"
 
   # Só depois do proxy de pé: o agente fala apenas com a porta dele.
-  "$iptables_bin" -A OUTPUT -m owner --uid-owner "$agent_user" -o lo -p tcp --dport "$port" -j ACCEPT \
-    || fail "não consegui criar a regra do iptables que libera o proxy."
-  "$iptables_bin" -A OUTPUT -m owner --uid-owner "$agent_user" -j REJECT \
+  # `-I` na frente da cadeia: uma regra ACCEPT que o runner já tenha não passa
+  # na frente. O REJECT entra primeiro e o ACCEPT do proxy entra na posição 1,
+  # então a ordem final é ACCEPT do proxy e depois REJECT.
+  "$iptables_bin" -I OUTPUT 1 -m owner --uid-owner "$agent_user" -j REJECT \
     || fail "não consegui fechar a rede do agente (iptables)."
-  "$ip6tables_bin" -A OUTPUT -m owner --uid-owner "$agent_user" -j REJECT \
+  "$iptables_bin" -I OUTPUT 1 -m owner --uid-owner "$agent_user" -o lo -p tcp --dport "$port" -j ACCEPT \
+    || fail "não consegui criar a regra do iptables que libera o proxy."
+  "$ip6tables_bin" -I OUTPUT 1 -m owner --uid-owner "$agent_user" -j REJECT \
     || fail "não consegui fechar a rede do agente (ip6tables)."
   say "proxy na porta $port e rede do $agent_user fechada."
 }

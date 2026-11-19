@@ -81,6 +81,9 @@ check CA1 "maiúsculas não mudam o resultado" "True" "$(py 'm.host_allowed("Git
 check CA1 "host fora da lista é barrado" "False" "$(py 'm.host_allowed("example.org", ["github.com"])')"
 check CA1 "api.github.com.evil.com é barrado" "False" "$(py 'm.host_allowed("api.github.com.evil.com", ["api.github.com"])')"
 check CA1 "github.com. (ponto final) é barrado" "False" "$(py 'm.host_allowed("github.com.", ["github.com"])')"
+check CA1 "a porta é ignorada: api.github.com:8443 é liberado" "True" "$(py 'm.host_allowed("api.github.com:8443", ["api.github.com"])')"
+check CA1 "a porta é ignorada: host fora da lista com porta é barrado" "False" "$(py 'm.host_allowed("example.org:443", ["api.github.com"])')"
+check CA1 "porta não destrava o ponto final" "False" "$(py 'm.host_allowed("github.com.:443", ["github.com"])')"
 check CA1 "host vazio é barrado" "False" "$(py 'm.host_allowed("", ["github.com"])')"
 check CA1 "CONNECT fora da lista recebe 403 com o host" "403 example.org" \
   "$(py '(lambda f: (egress(["github.com"], {}).http_connect(f), f.response.status_code, b"example.org" in f.response.content)[1:] )(mk("example.org"))' | sed 's/, True)/ example.org/; s/(//; s/)//; s/,//')"
@@ -273,10 +276,10 @@ gh_real="REAL-GH-TOKEN-0123456789abcdef"
 lock_out="$(PLUGIN_COPY="$c/plugin" CLAUDE_CODE_OAUTH_TOKEN="$oauth_real" FABRICA_GH_TOKEN="$gh_real" iso "$c" lock 2>&1; echo "rc=$?")"
 check CA7 "lock sai com 0" "rc=0" "$(echo "$lock_out" | tail -n 1)"
 [[ "$(echo "$lock_out" | tail -n 1)" == "rc=0" ]] && : || echo "$lock_out" | head -n 8 | sed 's/^/        lock: /'
-check CA7 "iptables: primeiro libera só o proxy no loopback, depois rejeita o resto" \
-  "iptables -A OUTPUT -m owner --uid-owner fabrica-agent -o lo -p tcp --dport $PORT -j ACCEPT|iptables -A OUTPUT -m owner --uid-owner fabrica-agent -j REJECT" \
+check CA7 "iptables: entra na frente da cadeia, REJECT e depois o ACCEPT do proxy na posição 1" \
+  "iptables -I OUTPUT 1 -m owner --uid-owner fabrica-agent -j REJECT|iptables -I OUTPUT 1 -m owner --uid-owner fabrica-agent -o lo -p tcp --dport $PORT -j ACCEPT" \
   "$(grep '^iptables' "$c/calls.log" | paste -sd '|')"
-check CA7 "ip6tables: rejeita tudo do agente" "ip6tables -A OUTPUT -m owner --uid-owner fabrica-agent -j REJECT" \
+check CA7 "ip6tables: rejeita tudo do agente, na frente da cadeia" "ip6tables -I OUTPUT 1 -m owner --uid-owner fabrica-agent -j REJECT" \
   "$(grep '^ip6tables' "$c/calls.log" | paste -sd '|')"
 check CA7 "nenhuma regra vale para outro uid" "0" \
   "$(grep -E '^ip6?tables' "$c/calls.log" | grep -c -v -- '--uid-owner fabrica-agent')"

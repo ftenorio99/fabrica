@@ -76,6 +76,9 @@ def load_markers(path, environ=None):
 def host_allowed(host, domains):
     """Host exato ou, em `*.dominio`, subdomínio (sem o apex). Sem porta, sem ponto final."""
     host = (host or "").lower()
+    head, sep, tail = host.rpartition(":")
+    if sep and tail.isdigit():
+        host = head
     if not host:
         return False
     for domain in domains:
