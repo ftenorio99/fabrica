@@ -74,7 +74,9 @@ else
   # Diagnóstico sem valores: o token alcança o conteúdo do repositório pela API?
   contents="$(as_agent gh api "repos/$repo/contents" -q 'length' 2>&1 | head -c 120)"
   other="$(as_agent git -c credential.helper= -c "http.extraHeader=Authorization: Basic $(printf 'git:%s' "$marker" | base64 -w0)" ls-remote "https://github.com/$repo" HEAD 2>&1 | head -c 160)"
-  bad git-pelo-proxy "git ls-remote não devolveu um commit: $(head -c 200 "$work/git.err") | contents pela API: ${contents:-vazio} | com outro usuário: ${other:-vazio}"
+  repos="$(as_agent gh api user/repos --paginate -q '.[].full_name' 2>&1 | head -c 300 | tr '\n' ' ')"
+  issues="$(as_agent gh api "repos/$repo/issues?per_page=1" -q 'length' 2>&1 | head -c 120)"
+  bad git-pelo-proxy "git ls-remote não devolveu um commit: $(head -c 200 "$work/git.err") | contents pela API: ${contents:-vazio} | com outro usuário: ${other:-vazio} | repositórios que o token enxerga: ${repos:-nenhum} | issues pela API: ${issues:-vazio}"
 fi
 
 # 5. O ambiente do agente só tem marcadores.
