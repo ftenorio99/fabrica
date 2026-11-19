@@ -30,7 +30,7 @@ O job fica vermelho e a issue recebe um comentário que começa com `<!-- fabric
 
 O comentário não traz o texto da resposta do Claude nem valores de secrets; os detalhes ficam no log do run. Ele não muda o estado da issue ([estados.md](../../skills/status/estados.md)), que continua em "Aguardando triagem": corrija a causa e reaplique `agente` (remova e aplique de novo), ou rode `/fabrica:triagem <nº>` na sua máquina.
 
-Uma falha na instalação do Claude Code ou do plugin (secret errado ou ausente, por exemplo) deixa o job vermelho sem comentário na issue, porque o script que comenta vem do próprio plugin. Veja o log do run.
+Uma falha na instalação do Claude Code ou do plugin (secret errado ou ausente, por exemplo) também deixa um comentário, com o motivo `sem-resultado`. Como o script que comenta vem do próprio plugin, esse comentário sai de um passo de reserva do workflow, com texto fixo e só o link do run. Veja a causa no log do run.
 
 ## Limites do piloto
 - **Sem isolamento:** o job roda com a rede aberta e com o `GITHUB_TOKEN` (escrita em issues) ao alcance do agente. A restrição de rede e o token fine-grained vêm na #106. Até lá, use só no repositório de teste, com issues escritas por você.

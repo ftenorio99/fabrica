@@ -71,3 +71,23 @@ jobs:
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           FABRICA_PLUGIN_DIR: ${{ steps.plugin.outputs.path }}
         run: bash "$FABRICA_PLUGIN_DIR/scripts/dispatch.sh" fail "$ISSUE_NUMBER"
+
+      # Reserva para quando o plugin não chegou a ser instalado: o dispatch.sh
+      # vem do plugin, então o comentário sai daqui, com texto fixo.
+      - name: Publica a falha da instalação
+        if: failure() && steps.plugin.outputs.path == ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          body="$RUNNER_TEMP/falha-instalacao.md"
+          {
+            echo '<!-- fabrica:dispatcher -->'
+            echo '## O dispatcher não rodou a etapa'
+            echo
+            echo '**Etapa:** triagem'
+            echo '**Motivo:** `sem-resultado` (a instalação do Claude Code ou do plugin falhou, antes de a etapa começar)'
+            echo "**Run:** $RUN_URL"
+          } > "$body"
+          gh issue comment "$ISSUE_NUMBER" --body-file "$body"

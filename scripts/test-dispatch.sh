@@ -71,6 +71,16 @@ check CA4 "nenhum secret fora de env" "True" \
 check CA5 "checkout com persist-credentials: false" "False" \
   "$(wf 'next(s for s in steps if s.get("uses", "").startswith("actions/checkout@"))["with"]["persist-credentials"]')"
 
+# CA11 (reserva): falha antes do plugin instalado ainda comenta na issue.
+check CA11 "passo de reserva roda quando o plugin não foi instalado" "failure() && steps.plugin.outputs.path == ''" \
+  "$(wf 'step("Publica a falha da instalação")["if"]')"
+check CA11 "reserva: marcador na primeira linha, motivo e link do run" "True" \
+  "$(wf 'all(t in step("Publica a falha da instalação")["run"] for t in ("<!-- fabrica:dispatcher -->", "sem-resultado", "RUN_URL", "--body-file"))')"
+check CA11 "reserva: só o GH_TOKEN do job, sem secrets" "True" \
+  "$(wf '"secrets." not in yaml.safe_dump(step("Publica a falha da instalação")["env"]) and "github.token" in step("Publica a falha da instalação")["env"]["GH_TOKEN"]')"
+check CA11 "reserva: não lê nenhum JSON da etapa" "False" \
+  "$(wf 'any(t in step("Publica a falha da instalação")["run"] for t in ("stage.json", "jq ", ".json"))')"
+
 # --- dispatch.sh com gh e claude falsos ---
 bin="$tmp/bin"
 mkdir -p "$bin" "$tmp/home"
