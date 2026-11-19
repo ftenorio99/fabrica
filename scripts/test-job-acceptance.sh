@@ -71,12 +71,7 @@ sha="$(as_agent git -c credential.helper= -c "http.extraHeader=Authorization: Ba
 if [[ "$sha" =~ ^[0-9a-f]{40}$ ]]; then
   ok git-pelo-proxy
 else
-  # Diagnóstico sem valores: o token alcança o conteúdo do repositório pela API?
-  contents="$(as_agent gh api "repos/$repo/contents" -q 'length' 2>&1 | head -c 120)"
-  other="$(as_agent git -c credential.helper= -c "http.extraHeader=Authorization: Basic $(printf 'git:%s' "$marker" | base64 -w0)" ls-remote "https://github.com/$repo" HEAD 2>&1 | head -c 160)"
-  repos="$(as_agent gh api user/repos --paginate -q '.[].full_name' 2>&1 | head -c 300 | tr '\n' ' ')"
-  issues="$(as_agent gh api "repos/$repo/issues?per_page=1" -q 'length' 2>&1 | head -c 120)"
-  bad git-pelo-proxy "git ls-remote não devolveu um commit: $(head -c 200 "$work/git.err") | contents pela API: ${contents:-vazio} | com outro usuário: ${other:-vazio} | repositórios que o token enxerga: ${repos:-nenhum} | issues pela API: ${issues:-vazio}"
+  bad git-pelo-proxy "git ls-remote não devolveu um commit: $(head -c 200 "$work/git.err")"
 fi
 
 # 5. O ambiente do agente só tem marcadores.
@@ -89,22 +84,34 @@ else
   bad marcador-no-ambiente "o CLAUDE_CODE_OAUTH_TOKEN ou o GH_TOKEN do agente não é um marcador"
 fi
 
-# 6. Nenhum arquivo nem /proc legível pelo agente tem os valores reais. Quem
-# lista o que o agente lê é o próprio agente; quem procura os valores é o root,
-# para os valores nunca chegarem ao agente.
+# 6. Nenhum arquivo nem /proc legível pelo agente tem os valores reais. O root
+# procura os valores nas pastas onde um segredo poderia ter ficado, com o
+# `find`/`grep` dele, e depois confere, para cada arquivo encontrado, se o agente
+# consegue abri-lo: o proxy.env, por exemplo, tem os valores e o agente não o lê.
+# Os valores nunca chegam ao agente. Passar do tempo é falha, não "nada achado".
 printf '%s\n%s\n%s\n' "$CLAUDE_CODE_OAUTH_TOKEN" "$FABRICA_GH_TOKEN" "$FABRICA_PLUGIN_TOKEN" > "$work/needles"
-# Só onde um segredo poderia ter ficado: os homes, o checkout e os temporários
-# do runner, /etc, /tmp, /run e os logs. Fora disso (/usr, /opt/hostedtoolcache)
-# são milhares de arquivos de ferramentas, e a busca passaria dos 20 minutos.
-as_agent timeout 180 bash -c '
-  for f in /proc/[0-9]*/environ /proc/[0-9]*/cmdline; do [ -r "$f" ] && echo "$f"; done
-  find /home /etc /tmp /var/tmp /var/log /run /var/lib/fabrica-proxy /opt/fabrica-plugin -xdev -type f -readable -size -5M 2>/dev/null
-' > "$work/readable.txt" 2>/dev/null
-hits="$(tr '\n' '\0' < "$work/readable.txt" | timeout 300 xargs -0 -r grep -l -a -F -f "$work/needles" 2>/dev/null | head -n 5)"
-if [[ -z "$hits" ]]; then
-  ok segredo-fora-do-alcance
+timeout 900 grep -r -I -l -a -F -f "$work/needles" \
+  --exclude-dir=hostedtoolcache --exclude-dir=docker --exclude-dir=containerd --exclude-dir=snapd \
+  /home /etc /tmp /var/tmp /var/log /var/lib /run /opt/fabrica-plugin /usr/local 2>/dev/null > "$work/found.txt"
+rc_scan=$?
+# O grep sai com 2 quando algum arquivo não abre, mesmo com resultados: só 124
+# (tempo) e códigos acima de 2 são falha da busca.
+leaks=""
+while IFS= read -r f; do
+  [[ -n "$f" && "$f" != "$work"/* ]] || continue
+  as_agent test -r "$f" 2>/dev/null && leaks="$leaks $f"
+done < "$work/found.txt"
+# /proc: só o que o agente consegue abrir (o `environ` de outro usuário ele não abre).
+as_agent timeout 60 bash -c 'for f in /proc/[0-9]*/environ /proc/[0-9]*/cmdline; do [ -r "$f" ] && echo "$f"; done' > "$work/proc.txt" 2>/dev/null
+proc_hits="$(tr '\n' '\0' < "$work/proc.txt" | xargs -0 -r grep -l -a -F -f "$work/needles" 2>/dev/null | head -n 5)"
+if [[ $rc_scan -eq 124 ]]; then
+  bad segredo-fora-do-alcance "a busca passou de 15 minutos e foi cortada"
+elif [[ $rc_scan -gt 2 ]]; then
+  bad segredo-fora-do-alcance "a busca terminou com código $rc_scan"
+elif [[ -n "$leaks$proc_hits" ]]; then
+  bad segredo-fora-do-alcance "o agente lê arquivos com o valor real: $leaks $(echo "$proc_hits" | tr '\n' ' ')"
 else
-  bad segredo-fora-do-alcance "o agente lê arquivos com o valor real: $(echo "$hits" | tr '\n' ' ')"
+  ok segredo-fora-do-alcance
 fi
 
 # 7. A chave privada da CA do proxy.
