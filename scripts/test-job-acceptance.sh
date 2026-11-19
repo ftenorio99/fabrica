@@ -91,16 +91,17 @@ fi
 # Os valores nunca chegam ao agente. Passar do tempo é falha, não "nada achado".
 printf '%s\n%s\n%s\n' "$CLAUDE_CODE_OAUTH_TOKEN" "$FABRICA_GH_TOKEN" "$FABRICA_PLUGIN_TOKEN" > "$work/needles"
 # Escopo: o que este job escreve ou onde um segredo iria parar (o home do agente, o
-# checkout e os temporários do runner, a configuração do Claude e do npm do
-# runner, /etc, /tmp, /var/log, /run e as pastas do plugin e do proxy). Ficam
+# checkout e os temporários do runner, a configuração do Claude, do git e do npm
+# do runner, incluindo os arquivos soltos do home que o passo do plugin escreve, /etc, /tmp, /var/log, /run e as pastas do plugin e do proxy). Ficam
 # de fora as ferramentas do runner (/usr/local, /opt/hostedtoolcache, ~/.cargo,
 # ~/.rustup): são dezenas de GB, e a busca passaria de 15 minutos.
 scan_roots=()
 for dir_ in /home/fabrica-agent /home/runner/work /home/runner/.claude /home/runner/.config \
-            /home/runner/.npm /etc /tmp /var/tmp /var/log /run /var/lib/fabrica-proxy /opt/fabrica-plugin; do
+            /home/runner/.npm /home/runner/.claude.json /home/runner/.gitconfig /home/runner/.git-credentials \
+            /etc /tmp /var/tmp /var/log /run /var/lib/fabrica-proxy /opt/fabrica-plugin; do
   [[ -e "$dir_" ]] && scan_roots+=("$dir_")
 done
-timeout 600 grep -r -I -l -a -F -f "$work/needles" \
+timeout 600 grep -r -l -a -F -f "$work/needles" \
   --exclude-dir=_tool --exclude-dir=hostedtoolcache --exclude-dir=node_modules \
   "${scan_roots[@]}" 2>/dev/null > "$work/found.txt"
 rc_scan=$?
