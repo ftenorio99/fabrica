@@ -1,7 +1,7 @@
 # SPEC-106: Isolamento do job do dispatcher, com token fine-grained e domínios liberados
 
 **Issue:** #106 · **PRD:** F1 (com F2 e F4; item 6 do fatiamento, M2) · **Classe:** implementacao-complexa · **Tamanho:** G
-**Status:** rascunho · **Atualizada em:** 2026-11-18
+**Status:** aprovada · **Atualizada em:** 2026-11-19
 
 ## Contexto
 A F1 do [PRD](../docs/prd.md) pede que o agente rode com rede restrita a uma lista de domínios e sem ler segredos em claro, **também no job do dispatcher**. A [ADR 0015](../docs/adr/0015-dispatcher-no-github-actions.md) (#99) escolheu o CLI no `ubuntu-latest` e deixou para esta issue três coisas: restringir a rede do job, trocar o `GITHUB_TOKEN` pelo token fine-grained e manter o `CLAUDE_CODE_OAUTH_TOKEN` fora do alcance de leitura do agente. A [ADR 0010](../docs/adr/0010-isolamento-pelo-sbx-com-opcao-sem-sandbox.md) pede rever o isolamento do job à luz da troca para o `sbx`.
@@ -124,3 +124,4 @@ nenhum
 
 ## Histórico
 - 2026-11-18: criação.
+- 2026-11-19: aprovada.

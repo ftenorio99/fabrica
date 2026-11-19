@@ -1,6 +1,6 @@
 # ADR 0016: Isolamento do job do dispatcher por proxy com marcadores e usuário sem rede direta
 
-**Status:** proposto · **Data:** 2026-11-18 · **Origem:** issue #106
+**Status:** aceito · **Data:** 2026-11-19 · **Origem:** issue #106
 
 ## Contexto
 A F1 do [PRD](../prd.md) pede que o agente rode com rede restrita a uma lista de domínios e sem ler segredos em claro, também no job do dispatcher. A [ADR 0015](0015-dispatcher-no-github-actions.md) escolheu o CLI no `ubuntu-latest` e deixou o isolamento do job para a #106. A [ADR 0010](0010-isolamento-pelo-sbx-com-opcao-sem-sandbox.md) isolou o agente local pela VM do `sbx`, com uma política de rede e um proxy que troca um marcador pelo token do GitHub. O job do Actions não tem VM do `sbx`: rodar o `sbx` no `ubuntu-latest` depende de virtualização aninhada, que não foi verificada.
