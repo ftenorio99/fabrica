@@ -27,9 +27,10 @@ O isolamento falha fechado: sem lista de domínios válida ou sem um dos segredo
 | Lista de domínios dentro do YAML | O teste não a alcança, e a #108 teria de duplicá-la. |
 
 ## Consequências
-- O job passa a ter três usuários (`runner`, `fabrica-proxy` e `fabrica-agent`) e uma fase de isolamento entre a instalação e o despacho; o plugin é instalado como `fabrica-agent`.
+- O job passa a ter três usuários (`runner`, `fabrica-proxy` e `fabrica-agent`) e uma fase de isolamento entre a instalação e o despacho. O plugin é instalado pelo `runner`, porque o `job-isolation.sh` vem dele; o `prepare` o copia, sem o `.git`, para `/opt/fabrica-plugin`, e o `run-as-agent.sh` o passa ao `claude` por `--plugin-dir`. O home do agente nunca guarda o token do plugin. O proxy é o `mitmproxy==12.3.1`, numa venv em `/opt/fabrica-mitm`; mudar a versão pede rodar o aceite de novo.
 - O agente enganado ainda pode usar o token do GitHub através do proxy, dentro do escopo do token fine-grained: só o repositório do projeto, sem Workflows e com expiração de até 90 dias. Renovar o token é uma ação externa do usuário ([ADR 0012](0012-acao-externa-com-checklist.md)).
 - Eventos criados com o `FABRICA_GH_TOKEN` disparam workflows, inclusive o CI do PR do agente, que passa a rodar sozinho. A decisão pendente da #105 sobre a aprovação manual do CI deixa de valer.
 - Cada host novo que uma etapa precise (dependências do `implementar`, por exemplo) entra na lista versionada; essa lista por projeto é da #108.
 - Um aceite no runner (`isolamento-aceite.yml` e `scripts/test-job-acceptance.sh`) prova o isolamento depois de cada mudança na lista, no proxy ou na versão do `mitmproxy`.
-- O aceite da #106 confirma se o `claude -p` aceita um marcador no lugar do `CLAUDE_CODE_OAUTH_TOKEN` com o proxy terminando o TLS. Se não aceitar, esta ADR muda para o plano B antes do merge.
+- O aceite no runner confirmou que o `claude -p` aceita um marcador no lugar do `CLAUDE_CODE_OAUTH_TOKEN` com o proxy terminando o TLS (a triagem da fabrica-teste#3 terminou verde, só com `api.anthropic.com` e `api.github.com` no log do proxy). O plano B do `ANTHROPIC_BASE_URL` não foi preciso.
+- O `gh` manda `Authorization: token <valor>`, e o `git` manda `Basic`; o addon troca os três esquemas (`Bearer`, `token` e `Basic`).

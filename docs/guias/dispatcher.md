@@ -22,13 +22,13 @@ Cada secret aparece só no passo que o usa: o `FABRICA_PLUGIN_TOKEN` no passo qu
 ## Isolamento do job
 Antes de a etapa rodar, o job fecha o agente numa caixa ([ADR 0016](../adr/0016-isolamento-do-job-do-dispatcher.md)):
 - **Dois usuários.** O `claude -p` e tudo o que ele executa rodam como `fabrica-agent`, sem `sudo` e sem rede direta. Um proxy local (`mitmproxy`) roda como `fabrica-proxy` e guarda os segredos.
-- **Rede.** As regras do `iptables` só deixam o `fabrica-agent` falar com a porta do proxy. O proxy libera só os hosts de `templates/workflows/dominios-liberados.txt` (a API da Anthropic e o GitHub) e responde 403 ao resto.
+- **Rede.** As regras do `iptables` só deixam o `fabrica-agent` falar com a porta do proxy. O proxy libera só os hosts de `templates/workflows/dominios-liberados.txt` (a API da Anthropic e o GitHub) e responde 403 ao resto. A lista vem do plugin instalado no job: ela não é copiada para o projeto.
 - **Segredos.** O agente recebe **marcadores** no lugar do `CLAUDE_CODE_OAUTH_TOKEN` e do `FABRICA_GH_TOKEN`. O proxy troca o marcador pelo valor real só no cabeçalho `Authorization` e só nos hosts daquele segredo. O valor real nunca chega ao ambiente nem aos arquivos que o agente lê.
 - **Falha fechada.** Sem lista de domínios válida, ou sem um dos dois tokens, o `lock` falha e o agente não roda.
 
 O isolamento cobre a **triagem**. As etapas que baixam dependências (`implementar`) vão precisar de hosts a mais na lista; isso fica para a #108.
 
-**Ampliar a lista:** o log do proxy aparece no fim do run, no passo "Mostra o log do proxy": cada linha `bloqueado <host>` é um pedido que o proxy recusou. Se a etapa precisa do host, acrescente só o host exato a `dominios-liberados.txt`, com uma linha de comentário dizendo o motivo, e rode o aceite de novo. Não use curinga largo (`*.github.com` abre o `gist.github.com`).
+**Ampliar a lista:** o log do proxy aparece no fim do run, no passo "Mostra o log do proxy": cada linha `bloqueado <host>` é um pedido que o proxy recusou. Se a etapa precisa do host, acrescente só o host exato ao `dominios-liberados.txt` **do plugin** (um PR na fábrica; a lista por projeto fica para a #108), com uma linha de comentário dizendo o motivo, e rode o aceite de novo. Não use curinga largo (`*.github.com` abre o `gist.github.com`).
 
 **Teste de aceite:** copie também `templates/workflows/isolamento-aceite.yml` para `.github/workflows/` do repositório de teste e rode pela aba Actions (*Run workflow*). Ele repete a preparação e roda o `scripts/test-job-acceptance.sh`, que imprime `ok <verificação>` ou `falha <verificação>: <motivo>`:
 
