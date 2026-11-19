@@ -47,23 +47,24 @@ check CA1 "job exige a issue aberta" "True" "$(wf '"github.event.issue.state == 
 
 # CA2: concorrência, runner e tempos.
 check CA2 "grupo de concorrência por issue" "True" "$(wf '"github.event.issue.number" in w["concurrency"]["group"]')"
+check CA2 "o grupo inclui o nome da label (SPEC-106 CA9)" "True" "$(wf '"github.event.label.name" in w["concurrency"]["group"]')"
 check CA2 "sem cancelar a execução em curso" "False" "$(wf 'w["concurrency"]["cancel-in-progress"]')"
 check CA2 "roda em ubuntu-latest" "ubuntu-latest" "$(wf 'job["runs-on"]')"
 check CA2 "40 min no job" "40" "$(wf 'job["timeout-minutes"]')"
 check CA2 "30 min no passo do despacho" "30" "$(wf 'step("Roda a etapa")["timeout-minutes"]')"
 
 # CA3: permissões.
-check CA3 "permissões exatas" "{'contents': 'read', 'issues': 'write'}" "$(wf 'w["permissions"]')"
+check CA3 "permissões exatas: só contents: read (SPEC-106 CA9)" "{'contents': 'read'}" "$(wf 'w["permissions"]')"
 check CA3 "o job não amplia as permissões" "False" "$(wf '"permissions" in job')"
 
 # CA4: nada de ${{ em run:, cada secret só no passo dele.
 check CA4 "nenhum run: com \${{" "[]" "$(wf '[s["name"] for s in steps if "${{" in s.get("run", "")]')"
 check CA4 "FABRICA_PLUGIN_TOKEN só no passo de instalação" "['Instala o plugin da fábrica']" \
   "$(wf '[s["name"] for s in steps if "FABRICA_PLUGIN_TOKEN" in yaml.safe_dump(s)]')"
-check CA4 "CLAUDE_CODE_OAUTH_TOKEN só no passo do despacho" "['Roda a etapa']" \
+check CA4 "CLAUDE_CODE_OAUTH_TOKEN só no passo que trava os segredos" "['Trava a rede e os segredos']" \
   "$(wf '[s["name"] for s in steps if "CLAUDE_CODE_OAUTH_TOKEN" in yaml.safe_dump(s)]')"
 check CA4 "os secrets ficam no env do passo" "True" \
-  "$(wf '"secrets." in step("Instala o plugin da fábrica")["env"]["GH_TOKEN"] and "secrets." in step("Roda a etapa")["env"]["CLAUDE_CODE_OAUTH_TOKEN"]')"
+  "$(wf '"secrets." in step("Instala o plugin da fábrica")["env"]["GH_TOKEN"] and "secrets." in step("Trava a rede e os segredos")["env"]["CLAUDE_CODE_OAUTH_TOKEN"]')"
 check CA4 "nenhum secret fora de env" "True" \
   "$(wf 'all("secrets." not in yaml.safe_dump({k: v for k, v in s.items() if k != "env"}) for s in steps)')"
 
@@ -76,10 +77,38 @@ check CA11 "passo de reserva roda quando o plugin não foi instalado" "failure()
   "$(wf 'step("Publica a falha da instalação")["if"]')"
 check CA11 "reserva: marcador na primeira linha, motivo e link do run" "True" \
   "$(wf 'all(t in step("Publica a falha da instalação")["run"] for t in ("<!-- fabrica:dispatcher -->", "sem-resultado", "RUN_URL", "--body-file"))')"
-check CA11 "reserva: só o GH_TOKEN do job, sem secrets" "True" \
-  "$(wf '"secrets." not in yaml.safe_dump(step("Publica a falha da instalação")["env"]) and "github.token" in step("Publica a falha da instalação")["env"]["GH_TOKEN"]')"
+check CA11 "reserva: só o token fine-grained das escritas" "['GH_TOKEN', 'ISSUE_NUMBER', 'RUN_URL']" \
+  "$(wf 'sorted(step("Publica a falha da instalação")["env"])')"
 check CA11 "reserva: não lê nenhum JSON da etapa" "False" \
   "$(wf 'any(t in step("Publica a falha da instalação")["run"] for t in ("stage.json", "jq ", ".json"))')"
+
+# SPEC-106 CA9: isolamento e token fine-grained no workflow.
+check CA9 "github.token só aparece no checkout (que usa o padrão dele)" "[]" \
+  "$(wf '[s["name"] for s in steps if "github.token" in yaml.safe_dump(s)]')"
+check CA9 "todo GH_TOKEN dos passos vem do FABRICA_GH_TOKEN" "True" \
+  "$(wf 'all(s["env"]["GH_TOKEN"] == "${{ secrets.FABRICA_GH_TOKEN }}" for s in steps if "GH_TOKEN" in s.get("env", {}) and s["name"] != "Instala o plugin da fábrica")')"
+check CA9 "o token do plugin continua só no passo do plugin" "['Instala o plugin da fábrica']" \
+  "$(wf '[s["name"] for s in steps if "FABRICA_PLUGIN_TOKEN" in yaml.safe_dump(s)]')"
+check CA9 "FABRICA_GH_TOKEN só nos passos que escrevem no GitHub ou travam os segredos" \
+  "['Trava a rede e os segredos', 'Roda a etapa', 'Desmarca a issue', 'Publica a falha', 'Publica a falha da instalação']" \
+  "$(wf '[s["name"] for s in steps if "FABRICA_GH_TOKEN" in yaml.safe_dump(s)]')"
+check CA9 "a ordem: plugin, mitmproxy, prepara, trava, etapa" "['Instala o plugin da fábrica', 'Instala o mitmproxy', 'Prepara o isolamento', 'Trava a rede e os segredos', 'Roda a etapa']" \
+  "$(wf '[s["name"] for s in steps if s["name"] in ("Instala o plugin da fábrica", "Instala o mitmproxy", "Prepara o isolamento", "Trava a rede e os segredos", "Roda a etapa")]')"
+check CA9 "o despacho roda o claude pelo run-as-agent.sh" "True" \
+  "$(wf 'step("Roda a etapa")["env"]["FABRICA_CLAUDE_BIN"].endswith("/scripts/run-as-agent.sh")')"
+check CA9 "o despacho não recebe o CLAUDE_CODE_OAUTH_TOKEN" "False" \
+  "$(wf '"CLAUDE_CODE_OAUTH_TOKEN" in step("Roda a etapa")["env"]')"
+check CA9 "o passo que trava usa o sudo com os dois tokens preservados" "True" \
+  "$(wf '"--preserve-env=CLAUDE_CODE_OAUTH_TOKEN,FABRICA_GH_TOKEN" in step("Trava a rede e os segredos")["run"]')"
+check CA9 "o mitmproxy vem com versão fixa" "True" \
+  "$(wf '"mitmproxy==" in step("Instala o mitmproxy")["run"]')"
+
+# SPEC-106 CA11: o workflow do teste de aceite.
+accept="$script_dir/../templates/workflows/isolamento-aceite.yml"
+check CA11 "isolamento-aceite.yml dispara só por workflow_dispatch" "['workflow_dispatch']" \
+  "$(python3 -I -c 'import sys, yaml; print(list(yaml.safe_load(open(sys.argv[1]))[True].keys()))' "$accept")"
+check CA11 "isolamento-aceite.yml roda o teste de aceite depois de travar" "True" \
+  "$(python3 -I -c 'import sys, yaml; n = [s["name"] for s in yaml.safe_load(open(sys.argv[1]))["jobs"]["aceite"]["steps"]]; print(n.index("Trava a rede e os segredos") < n.index("Teste de aceite"))' "$accept")"
 
 # --- dispatch.sh com gh e claude falsos ---
 bin="$tmp/bin"
