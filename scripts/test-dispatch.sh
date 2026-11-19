@@ -160,7 +160,8 @@ timeline() {
 
 # dispatch <subcomando> [nº]: roda o script e imprime o código de saída na última linha
 dispatch() {
-  env -u PROXY_CA_CERT_B64 PATH="$bin:$PATH" HOME="$tmp/home" FABRICA_SBX_PERSISTENT_FILE="$tmp/ausente.sh" \
+  env -u PROXY_CA_CERT_B64 -u CLAUDECODE -u FABRICA_HARNESS -u OPENCODE_SESSION_ID \
+    PATH="$bin:$PATH" HOME="$tmp/home" FABRICA_SBX_PERSISTENT_FILE="$tmp/ausente.sh" \
     GITHUB_REPOSITORY=dono/projeto RUNNER_TEMP="$tmp/runner" GITHUB_SERVER_URL=https://github.com GITHUB_RUN_ID=4242 \
     FABRICA_CLAUDE_BIN="$bin/claude" FABRICA_NOW="$now" CLAUDE_CODE_OAUTH_TOKEN=sk-ant-oat-valor-do-teste \
     bash "$script" "$1" "${2:-7}" > "$tmp/out.txt" 2> "$tmp/err.txt"
