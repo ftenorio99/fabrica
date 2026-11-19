@@ -1,6 +1,6 @@
 # Isolamento do agente
 
-Este guia é para quando você quer deixar os agentes rodando sozinhos num projeto, pelo `/fabrica:avancar`, e precisa decidir o que um comando deles pode alcançar. A decisão e as alternativas estão na [ADR 0010](../adr/0010-isolamento-pelo-sbx-com-opcao-sem-sandbox.md), que substituiu a ADR 0005.
+Este guia é para quando você quer deixar os agentes rodando sozinhos num projeto, pelo `/fabrica:avancar`, e precisa decidir o que um comando deles pode alcançar. A decisão e as alternativas estão na [ADR 0010](../adr/0010-isolamento-pelo-sbx-com-opcao-sem-sandbox.md), que substituiu a ADR 0005. O job do dispatcher no GitHub Actions tem um isolamento próprio, com proxy e marcadores no lugar da VM do `sbx`: veja [Isolamento do job](dispatcher.md#isolamento-do-job).
 
 ## Os dois modos
 Cada projeto escolhe um modo, gravado em `.fabrica/isolamento.txt`:

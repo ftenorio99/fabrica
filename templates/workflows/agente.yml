@@ -1,8 +1,11 @@
-# Dispatcher da fábrica (SPEC-105, ADR 0015): quando a label `agente` é
-# aplicada numa issue aberta, roda o /fabrica:triagem no runner, com o plugin
-# instalado. Copie este arquivo para .github/workflows/agente.yml do projeto.
-# Secrets do repositório: CLAUDE_CODE_OAUTH_TOKEN (claude setup-token) e
-# FABRICA_PLUGIN_TOKEN (fine-grained, só contents: read no ftenorio99/fabrica).
+# Dispatcher da fábrica (SPEC-105, SPEC-106, ADR 0015 e 0016): quando a label
+# `agente` é aplicada numa issue aberta, roda o /fabrica:triagem no runner, com
+# o plugin instalado e o agente isolado (sem rede direta, sem os tokens em
+# claro). Copie este arquivo para .github/workflows/agente.yml do projeto.
+# Secrets do repositório:
+#   CLAUDE_CODE_OAUTH_TOKEN  claude setup-token
+#   FABRICA_GH_TOKEN         fine-grained, só neste repositório (as escritas do job)
+#   FABRICA_PLUGIN_TOKEN     fine-grained, só contents: read no ftenorio99/fabrica
 # Guia: docs/guias/dispatcher.md do plugin.
 name: agente
 
@@ -12,10 +15,9 @@ on:
 
 permissions:
   contents: read
-  issues: write
 
 concurrency:
-  group: fabrica-${{ github.event.issue.number }}
+  group: fabrica-${{ github.event.issue.number }}-${{ github.event.label.name }}
   cancel-in-progress: false
 
 jobs:
@@ -47,11 +49,29 @@ jobs:
           test -f "$path/scripts/dispatch.sh"
           echo "path=$path" >> "$GITHUB_OUTPUT"
 
+      - name: Instala o mitmproxy
+        run: |
+          sudo python3 -m venv /opt/fabrica-mitm
+          sudo /opt/fabrica-mitm/bin/pip install --quiet mitmproxy==12.3.1
+          /opt/fabrica-mitm/bin/mitmdump --version
+
+      - name: Prepara o isolamento
+        env:
+          FABRICA_PLUGIN_DIR: ${{ steps.plugin.outputs.path }}
+        run: sudo bash "$FABRICA_PLUGIN_DIR/scripts/job-isolation.sh" prepare "$FABRICA_PLUGIN_DIR" "$GITHUB_WORKSPACE"
+
+      - name: Trava a rede e os segredos
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          FABRICA_GH_TOKEN: ${{ secrets.FABRICA_GH_TOKEN }}
+          FABRICA_PLUGIN_DIR: ${{ steps.plugin.outputs.path }}
+        run: sudo --preserve-env=CLAUDE_CODE_OAUTH_TOKEN,FABRICA_GH_TOKEN bash "$FABRICA_PLUGIN_DIR/scripts/job-isolation.sh" lock
+
       - name: Roda a etapa
         timeout-minutes: 30
         env:
-          GH_TOKEN: ${{ github.token }}
-          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          GH_TOKEN: ${{ secrets.FABRICA_GH_TOKEN }}
+          FABRICA_CLAUDE_BIN: ${{ steps.plugin.outputs.path }}/scripts/run-as-agent.sh
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           FABRICA_PLUGIN_DIR: ${{ steps.plugin.outputs.path }}
         run: bash "$FABRICA_PLUGIN_DIR/scripts/dispatch.sh" run "$ISSUE_NUMBER"
@@ -59,7 +79,7 @@ jobs:
       - name: Desmarca a issue
         if: always() && steps.plugin.outputs.path != ''
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.FABRICA_GH_TOKEN }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           FABRICA_PLUGIN_DIR: ${{ steps.plugin.outputs.path }}
         run: bash "$FABRICA_PLUGIN_DIR/scripts/dispatch.sh" unmark "$ISSUE_NUMBER"
@@ -67,7 +87,7 @@ jobs:
       - name: Publica a falha
         if: failure() && steps.plugin.outputs.path != ''
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.FABRICA_GH_TOKEN }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           FABRICA_PLUGIN_DIR: ${{ steps.plugin.outputs.path }}
         run: bash "$FABRICA_PLUGIN_DIR/scripts/dispatch.sh" fail "$ISSUE_NUMBER"
@@ -77,7 +97,7 @@ jobs:
       - name: Publica a falha da instalação
         if: failure() && steps.plugin.outputs.path == ''
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.FABRICA_GH_TOKEN }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
@@ -91,3 +111,7 @@ jobs:
             echo "**Run:** $RUN_URL"
           } > "$body"
           gh issue comment "$ISSUE_NUMBER" --body-file "$body"
+
+      - name: Mostra o log do proxy
+        if: always()
+        run: sudo cat /etc/fabrica/proxy.log || true
