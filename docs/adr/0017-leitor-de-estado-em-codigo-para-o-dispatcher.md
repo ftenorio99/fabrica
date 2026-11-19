@@ -1,6 +1,6 @@
 # ADR 0017: Leitor de estado em código para o dispatcher
 
-**Status:** proposto · **Data:** 2026-11-19 · **Origem:** issue #107
+**Status:** aceito · **Data:** 2026-11-19 · **Origem:** issue #107
 
 ## Contexto
 A retomada por evento do dispatcher (#107) faz o workflow acordar a cada gesto do usuário na issue ou no PR e precisa decidir qual etapa rodar. A fonte da verdade do estado é a tabela de [estados.md](../../skills/status/estados.md), hoje interpretada pelos agentes e pelo `/fabrica:status` a partir das labels, dos marcadores de comentário e do PR da branch.
