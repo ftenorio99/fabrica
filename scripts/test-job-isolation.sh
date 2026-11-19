@@ -105,6 +105,9 @@ check CA2 "host fora da lista: 403 e sem troca" "403 Bearer fabrica-marker-bbbbb
 check CA2 "token que não é marcador segue como veio" "Bearer outro-token" \
   "$(py "(lambda f: (egress($doms_expr, $markers_expr).request(f), f.request.headers['Authorization'])[1])(mk('github.com', 'Bearer outro-token'))")"
 
+check CA2 "token: o esquema do gh também é trocado, só no host do segredo" "Token REAL-GITHUB Token fabrica-marker-bbbbbbbbbbbbbbbb" \
+  "$(py "(lambda f, g: (egress($doms_expr, $markers_expr).request(f), egress($doms_expr, $markers_expr).request(g), f.request.headers['Authorization'] + ' ' + g.request.headers['Authorization'])[2])(mk('api.github.com', 'Token fabrica-marker-bbbbbbbbbbbbbbbb'), mk('api.anthropic.com', 'Token fabrica-marker-bbbbbbbbbbbbbbbb'))")"
+
 # CA3: o Basic do git.
 check CA3 "Basic: o marcador vira o valor real em github.com" "x-access-token:REAL-GITHUB" \
   "$(py "(lambda f: (egress($doms_expr, $markers_expr).request(f), unb64(f.request.headers['Authorization'].split(' ')[1]))[1])(mk('github.com', 'Basic ' + b64('x-access-token:fabrica-marker-bbbbbbbbbbbbbbbb')))")"

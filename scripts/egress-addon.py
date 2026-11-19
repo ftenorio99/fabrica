@@ -88,11 +88,11 @@ def host_allowed(host, domains):
 
 
 def swap_authorization(value, host, markers):
-    """Troca o marcador do cabeçalho Authorization pelo valor real, só no host do segredo."""
+    """Troca o marcador do cabeçalho Authorization (Bearer, token ou Basic) pelo valor real, só no host do segredo."""
     host = (host or "").lower()
     scheme, _, rest = value.partition(" ")
     rest = rest.strip()
-    if scheme.lower() == "bearer":
+    if scheme.lower() in ("bearer", "token"):  # o `gh` manda "token <valor>"
         entry = markers.get(rest)
         if entry and host in entry["hosts"]:
             return f"{scheme} {entry['secret']}"

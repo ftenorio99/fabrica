@@ -138,7 +138,7 @@ cmd_lock() {
 
   # O proxy lê os segredos do arquivo, não dos argumentos: o `ps` não os mostra.
   nohup "$sudo_bin" -n -u "$proxy_user" -H bash -c \
-    '. "$1"; exec "$2" --listen-host 127.0.0.1 --listen-port "$3" --set confdir="$4" --set flow_detail=0 --set fabrica_domains="$5" --set fabrica_markers="$6" -s "$7"' \
+    '. "$1"; export PYTHONUNBUFFERED=1; exec "$2" --listen-host 127.0.0.1 --listen-port "$3" --set confdir="$4" --set flow_detail=0 --set fabrica_domains="$5" --set fabrica_markers="$6" -s "$7"' \
     _ "$dir/proxy.env" "$mitm_bin" "$port" "$proxy_home/.mitmproxy" "$domains" "$dir/markers.json" "$addon" \
     >> "$dir/proxy.log" 2>&1 &
 

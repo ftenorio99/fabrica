@@ -88,11 +88,14 @@ fi
 # lista o que o agente lê é o próprio agente; quem procura os valores é o root,
 # para os valores nunca chegarem ao agente.
 printf '%s\n%s\n%s\n' "$CLAUDE_CODE_OAUTH_TOKEN" "$FABRICA_GH_TOKEN" "$FABRICA_PLUGIN_TOKEN" > "$work/needles"
-as_agent bash -c '
+# Só onde um segredo poderia ter ficado: os homes, o checkout e os temporários
+# do runner, /etc, /tmp, /run e os logs. Fora disso (/usr, /opt/hostedtoolcache)
+# são milhares de arquivos de ferramentas, e a busca passaria dos 20 minutos.
+as_agent timeout 180 bash -c '
   for f in /proc/[0-9]*/environ /proc/[0-9]*/cmdline; do [ -r "$f" ] && echo "$f"; done
-  find /home /etc /opt /var /tmp /usr/local /run -xdev -type f -readable 2>/dev/null
+  find /home /etc /tmp /var/tmp /var/log /run /var/lib/fabrica-proxy /opt/fabrica-plugin -xdev -type f -readable -size -5M 2>/dev/null
 ' > "$work/readable.txt" 2>/dev/null
-hits="$(tr '\n' '\0' < "$work/readable.txt" | xargs -0 -r grep -l -a -F -f "$work/needles" 2>/dev/null | head -n 5)"
+hits="$(tr '\n' '\0' < "$work/readable.txt" | timeout 300 xargs -0 -r grep -l -a -F -f "$work/needles" 2>/dev/null | head -n 5)"
 if [[ -z "$hits" ]]; then
   ok segredo-fora-do-alcance
 else
