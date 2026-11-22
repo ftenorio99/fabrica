@@ -54,6 +54,7 @@ check CA1 "pull_request_review_comment: created" "['created']" "$(wf 'w[True]["p
 filter="(github.event_name == 'issues' && github.event.action == 'labeled' && github.event.issue.state == 'open'
   && (github.event.label.name == 'agente' || github.event.label.name == 'spec-aprovada'))
 || (github.event_name == 'issue_comment' && github.event.action == 'created' && github.event.issue.state == 'open'
+  && (github.event.issue.pull_request || contains(github.event.issue.labels.*.name, 'agente'))
   && !startsWith(github.event.comment.body, '<!-- fabrica:'))
 || (github.event_name == 'issue_comment' && github.event.action == 'edited' && !github.event.issue.pull_request
   && github.event.issue.state == 'open' && contains(github.event.issue.labels.*.name, 'acao-externa')
@@ -64,6 +65,8 @@ filter="(github.event_name == 'issues' && github.event.action == 'labeled' && gi
   && !startsWith(github.event.comment.body, '<!-- fabrica:'))"
 nows() { tr -d ' \n\t' <<< "$1"; }
 check CA2 "o if do job é a expressão de filtro (sem espaços)" "$(nows "$filter")" "$(wf 'nows(job["if"])')"
+check CA31 "upload-artifact e checkout na versão 7" "True" \
+  "$(wf 'all(s.get("uses", "").split("@")[1].startswith("v7") for s in steps if "uses" in s and ("upload-artifact" in s["uses"] or "checkout" in s["uses"]))')"
 
 # CA3: concorrência e tempos.
 group="fabrica-\${{ ($filter) && (github.event.issue.number || github.event.pull_request.number) || format('ignorado-{0}', github.run_id) }}"

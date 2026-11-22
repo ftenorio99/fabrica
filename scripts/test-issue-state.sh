@@ -136,7 +136,7 @@ pkg agente,spec-pronta - '[]' "0|$TRI" "60|$SPEC"
 check CA7 "linha de custo no fim não vira resposta nova" "7" "$(field linha)"
 pkg agente,precisa-info - '[]' "0|$TRI" "60|   
   $SPEC"
-check CA7 "marcador com espaços antes conta como do agente" "linha=3 etapa=-" "$(state | cut -d' ' -f1,2)"
+check CA7 "marcador com espaços antes não conta como do agente (é do usuário, como no filtro)" "linha=4 etapa=triagem" "$(state | cut -d' ' -f1,2)"
 pkg agente,precisa-info - '[]' "0|$TRI" "0|$USER"
 check CA7 "usuário no mesmo segundo do marcador não é resposta nova" "3" "$(field linha)"
 pkg agente,precisa-info - '[]' "0|$TRI" "1|$USER"

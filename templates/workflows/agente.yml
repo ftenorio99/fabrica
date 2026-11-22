@@ -35,6 +35,7 @@ concurrency:
     && (github.event.label.name == 'agente' || github.event.label.name == 'spec-aprovada'))
     || (github.event_name == 'issue_comment' && github.event.action == 'created'
     && github.event.issue.state == 'open'
+    && (github.event.issue.pull_request || contains(github.event.issue.labels.*.name, 'agente'))
     && !startsWith(github.event.comment.body, '<!-- fabrica:'))
     || (github.event_name == 'issue_comment' && github.event.action == 'edited'
     && !github.event.issue.pull_request && github.event.issue.state == 'open'
@@ -46,7 +47,7 @@ concurrency:
     || (github.event_name == 'pull_request_review_comment' && github.event.action == 'created'
     && github.event.pull_request.state == 'open'
     && !startsWith(github.event.comment.body, '<!-- fabrica:'))
-    ) && (github.event.issue.number || github.event.pull_request.number)
+    ) &&(github.event.issue.number || github.event.pull_request.number)
     || format('ignorado-{0}', github.run_id) }}
   cancel-in-progress: false
 
@@ -59,6 +60,7 @@ jobs:
       && (github.event.label.name == 'agente' || github.event.label.name == 'spec-aprovada'))
       || (github.event_name == 'issue_comment' && github.event.action == 'created'
       && github.event.issue.state == 'open'
+      && (github.event.issue.pull_request || contains(github.event.issue.labels.*.name, 'agente'))
       && !startsWith(github.event.comment.body, '<!-- fabrica:'))
       || (github.event_name == 'issue_comment' && github.event.action == 'edited'
       && !github.event.issue.pull_request && github.event.issue.state == 'open'
@@ -177,7 +179,7 @@ jobs:
       # aparecer. Não há secret neste passo.
       - name: Guarda o stage.json da execução
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: fabrica-stage-${{ github.run_id }}
           path: ${{ runner.temp }}/fabrica-dispatch/stage.json

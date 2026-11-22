@@ -59,7 +59,7 @@ def when(value):
 
 def kind(body):
     """Classifica um corpo: ('agente', etapa), ('ignorado', None) ou ('usuario', None)."""
-    text = (body or "").lstrip("﻿ \t\r\n")
+    text = body or ""  # sem lstrip: o filtro do GitHub (startsWith) também não tira espaços (SPEC-107, CA7)
     first = text.splitlines()[0] if text else ""
     if IGNORED.match(first):
         return "ignorado", None
