@@ -4,7 +4,9 @@
 # Uso:
 #   job-isolation.sh prepare <pasta do plugin instalado> <pasta do checkout>
 #       cria os usuários fabrica-proxy e fabrica-agent, copia o plugin sem o
-#       .git para uma pasta que o agente lê e passa o checkout ao agente
+#       .git para uma pasta que o agente lê, instala os hooks do git da
+#       main numa pasta que o agente só lê (com o arquivo de configuração
+#       que a aponta) e passa o checkout ao agente
 #   job-isolation.sh lock
 #       com CLAUDE_CODE_OAUTH_TOKEN e FABRICA_GH_TOKEN no ambiente: grava os
 #       segredos num arquivo só do proxy, sorteia os marcadores, sobe o
@@ -18,7 +20,9 @@
 # FABRICA_PROXY_USER, FABRICA_PLUGIN_COPY, FABRICA_CA_DIR, FABRICA_PROXY_HOME,
 # FABRICA_MITMDUMP_BIN, FABRICA_DOMAINS_FILE, FABRICA_WAIT_SECONDS,
 # FABRICA_WORKSPACE_GROUP, FABRICA_SUDO_BIN, FABRICA_IPTABLES_BIN,
-# FABRICA_IP6TABLES_BIN, FABRICA_USERADD_BIN, FABRICA_CHOWN_BIN.
+# FABRICA_IP6TABLES_BIN, FABRICA_USERADD_BIN, FABRICA_CHOWN_BIN,
+# FABRICA_HOOKS_COPY (pasta dos hooks do git do agente) e FABRICA_GITCONFIG_FILE
+# (arquivo de configuração global do agente, que aponta para a pasta dos hooks).
 set -uo pipefail
 export LC_ALL=C.UTF-8
 
@@ -28,6 +32,8 @@ port="${FABRICA_PROXY_PORT:-8899}"
 agent_user="${FABRICA_AGENT_USER:-fabrica-agent}"
 proxy_user="${FABRICA_PROXY_USER:-fabrica-proxy}"
 plugin_dst="${FABRICA_PLUGIN_COPY:-/opt/fabrica-plugin}"
+hooks_dst="${FABRICA_HOOKS_COPY:-/opt/fabrica-githooks}"
+gitconfig_dst="${FABRICA_GITCONFIG_FILE:-/opt/fabrica-gitconfig}"
 ca_dir="${FABRICA_CA_DIR:-/usr/local/share/fabrica}"
 proxy_home="${FABRICA_PROXY_HOME:-/var/lib/fabrica-proxy}"
 mitm_bin="${FABRICA_MITMDUMP_BIN:-/opt/fabrica-mitm/bin/mitmdump}"
@@ -62,6 +68,21 @@ cmd_prepare() {
   rm -rf "$plugin_dst/.git"
   chmod -R a+rX,go-w "$plugin_dst"
 
+  # Hooks do git da main (SPEC-107, CA22): cópia de root, sem escrita para o
+  # agente, e o arquivo de configuração global do agente que aponta para ela.
+  # Sem a configuração, o git do agente não teria os hooks, por isso falha
+  # aqui e o lock não sobe.
+  [[ -d "$plugin_src/githooks" ]] || fail "não achei a pasta githooks/ em $plugin_src."
+  rm -rf "$hooks_dst" || fail "não consegui limpar $hooks_dst."
+  mkdir -p "$hooks_dst" || fail "não consegui criar $hooks_dst."
+  cp -a "$plugin_src/githooks/." "$hooks_dst/" || fail "não consegui copiar os hooks do git para $hooks_dst."
+  chmod -R a+rX,go-w "$hooks_dst"
+  {
+    echo "[core]"
+    echo "	hooksPath = $hooks_dst"
+  } > "$gitconfig_dst" || fail "não consegui gravar $gitconfig_dst."
+  chmod 0644 "$gitconfig_dst"
+
   group="${FABRICA_WORKSPACE_GROUP:-${SUDO_USER:-runner}}"
   "$chown_bin" -R "$agent_user:$group" "$workspace" || fail "não consegui passar $workspace ao agente."
   chmod -R g+rwX "$workspace"
@@ -92,6 +113,8 @@ cmd_lock() {
     *$'\n'*|*"'"*) fail "um dos tokens tem quebra de linha ou aspas simples." ;;
   esac
   [[ -f "$addon" && -f "$domains" ]] || fail "não achei o addon ou a lista de domínios."
+  [[ -f "$gitconfig_dst" && -d "$hooks_dst" ]] \
+    || fail "os hooks do git do agente não estão instalados; rode job-isolation.sh prepare antes."
 
   anth_marker="fabrica-marker-$(random_hex)"
   gh_marker="fabrica-marker-$(random_hex)"
@@ -127,6 +150,9 @@ cmd_lock() {
     echo "SSL_CERT_FILE=$ca_dir/ca.pem"
     echo "GIT_SSL_CAINFO=$ca_dir/ca.pem"
     echo "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1"
+    # O git do agente lê só este arquivo, root-owned: o ~/.gitconfig dele
+    # não sobrescreve a pasta dos hooks (SPEC-107, CA22 e CA23).
+    echo "GIT_CONFIG_GLOBAL=$gitconfig_dst"
   } > "$dir/agent.env"
   chmod 0644 "$dir/agent.env"
   : > "$dir/proxy.log"
