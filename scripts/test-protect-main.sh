@@ -312,6 +312,26 @@ jq -n --arg c 'git commit -m x' '{tool_input: {command: $c}}' | HOME=$tmp/sem-ho
   grep -q 'não estão instalados. Rode /fabrica:setup'
 result $? CA6 "sem hooks: mensagem de instalação"
 
+# CA25 (SPEC-107): FABRICA_GITHOOKS_DEST é o destino dos hooks quando existe.
+# dec <comando> [VAR=valor...]: deny ou allow, com o ambiente dado ao hook.
+dec() {
+  local cmd=$1; shift
+  jq -n --arg c "$cmd" --arg d "$MAIN" '{tool_input: {command: $c}, cwd: $d}' |
+    env "$@" bash "$hook" 2>&1 | grep -q '"permissionDecision": *"deny"' && echo deny || echo allow
+}
+[[ $(dec 'git commit -m x' FABRICA_GITHOOKS_DEST="$dest") == allow ]]
+result $? CA25 "destino da variável igual ao global: commit passa"
+[[ $(dec 'git commit -m x' FABRICA_GITHOOKS_DEST="$tmp/outro") == deny ]]
+result $? CA25 "destino da variável diferente do global: commit é negado"
+[[ $(dec 'git push origin feat/x' FABRICA_GITHOOKS_DEST="$tmp/outro") == deny ]]
+result $? CA25 "destino diferente: push é negado"
+[[ $(dec 'git commit -m x' FABRICA_GITHOOKS_DEST=) == allow ]]
+result $? CA25 "variável vazia: vale o caminho do usuário"
+[[ $(dec 'git commit -m x') == allow ]]
+result $? CA25 "sem a variável: vale o caminho do usuário"
+[[ $(dec 'echo FABRICA_GITHOOKS_DEST' FABRICA_GITHOOKS_DEST="$dest") == deny ]]
+result $? CA25 "comando que cita FABRICA_GITHOOKS_DEST é negado"
+
 # B150: contrato do Antigravity. O comando vem em toolCall.args.CommandLine e
 # a negativa sai como {decision, reason}, sem o hookSpecificOutput.
 # agy_input <comando>

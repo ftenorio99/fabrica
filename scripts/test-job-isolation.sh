@@ -234,6 +234,7 @@ new_case() {
   mkdir -p "$d/users" "$d/plugin/scripts" "$d/plugin/templates/workflows" "$d/work/projeto"
   cp "$isolation" "$wrapper" "$addon" "$d/plugin/scripts/"
   cp "$domains_file" "$d/plugin/templates/workflows/"
+  cp -r "$script_dir/../githooks" "$d/plugin/githooks"
   mkdir -p "$d/plugin/.git"; echo x > "$d/plugin/.git/config"
   : > "$d/calls.log"
   echo "$d"
@@ -247,6 +248,7 @@ iso() {
     FABRICA_IPTABLES_BIN="$bin/iptables" FABRICA_IP6TABLES_BIN="$bin/ip6tables" \
     FABRICA_MITMDUMP_BIN="$bin/mitmdump" FABRICA_ISOLATION_DIR="$d/etc" FABRICA_PROXY_HOME="$d/proxyhome" \
     FABRICA_PLUGIN_COPY="${PLUGIN_COPY:-$d/opt-plugin}" FABRICA_CA_DIR="$d/ca" FABRICA_PROXY_PORT="${PORT:-0}" \
+    FABRICA_HOOKS_COPY="$d/opt-githooks" FABRICA_GITCONFIG_FILE="$d/opt-gitconfig" \
     FABRICA_WAIT_SECONDS=10 FABRICA_WORKSPACE_GROUP=runner \
     bash "$d/plugin/scripts/job-isolation.sh" "$@"
 }
@@ -268,11 +270,51 @@ check CA6 "não escreve em /etc/sudoers" "0" "$(grep -c 'sudoers' "$isolation")"
 check CA6 "sem o plugin no caminho, falha" "1" \
   "$(iso "$c" prepare "$c/nao-existe" "$c/work/projeto" >/dev/null 2>&1; echo $?)"
 
+# CA22: hooks do git do agente, instalados pelo prepare (c é o caso do prepare).
+check CA22 "copia os hooks da pasta githooks/ do plugin" "True" \
+  "$([[ -x "$c/opt-githooks/pre-commit" && -f "$c/opt-githooks/fabrica-hook" ]] && echo True || echo False)"
+check CA22 "a pasta dos hooks não tem escrita para o grupo nem para outros" "0" \
+  "$(find "$c/opt-githooks" -perm /022 | wc -l)"
+check CA22 "o arquivo de configuração aponta para a pasta dos hooks" "True" \
+  "$(grep -q "hooksPath = $c/opt-githooks\$" "$c/opt-gitconfig" && echo True || echo False)"
+check CA22 "o arquivo de configuração não tem escrita para o grupo nem para outros" "644" \
+  "$(stat -c %a "$c/opt-gitconfig")"
+check CA22 "prepare sem a pasta githooks/ no plugin falha" "1" \
+  "$(c2="$(new_case semhooks)"; rm -rf "$c2/plugin/githooks"; iso "$c2" prepare "$c2/plugin" "$c2/work/projeto" >/dev/null 2>&1; echo $?)"
+
+# CA23: o hook recusa commit na main com a configuração do agente e aceita na
+# branch de feature. O git roda com GIT_CONFIG_GLOBAL no arquivo do prepare e
+# um ~/.gitconfig do teste que aponta para outra pasta, que tem de ser ignorado.
+g="$tmp/git23"; mkdir -p "$g/home" "$g/vazio"
+mkdir -p "$g/ro" && cp "$c/opt-gitconfig" "$g/ro/gitconfig"
+cfg="$g/ro/gitconfig"
+printf '[core]\n\thooksPath = %s\n' "$g/vazio" > "$g/home/.gitconfig"
+repo="$g/repo"
+git init -q -b main "$repo"
+git -C "$repo" -c user.name=teste -c user.email=teste@exemplo.com commit -q --allow-empty -m inicial
+agent_git() {
+  env HOME="$g/home" GIT_CONFIG_GLOBAL="$cfg" git -C "$repo" -c user.name=teste -c user.email=teste@exemplo.com "$@"
+}
+check CA23 "commit direto na main é recusado pelo hook da fábrica" "1" \
+  "$(agent_git commit -q --allow-empty -m x 2>&1 >/dev/null | grep -c 'bloqueado')"
+check CA23 "a main não recebe o commit recusado" "1" "$(agent_git rev-list --count main)"
+agent_git switch -q -c feat/1-teste
+check CA23 "commit numa branch de feature passa" "aceito" \
+  "$(agent_git commit -q --allow-empty -m x >/dev/null 2>&1 && echo aceito || echo recusado)"
+# Como o runner: a pasta é do root e o agente não escreve nela. O git grava
+# por arquivo de trabalho e renomeação, então a pasta sem escrita é o que
+# impede a alteração.
+chmod 0555 "$g/ro"
+check CA23 "git config global do agente não consegue mudar a configuração dos hooks" "falhou" \
+  "$(agent_git config --global core.editor vim >/dev/null 2>&1 && echo gravou || echo falhou)"
+chmod 0755 "$g/ro"
+
 # CA7: lock.
 c="$(new_case lock)"
 PORT="$(free_port)"
 oauth_real="REAL-OAUTH-TOKEN-0123456789abcdef"
 gh_real="REAL-GH-TOKEN-0123456789abcdef"
+iso "$c" prepare "$c/plugin" "$c/work/projeto" >/dev/null 2>&1
 lock_out="$(PLUGIN_COPY="$c/plugin" CLAUDE_CODE_OAUTH_TOKEN="$oauth_real" FABRICA_GH_TOKEN="$gh_real" iso "$c" lock 2>&1; echo "rc=$?")"
 check CA7 "lock sai com 0" "rc=0" "$(echo "$lock_out" | tail -n 1)"
 [[ "$(echo "$lock_out" | tail -n 1)" == "rc=0" ]] && : || echo "$lock_out" | head -n 8 | sed 's/^/        lock: /'
@@ -295,6 +337,12 @@ check CA7 "agent.env é 0644 e não tem valor real" "644 0" \
   "$(stat -c %a "$c/etc/agent.env") $(grep -c -e "$oauth_real" -e "$gh_real" "$c/etc/agent.env")"
 check CA7 "agent.env tem os dois marcadores e o proxy" "2 True" \
   "$(grep -c '=fabrica-marker-' "$c/etc/agent.env") $(grep -q "^HTTPS_PROXY=http://127.0.0.1:$PORT\$" "$c/etc/agent.env" && echo True || echo False)"
+check CA22 "agent.env manda o git do agente para o arquivo de configuração" "1 True" \
+  "$(grep -c '^GIT_CONFIG_GLOBAL=' "$c/etc/agent.env") $(grep -q "^GIT_CONFIG_GLOBAL=$c/opt-gitconfig\$" "$c/etc/agent.env" && echo True || echo False)"
+check CA26 "agent.env grava o destino dos hooks que o protect-main confere" "1 True" \
+  "$(grep -c '^FABRICA_GITHOOKS_DEST=' "$c/etc/agent.env") $(grep -q "^FABRICA_GITHOOKS_DEST=$c/opt-githooks\$" "$c/etc/agent.env" && echo True || echo False)"
+check CA22 "lock sem os hooks instalados falha antes de subir o proxy" "1" \
+  "$(c3="$(new_case semprep)"; PLUGIN_COPY="$c3/plugin" CLAUDE_CODE_OAUTH_TOKEN=x FABRICA_GH_TOKEN=y iso "$c3" lock >/dev/null 2>&1; echo $?)"
 check CA7 "o proxy recebeu os segredos pelo ambiente" "$oauth_real $gh_real" "$(cat "$c/proxy.env.seen")"
 check CA7 "os segredos não estão nos argumentos do proxy nem das chamadas" "0" \
   "$(cat "$c/proxy.argv" "$c/calls.log" | grep -c -e "$oauth_real" -e "$gh_real")"

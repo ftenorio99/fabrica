@@ -1,7 +1,10 @@
-# Dispatcher da fábrica (SPEC-105, SPEC-106, ADR 0015 e 0016): quando a label
-# `agente` é aplicada numa issue aberta, roda o /fabrica:triagem no runner, com
-# o plugin instalado e o agente isolado (sem rede direta, sem os tokens em
-# claro). Copie este arquivo para .github/workflows/agente.yml do projeto.
+# Dispatcher da fábrica (SPEC-105, SPEC-106, SPEC-107, ADR 0015 a 0017): a cada
+# gesto do usuário na issue ou no PR (label `agente` ou `spec-aprovada`,
+# comentário, review, checklist de ação marcada), relê o estado da issue e roda
+# as etapas de agente até o próximo portão, no runner, com o plugin instalado e
+# o agente isolado (sem rede direta, sem os tokens em claro). Os comentários e
+# as labels do próprio agente não passam no filtro do job, então não há
+# cascata. Copie este arquivo para .github/workflows/agente.yml do projeto.
 # Secrets do repositório:
 #   CLAUDE_CODE_OAUTH_TOKEN  claude setup-token
 #   FABRICA_GH_TOKEN         fine-grained, só neste repositório (as escritas do job)
@@ -12,23 +15,70 @@ name: agente
 on:
   issues:
     types: [labeled]
+  issue_comment:
+    types: [created, edited]
+  pull_request_review:
+    types: [submitted]
+  pull_request_review_comment:
+    types: [created]
 
 permissions:
   contents: read
 
+# O grupo usa a mesma expressão do `if` do job: o run de um gesto entra no
+# grupo do número da issue ou do PR; o run barrado fica num grupo só dele, para
+# não substituir na fila o run pendente de um gesto.
 concurrency:
-  group: fabrica-${{ github.event.issue.number }}-${{ github.event.label.name }}
+  group: >-
+    fabrica-${{ ((github.event_name == 'issues' && github.event.action == 'labeled'
+    && github.event.issue.state == 'open'
+    && (github.event.label.name == 'agente' || github.event.label.name == 'spec-aprovada'))
+    || (github.event_name == 'issue_comment' && github.event.action == 'created'
+    && github.event.issue.state == 'open'
+    && (github.event.issue.pull_request || contains(github.event.issue.labels.*.name, 'agente'))
+    && !startsWith(github.event.comment.body, '<!-- fabrica:'))
+    || (github.event_name == 'issue_comment' && github.event.action == 'edited'
+    && !github.event.issue.pull_request && github.event.issue.state == 'open'
+    && contains(github.event.issue.labels.*.name, 'acao-externa')
+    && startsWith(github.event.comment.body, '<!-- fabrica:acao'))
+    || (github.event_name == 'pull_request_review' && github.event.action == 'submitted'
+    && github.event.pull_request.state == 'open'
+    && !startsWith(github.event.review.body, '<!-- fabrica:'))
+    || (github.event_name == 'pull_request_review_comment' && github.event.action == 'created'
+    && github.event.pull_request.state == 'open'
+    && !startsWith(github.event.comment.body, '<!-- fabrica:'))
+    ) &&(github.event.issue.number || github.event.pull_request.number)
+    || format('ignorado-{0}', github.run_id) }}
   cancel-in-progress: false
 
 jobs:
   etapa:
-    if: github.event.label.name == 'agente' && github.event.issue.state == 'open'
+    # Filtro anticascata (SPEC-107, seção 1). Mude junto com o grupo acima.
+    if: >-
+      (github.event_name == 'issues' && github.event.action == 'labeled'
+      && github.event.issue.state == 'open'
+      && (github.event.label.name == 'agente' || github.event.label.name == 'spec-aprovada'))
+      || (github.event_name == 'issue_comment' && github.event.action == 'created'
+      && github.event.issue.state == 'open'
+      && (github.event.issue.pull_request || contains(github.event.issue.labels.*.name, 'agente'))
+      && !startsWith(github.event.comment.body, '<!-- fabrica:'))
+      || (github.event_name == 'issue_comment' && github.event.action == 'edited'
+      && !github.event.issue.pull_request && github.event.issue.state == 'open'
+      && contains(github.event.issue.labels.*.name, 'acao-externa')
+      && startsWith(github.event.comment.body, '<!-- fabrica:acao'))
+      || (github.event_name == 'pull_request_review' && github.event.action == 'submitted'
+      && github.event.pull_request.state == 'open'
+      && !startsWith(github.event.review.body, '<!-- fabrica:'))
+      || (github.event_name == 'pull_request_review_comment' && github.event.action == 'created'
+      && github.event.pull_request.state == 'open'
+      && !startsWith(github.event.comment.body, '<!-- fabrica:'))
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 110
     steps:
       - name: Checkout do projeto
         uses: actions/checkout@v7
         with:
+          ref: ${{ github.event.repository.default_branch }}
           persist-credentials: false
 
       - name: Instala o Claude Code
@@ -68,29 +118,32 @@ jobs:
         run: sudo --preserve-env=CLAUDE_CODE_OAUTH_TOKEN,FABRICA_GH_TOKEN bash "$FABRICA_PLUGIN_DIR/scripts/job-isolation.sh" lock
 
       - name: Roda a etapa
-        timeout-minutes: 30
+        timeout-minutes: 100
         env:
           GH_TOKEN: ${{ secrets.FABRICA_GH_TOKEN }}
           FABRICA_CLAUDE_BIN: ${{ steps.plugin.outputs.path }}/scripts/run-as-agent.sh
-          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          EVENT_KIND: ${{ (github.event.pull_request || github.event.issue.pull_request) && 'pr' || 'issue' }}
+          EVENT_NUMBER: ${{ github.event.issue.number || github.event.pull_request.number }}
           FABRICA_PLUGIN_DIR: ${{ steps.plugin.outputs.path }}
-        run: bash "$FABRICA_PLUGIN_DIR/scripts/dispatch.sh" run "$ISSUE_NUMBER"
+        run: bash "$FABRICA_PLUGIN_DIR/scripts/dispatch.sh" run "$EVENT_KIND" "$EVENT_NUMBER"
 
       - name: Desmarca a issue
         if: always() && steps.plugin.outputs.path != ''
         env:
           GH_TOKEN: ${{ secrets.FABRICA_GH_TOKEN }}
-          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          EVENT_KIND: ${{ (github.event.pull_request || github.event.issue.pull_request) && 'pr' || 'issue' }}
+          EVENT_NUMBER: ${{ github.event.issue.number || github.event.pull_request.number }}
           FABRICA_PLUGIN_DIR: ${{ steps.plugin.outputs.path }}
-        run: bash "$FABRICA_PLUGIN_DIR/scripts/dispatch.sh" unmark "$ISSUE_NUMBER"
+        run: bash "$FABRICA_PLUGIN_DIR/scripts/dispatch.sh" unmark "$EVENT_KIND" "$EVENT_NUMBER"
 
       - name: Publica a falha
         if: failure() && steps.plugin.outputs.path != ''
         env:
           GH_TOKEN: ${{ secrets.FABRICA_GH_TOKEN }}
-          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          EVENT_KIND: ${{ (github.event.pull_request || github.event.issue.pull_request) && 'pr' || 'issue' }}
+          EVENT_NUMBER: ${{ github.event.issue.number || github.event.pull_request.number }}
           FABRICA_PLUGIN_DIR: ${{ steps.plugin.outputs.path }}
-        run: bash "$FABRICA_PLUGIN_DIR/scripts/dispatch.sh" fail "$ISSUE_NUMBER"
+        run: bash "$FABRICA_PLUGIN_DIR/scripts/dispatch.sh" fail "$EVENT_KIND" "$EVENT_NUMBER"
 
       # Reserva para quando o plugin não chegou a ser instalado: o dispatch.sh
       # vem do plugin, então o comentário sai daqui, com texto fixo.
@@ -98,7 +151,8 @@ jobs:
         if: failure() && steps.plugin.outputs.path == ''
         env:
           GH_TOKEN: ${{ secrets.FABRICA_GH_TOKEN }}
-          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          EVENT_KIND: ${{ (github.event.pull_request || github.event.issue.pull_request) && 'pr' || 'issue' }}
+          EVENT_NUMBER: ${{ github.event.issue.number || github.event.pull_request.number }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
         run: |
           body="$RUNNER_TEMP/falha-instalacao.md"
@@ -106,12 +160,28 @@ jobs:
             echo '<!-- fabrica:dispatcher -->'
             echo '## O dispatcher não rodou a etapa'
             echo
-            echo '**Etapa:** triagem'
+            echo '**Etapa:** não decidida'
             echo '**Motivo:** `sem-resultado` (a instalação do Claude Code ou do plugin falhou, antes de a etapa começar)'
             echo "**Run:** $RUN_URL"
           } > "$body"
-          gh issue comment "$ISSUE_NUMBER" --body-file "$body"
+          if [ "$EVENT_KIND" = pr ]; then
+            gh pr comment "$EVENT_NUMBER" --body-file "$body"
+          else
+            gh issue comment "$EVENT_NUMBER" --body-file "$body"
+          fi
 
       - name: Mostra o log do proxy
         if: always()
         run: sudo cat /etc/fabrica/proxy.log || true
+
+      # SPEC-107, CA24: o stage.json (etapa, código de saída e saída da etapa)
+      # fica como artifact do run para a causa de uma etapa sem publicação
+      # aparecer. Não há secret neste passo.
+      - name: Guarda o stage.json da execução
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: fabrica-stage-${{ github.run_id }}
+          path: ${{ runner.temp }}/fabrica-dispatch/stage.json
+          retention-days: 3
+          if-no-files-found: ignore

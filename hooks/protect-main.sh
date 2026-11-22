@@ -28,9 +28,10 @@ disable() {
   deny "Este comando desligaria os hooks do git que protegem a main ($1). Se for intencional, rode você mesmo no terminal."
 }
 
-# Mesmo destino de scripts/setup-githooks.sh. Sem os hooks instalados, a
-# main fica sem proteção: bloqueia na dúvida.
-dest="${XDG_CONFIG_HOME:-$HOME/.config}/fabrica/githooks"
+# Mesmo destino de scripts/setup-githooks.sh, ou o que o job grava em
+# FABRICA_GITHOOKS_DEST (SPEC-107, CA25). Sem os hooks instalados, a main
+# fica sem proteção: bloqueia na dúvida.
+dest="${FABRICA_GITHOOKS_DEST:-${XDG_CONFIG_HOME:-$HOME/.config}/fabrica/githooks}"
 if [[ "$(git config --global --get core.hooksPath 2>/dev/null)" != "$dest" && $cmd =~ commit|push ]]; then
   deny "Os hooks do git que protegem a main não estão instalados. Rode /fabrica:setup e repita o comando."
 fi
@@ -48,4 +49,5 @@ grep -Eq 'commit[^;&|]*[[:space:]]-[[:alnum:]]*n' <<<"$flat" && disable "commit 
 [[ $cmd == *GIT_CONFIG* ]] && disable "variável GIT_CONFIG*"
 [[ $cmd =~ (^|[^[:alnum:]_])(HOME|XDG_CONFIG_HOME)= ]] && disable "troca do ${BASH_REMATCH[2]}"
 [[ $cmd == *fabrica/githooks* ]] && disable "mexe na pasta dos hooks"
+[[ $cmd == *FABRICA_GITHOOKS_DEST* ]] && disable "variável FABRICA_GITHOOKS_DEST"
 exit 0

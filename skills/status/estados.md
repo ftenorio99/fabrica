@@ -1,6 +1,6 @@
 # Máquina de estados do fluxo
 
-Fonte da verdade do estado de uma issue na fábrica. Não existe arquivo de estado à parte: o estado é lido das **labels**, dos **marcadores de comentário** (`<!-- fabrica:triagem -->`, `<!-- fabrica:spec -->`, `<!-- fabrica:acao etapa=<etapa> -->`), do marcador de backlog no corpo da issue (`<!-- fabrica:backlog item=<n> -->`), das **milestones** e do **PR** da branch da issue. Esta tabela serve ao `/fabrica:status` hoje e ao dispatcher do GitHub Actions na Fase 1.
+Fonte da verdade do estado de uma issue na fábrica. Não existe arquivo de estado à parte: o estado é lido das **labels**, dos **marcadores de comentário** (`<!-- fabrica:triagem -->`, `<!-- fabrica:spec -->`, `<!-- fabrica:acao etapa=<etapa> -->`), do marcador de backlog no corpo da issue (`<!-- fabrica:backlog item=<n> -->`), das **milestones** e do **PR** da branch da issue. Esta tabela serve ao `/fabrica:status`, ao `/fabrica:avancar` e ao dispatcher do GitHub Actions, que a lê pelo `scripts/issue-state.py` ([ADR 0017](../../docs/adr/0017-leitor-de-estado-em-codigo-para-o-dispatcher.md)). O `issue-state.py` implementa as regras deste arquivo (a tabela de estados, os comentários do agente e do usuário, a spec e a branch da issue, o PR da branch e as inconsistências): quem muda uma delas muda o programa e os testes dele (`bash scripts/test-issue-state.sh`) no mesmo PR.
 
 O marcador `<!-- fabrica:retro -->` na primeira linha do corpo identifica a issue que o `/fabrica:retro` criou no fabrica com uma proposta de melhoria. Ele não muda o estado: a issue nasce sem `agente`, fora do fluxo, e segue a tabela abaixo quando o usuário aplicar `agente`.
 
@@ -56,6 +56,10 @@ A branch da issue vive na **worktree da issue**, `<clone>/.worktrees/<nº>`, cri
 | 11 | PR aberto com review `CHANGES_REQUESTED` ou com pedido novo no PR. Com a conta do usuário, o caminho é o comentário: o GitHub não deixa o autor pedir mudanças no próprio PR; a review vale para PR aberto por outra conta, como um bot | Ajustes do PR pedidos | agente | `/fabrica:revisar <nº>` |
 | 12 | PR aberto sem `pronto-revisao` | Em revisão automática | agente | `/fabrica:revisar <nº>` (se não houver `em-andamento` recente) |
 | 13 | PR aberto com `pronto-revisao` | PR para revisar | usuário | Revisar o PR e fazer o merge com squash. |
+
+No dispatcher (job do GitHub Actions), a linha 10 não vale: o token do job não lê o CI do PR ([SPEC-107](../../specs/SPEC-107.md), CA28 e CA29). Um PR com CI vermelho cai na linha 12 ou 13 para o dispatcher. O `/fabrica:status` local continua aplicando a linha 10.
+
+Uma issue com `agente` que não cai em nenhuma linha (por exemplo, o PR da branch já mergeado com a issue aberta, ou PR fechado sem merge) é estado do usuário: linha `-`. O dispatcher não age nela, e o `/fabrica:status` mostra o alerta.
 
 ## Ação externa
 Quando o `implementar` ou o `revisar` depende de uma ação do usuário fora do GitHub (criar conta ou projeto, cadastrar secret, gerar chave), a etapa publica na issue um **comentário de ação**, com o marcador `<!-- fabrica:acao etapa=<implementar|revisar> -->` e uma checklist, aplica `acao-externa` e para ([ADR 0012](../../docs/adr/0012-acao-externa-com-checklist.md)). O formato do comentário e a retomada estão em [acao-externa.md](acao-externa.md).
