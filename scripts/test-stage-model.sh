@@ -72,7 +72,7 @@ chmod +x "$fake"
 
 # run <etapa> <nº> [label...]: com HOME fora do clone, como numa máquina comum
 # (e fora da VM do sbx, para o modo de permissão ser sempre auto, onde quer que o teste rode)
-run() { env -u PROXY_CA_CERT_B64 HOME="$tmp/home" FABRICA_SBX_PERSISTENT_FILE="$tmp/ausente.sh" FABRICA_CLAUDE_BIN="$fake" bash "$script" run "$@" 2>/dev/null; }
+run() { env -u PROXY_CA_CERT_B64 -u CLAUDECODE -u FABRICA_HARNESS -u OPENCODE_SESSION_ID HOME="$tmp/home" FABRICA_SBX_PERSISTENT_FILE="$tmp/ausente.sh" FABRICA_CLAUDE_BIN="$fake" bash "$script" run "$@" 2>/dev/null; }
 args() { tr '\n' ' ' < "$args_file" | sed 's/ $//'; }
 
 # CA5: argumentos do claude.
@@ -90,12 +90,12 @@ check CA5 "implementar com modelo:haiku usa o ID do haiku" "yes" \
 check CA5 "esforço padrão não leva --effort" "no" \
   "$(args | grep -q -- '--effort' && echo yes || echo no)"
 rm -f "$args_file"
-HOME="$tmp/home" FABRICA_CLAUDE_BIN="$fake" bash "$script" run triagem '12; rm' >/dev/null 2>&1
-check CA5 "número com texto sai com código 1" "1" "$(HOME="$tmp/home" FABRICA_CLAUDE_BIN="$fake" bash "$script" run triagem '12; rm' >/dev/null 2>&1; echo $?)"
+run triagem '12; rm' >/dev/null
+check CA5 "número com texto sai com código 1" "1" "$(run triagem '12; rm' >/dev/null 2>&1; echo $?)"
 check CA5 "número inválido não chama o binário" "no" "$([[ -e "$args_file" ]] && echo yes || echo no)"
-check CA5 "número zero sai com código 1" "1" "$(HOME="$tmp/home" FABRICA_CLAUDE_BIN="$fake" bash "$script" run triagem 0 >/dev/null 2>&1; echo $?)"
+check CA5 "número zero sai com código 1" "1" "$(run triagem 0 >/dev/null 2>&1; echo $?)"
 check CA5 "labels inconsistentes saem com código 2" "2" \
-  "$(HOME="$tmp/home" FABRICA_CLAUDE_BIN="$fake" bash "$script" run implementar 12 modelo:haiku modelo:opus >/dev/null 2>&1; echo $?)"
+  "$(run implementar 12 modelo:haiku modelo:opus >/dev/null 2>&1; echo $?)"
 
 # CA6: --plugin-dir só quando o plugin roda de um clone.
 clone_root="$(cd "$script_dir/.." && pwd -P)"
@@ -107,9 +107,11 @@ check CA6 "fora de ~/.claude/plugins/ leva --plugin-dir do clone" "yes" \
 installed="$tmp/home/.claude/plugins/cache/fabrica/fabrica/9.9.9"
 mkdir -p "$installed/scripts" "$installed/skills/avancar"
 cp "$script" "$installed/scripts/stage-model.sh"
+cp "$script_dir/harness.sh" "$installed/scripts/harness.sh"
 cp "$script_dir/../skills/avancar/modelos.md" "$installed/skills/avancar/modelos.md"
 rm -f "$args_file"
-HOME="$tmp/home" FABRICA_CLAUDE_BIN="$fake" bash "$installed/scripts/stage-model.sh" run triagem 12 >/dev/null 2>&1
+env -u CLAUDECODE -u FABRICA_HARNESS -u OPENCODE_SESSION_ID HOME="$tmp/home" \
+  FABRICA_CLAUDE_BIN="$fake" bash "$installed/scripts/stage-model.sh" run triagem 12 >/dev/null 2>&1
 check CA6 "de dentro de ~/.claude/plugins/ não leva --plugin-dir" "no" \
   "$(grep -qx -- '--plugin-dir' "$args_file" && echo yes || echo no)"
 
@@ -125,7 +127,8 @@ mode_of() {
   [[ "$where" == "vm" ]] && persistent="$vm_file"
   rm -f "$proj/.fabrica/isolamento.txt" "$args_file"
   [[ "$iso" == "-sem-arquivo" ]] || printf '%s\n' "$iso" > "$proj/.fabrica/isolamento.txt"
-  (cd "$proj" && env -u PROXY_CA_CERT_B64 HOME="$tmp/home" FABRICA_SBX_PERSISTENT_FILE="$persistent" \
+  (cd "$proj" && env -u PROXY_CA_CERT_B64 -u CLAUDECODE -u FABRICA_HARNESS -u OPENCODE_SESSION_ID \
+    HOME="$tmp/home" FABRICA_SBX_PERSISTENT_FILE="$persistent" \
     FABRICA_CLAUDE_BIN="$fake" bash "$script" run triagem 12 >/dev/null 2>&1)
   perm_mode
 }
@@ -141,8 +144,9 @@ check CA13 "VM com modo inválido usa auto" "auto" "$(mode_of vm valor-estranho)
 broken="$tmp/broken"
 mkdir -p "$broken/scripts" "$broken/skills/avancar"
 cp "$script" "$broken/scripts/stage-model.sh"
+cp "$script_dir/harness.sh" "$broken/scripts/harness.sh"
 cp "$script_dir/../skills/avancar/modelos.md" "$broken/skills/avancar/modelos.md"
-run_broken() { (cd "$proj" && env -u PROXY_CA_CERT_B64 HOME="$tmp/home" FABRICA_CLAUDE_BIN="$fake" bash "$broken/scripts/stage-model.sh" run triagem 12 >/dev/null 2>&1); }
+run_broken() { (cd "$proj" && env -u PROXY_CA_CERT_B64 -u CLAUDECODE -u FABRICA_HARNESS -u OPENCODE_SESSION_ID HOME="$tmp/home" FABRICA_CLAUDE_BIN="$fake" bash "$broken/scripts/stage-model.sh" run triagem 12 >/dev/null 2>&1); }
 printf '#!/usr/bin/env bash\nexit 3\n' > "$broken/scripts/sbx-context.sh"
 printf '#!/usr/bin/env bash\necho sbx\n' > "$broken/scripts/setup-isolation.sh"
 rm -f "$args_file"; run_broken
