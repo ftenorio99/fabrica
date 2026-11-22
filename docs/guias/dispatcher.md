@@ -92,4 +92,5 @@ Uma falha na instalação do Claude Code ou do plugin (secret errado ou ausente,
 - **Comentário em linha gasta dois runs:** ele gera um evento de review e um de comentário de review. Um deles roda a etapa; o outro termina em pulo depois da instalação (2 a 3 min de runner).
 - **Hosts de dependências do `implementar`:** a lista de domínios ainda não tem os registros de pacotes; um `implementar` que baixa dependências falha no proxy (#108).
 - **CI do PR do agente:** com o `FABRICA_GH_TOKEN`, o PR que o agente abrir dispara o CI sozinho, sem a aprovação manual do run que o `GITHUB_TOKEN` exigia.
+- **CI vermelho no job:** o token do job não lê o CI do PR (não tem a permissão de checks), então o dispatcher não manda o `revisar` por CI vermelho. O `/fabrica:status` local continua lendo o CI ([estados.md](../../skills/status/estados.md)).
 - **Linha de custo:** depende do log da sessão no runner; sem ele, sai `tokens=nao-medido`.

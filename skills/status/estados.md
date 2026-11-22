@@ -57,6 +57,8 @@ A branch da issue vive na **worktree da issue**, `<clone>/.worktrees/<nº>`, cri
 | 12 | PR aberto sem `pronto-revisao` | Em revisão automática | agente | `/fabrica:revisar <nº>` (se não houver `em-andamento` recente) |
 | 13 | PR aberto com `pronto-revisao` | PR para revisar | usuário | Revisar o PR e fazer o merge com squash. |
 
+No dispatcher (job do GitHub Actions), a linha 10 não vale: o token do job não lê o CI do PR ([SPEC-107](../../specs/SPEC-107.md), CA28 e CA29). Um PR com CI vermelho cai na linha 12 ou 13 para o dispatcher. O `/fabrica:status` local continua aplicando a linha 10.
+
 ## Ação externa
 Quando o `implementar` ou o `revisar` depende de uma ação do usuário fora do GitHub (criar conta ou projeto, cadastrar secret, gerar chave), a etapa publica na issue um **comentário de ação**, com o marcador `<!-- fabrica:acao etapa=<implementar|revisar> -->` e uma checklist, aplica `acao-externa` e para ([ADR 0012](../../docs/adr/0012-acao-externa-com-checklist.md)). O formato do comentário e a retomada estão em [acao-externa.md](acao-externa.md).
 - **Leitura:** as linhas 1a e 1b usam o comentário de ação mais recente, lido por `python3 <diretório base da skill>/../../scripts/acao-status.py <comentários.json>`, com os comentários de `gh api repos/<repo>/issues/<nº>/comments --paginate --slurp`. A saída `estado=pendente` é a linha 1a, e `estado=concluida` é a 1b. As saídas `sem-comentario`, `sem-itens` e `etapa-invalida` são [inconsistências](#inconsistências).
