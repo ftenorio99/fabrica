@@ -153,6 +153,8 @@ cmd_lock() {
     # O git do agente lê só este arquivo, root-owned: o ~/.gitconfig dele
     # não sobrescreve a pasta dos hooks (SPEC-107, CA22 e CA23).
     echo "GIT_CONFIG_GLOBAL=$gitconfig_dst"
+    # Destino dos hooks que o protect-main confere (SPEC-107, CA25 e CA26).
+    echo "FABRICA_GITHOOKS_DEST=$hooks_dst"
   } > "$dir/agent.env"
   chmod 0644 "$dir/agent.env"
   : > "$dir/proxy.log"

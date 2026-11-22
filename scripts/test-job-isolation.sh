@@ -339,6 +339,8 @@ check CA7 "agent.env tem os dois marcadores e o proxy" "2 True" \
   "$(grep -c '=fabrica-marker-' "$c/etc/agent.env") $(grep -q "^HTTPS_PROXY=http://127.0.0.1:$PORT\$" "$c/etc/agent.env" && echo True || echo False)"
 check CA22 "agent.env manda o git do agente para o arquivo de configuração" "1 True" \
   "$(grep -c '^GIT_CONFIG_GLOBAL=' "$c/etc/agent.env") $(grep -q "^GIT_CONFIG_GLOBAL=$c/opt-gitconfig\$" "$c/etc/agent.env" && echo True || echo False)"
+check CA26 "agent.env grava o destino dos hooks que o protect-main confere" "1 True" \
+  "$(grep -c '^FABRICA_GITHOOKS_DEST=' "$c/etc/agent.env") $(grep -q "^FABRICA_GITHOOKS_DEST=$c/opt-githooks\$" "$c/etc/agent.env" && echo True || echo False)"
 check CA22 "lock sem os hooks instalados falha antes de subir o proxy" "1" \
   "$(c3="$(new_case semprep)"; PLUGIN_COPY="$c3/plugin" CLAUDE_CODE_OAUTH_TOKEN=x FABRICA_GH_TOKEN=y iso "$c3" lock >/dev/null 2>&1; echo $?)"
 check CA7 "o proxy recebeu os segredos pelo ambiente" "$oauth_real $gh_real" "$(cat "$c/proxy.env.seen")"
