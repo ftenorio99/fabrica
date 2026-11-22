@@ -112,6 +112,11 @@ for pair in "Roda a etapa:run" "Desmarca a issue:unmark" "Publica a falha:fail";
     "$(wf 'step("'"$name"'")["run"].strip()')"
 done
 check CA4 "nenhum passo usa mais o ISSUE_NUMBER" "[]" "$(wf '[s["name"] for s in steps if "ISSUE_NUMBER" in yaml.safe_dump(s)]')"
+# SPEC-107, CA24: o stage.json vai como artifact do run, por 3 dias, sem secret.
+check CA24 "o artifact do stage.json roda sempre, com retenção de 3 dias, do caminho do despacho" "always()|3|True" \
+  "$(wf '"|".join([step("Guarda o stage.json da execução")["if"], str(step("Guarda o stage.json da execução")["with"]["retention-days"]), str(step("Guarda o stage.json da execução")["with"]["path"].endswith("/fabrica-dispatch/stage.json"))])')"
+check CA24 "o passo de artifact usa actions/upload-artifact e não tem run nem secret" "True" \
+  "$(wf 'step("Guarda o stage.json da execução")["uses"].startswith("actions/upload-artifact@") and "run" not in step("Guarda o stage.json da execução") and "secrets." not in yaml.safe_dump(step("Guarda o stage.json da execução"))')"
 
 # CA5: passo de reserva da falha de instalação.
 check CA5 "reserva roda quando o plugin não foi instalado" "failure() && steps.plugin.outputs.path == ''" \

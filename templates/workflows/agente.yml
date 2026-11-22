@@ -171,3 +171,15 @@ jobs:
       - name: Mostra o log do proxy
         if: always()
         run: sudo cat /etc/fabrica/proxy.log || true
+
+      # SPEC-107, CA24: o stage.json (etapa, código de saída e saída da etapa)
+      # fica como artifact do run para a causa de uma etapa sem publicação
+      # aparecer. Não há secret neste passo.
+      - name: Guarda o stage.json da execução
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fabrica-stage-${{ github.run_id }}
+          path: ${{ runner.temp }}/fabrica-dispatch/stage.json
+          retention-days: 3
+          if-no-files-found: ignore
