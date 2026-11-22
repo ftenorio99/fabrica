@@ -12,6 +12,7 @@ O plugin do Claude Code não muda: esta pasta é inerte para ele e nada em `~/.c
 | Proteções | `hooks/protect-main.sh`, `hooks/protect-production.sh` e o guarda-corpo do `~/.claude` e da statusline, com as mesmas mensagens |
 | Statusline | não existe no OpenCode; não foi portada |
 | Custo | `scripts/stage-usage.py` não lê o log do OpenCode: a linha sai com `tokens=nao-medido` |
+| Harness | `server.ts` injeta `FABRICA_HARNESS=opencode` no ambiente dos comandos de shell; o `/fabrica:avancar` detecta a harness e roda as etapas na sessão, sem `claude -p`, sem label `modelo:*` e sem escalonamento. `OPENCODE_SESSION_ID` é a reserva |
 
 ## Requisitos
 

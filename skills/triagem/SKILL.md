@@ -37,6 +37,8 @@ A triagem decide se a issue está pronta para virar spec. Ela não escreve códi
   - `sonnet`: os demais casos.
 
   Se a issue já tem uma label `modelo:*` (do usuário ou de uma rodada anterior), mantenha-a e só registre o valor na tabela, sem a trocar. Com duas ou mais labels `modelo:*`, não aplique nenhuma: registre os valores como estão e avise no chat, que é uma inconsistência de [estados.md](../status/estados.md#inconsistências).
+
+  Antes de escolher, rode `bash <diretório base desta skill>/../../scripts/harness.sh detect`. Se a harness for `opencode` ou `antigravity`, a etapa roda no modelo da sessão: registre `Modelo | sessão — a etapa roda no modelo da sessão (<harness>)` e **não aplique nem troque** label `modelo:*`. Uma label que já estava na issue permanece; ela vale se a issue for retomada pelo Claude Code.
 - **Atalho:** a issue cabe no atalho quando atende a todas estas condições ([ADR 0004](../../docs/adr/0004-atalho-da-triagem-com-spec-curta.md)):
   - tamanho `P`;
   - classe `implementacao-simples` ou `documentacao`;
@@ -123,7 +125,7 @@ Os CAs seguem as mesmas regras da [spec](../spec/SKILL.md#4-escrever): numerados
 
 **Linha de custo:** logo antes de publicar, acrescente ao fim do arquivo do corpo a linha que registra o início, o fim e os tokens desta execução: `python3 <diretório base desta skill>/../../scripts/stage-usage.py --stage triagem --since <início> >> <arquivo>`. O script nunca falha: sem log da sessão, a linha sai com `tokens=nao-medido`. Ela vai no comentário de triagem com ou sem perguntas, e não no de lição.
 
-Depois, ajuste as labels. Em qualquer dos três casos abaixo, aplique também o modelo escolhido, se a issue ainda não tem uma `modelo:*` (`gh issue edit <nº> --add-label modelo:<apelido>`):
+Depois, ajuste as labels. Em qualquer dos três casos abaixo, aplique também o modelo escolhido, se a issue ainda não tem uma `modelo:*`, **exceto no caminho de sessão** (`opencode` ou `antigravity`), em que nenhuma label de modelo é aplicada (`gh issue edit <nº> --add-label modelo:<apelido>`):
 - **Com lacunas:** `gh issue edit <nº> --add-label precisa-info` e registre uma lição com o gatilho `precisa-info`, resumindo as lacunas e por que a issue não as respondia, como diz [../licao/formato.md](../licao/formato.md). Pare aqui e diga ao usuário que as perguntas estão na issue. Depois de respondidas, a triagem deve ser rodada de novo. As recomendações do mesmo comentário seguem para a spec na rodada seguinte, se o usuário não as contestar.
 - **Sem lacunas e sem atalho:** vale também para a issue que só tem recomendações, que não abrem `precisa-info` nem geram lição. `gh issue edit <nº> --remove-label precisa-info` (se estiver lá). Se a issue tiver `spec-pronta` e nenhum comentário de spec, sobra de uma rodada anterior com atalho, remova também `spec-pronta`. Diga que a issue está pronta para `/fabrica:spec <nº>`.
 - **Atalho:** `gh issue edit <nº> --add-label spec-pronta --remove-label precisa-info`. Diga que a spec curta está no comentário de triagem e que o usuário aplica `spec-aprovada` para aprovar ou comenta na issue para pedir a spec completa.

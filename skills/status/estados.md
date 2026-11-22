@@ -24,7 +24,7 @@ Esta tabela é lida por `scripts/setup-labels.sh`, que cria ou corrige as labels
 | `modelo:sonnet` | triagem, usuário, avancar | `5ebeef` | Modelo da implementação: Sonnet 5.5, o padrão quando a issue não tem label de modelo. |
 | `modelo:opus` | triagem, usuário, avancar | `0b3d91` | Modelo da implementação e da revisão: Opus 5.5, para issue de risco ou arquitetura. |
 
-As labels `modelo:*` escolhem o modelo da implementação e da revisão ([ADR 0013](../../docs/adr/0013-modelo-por-etapa-e-por-issue.md), tabela em [`skills/avancar/modelos.md`](../avancar/modelos.md)). Elas **não mudam o estado** da issue e não entram em nenhuma condição da tabela de estados. A triagem aplica uma; o usuário pode trocá-la até aplicar `spec-aprovada`; o `avancar` a troca quando uma falha de qualidade sobe o modelo. Sem label de modelo, vale `sonnet`.
+As labels `modelo:*` escolhem o modelo da implementação e da revisão no caminho `claude -p` ([ADR 0013](../../docs/adr/0013-modelo-por-etapa-e-por-issue.md), tabela em [`skills/avancar/modelos.md`](../avancar/modelos.md)). Elas **não mudam o estado** da issue e não entram em nenhuma condição da tabela de estados. A triagem aplica uma; o usuário pode trocá-la até aplicar `spec-aprovada`; o `avancar` a troca quando uma falha de qualidade sobe o modelo. Sem label de modelo, vale `sonnet`. No caminho de sessão (`opencode` ou `antigravity`, pelo [`harness.sh`](../../scripts/harness.sh)), a triagem registra `sessão` e não aplica nem troca a label, e o `avancar` não faz escalonamento; a tabela e o padrão `sonnet` valem só no `claude -p`.
 
 ## Estados
 Avalie de cima para baixo; vale a primeira linha cuja condição for verdadeira.
