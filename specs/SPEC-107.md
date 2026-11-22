@@ -1,7 +1,7 @@
 # SPEC-107: Retomada por evento: resposta, `spec-aprovada`, comentário no PR e checklist concluída disparam a etapa seguinte, sem cascata
 
 **Issue:** #107 · **PRD:** F5 (item 7 do fatiamento, M2) · **Classe:** implementacao-complexa · **Tamanho:** G
-**Status:** rascunho · **Atualizada em:** 2026-11-22
+**Status:** aprovada · **Atualizada em:** 2026-11-22
 
 ## Contexto
 A F5 do [PRD](../docs/prd.md) pede que cada gesto do usuário (resposta a perguntas, `spec-aprovada`, comentário no PR e checklist de ação externa concluída) dispare a etapa seguinte, até o próximo portão. Hoje o dispatcher ([SPEC-105](SPEC-105.md), [ADR 0015](../docs/adr/0015-dispatcher-no-github-actions.md)) só roda a triagem quando `agente` é aplicada, e o resto do fluxo depende do `/fabrica:avancar` na máquina do usuário. Depois da [SPEC-106](SPEC-106.md) ([ADR 0016](../docs/adr/0016-isolamento-do-job-do-dispatcher.md)), as escritas do job saem com o `FABRICA_GH_TOKEN`, cujos eventos disparam workflows: o filtro do workflow virou a única trava contra cascata, e agente e usuário usam a mesma conta do GitHub.
@@ -202,3 +202,4 @@ nenhum
 - 2026-11-22: mudança (incluir) — ajuste dos hooks do git no job, que o `fabrica-agent` precisa para commit e push nas etapas de ajuste (ver Decisões). CAs: incluídos CA22 a CA24; removidos nenhum; alterados nenhum.
 - 2026-11-22: aprovada.
 - 2026-11-22: mudança (incluir) — destino dos hooks no `protect-main` do job, escolha do usuário na issue (opção 1). CAs: incluídos CA25 a CA27; removidos nenhum; alterados CA21 (a versão final vai a 0.46.1).
+- 2026-11-22: aprovada.
