@@ -1,7 +1,7 @@
 # SPEC-107: Retomada por evento: resposta, `spec-aprovada`, comentário no PR e checklist concluída disparam a etapa seguinte, sem cascata
 
 **Issue:** #107 · **PRD:** F5 (item 7 do fatiamento, M2) · **Classe:** implementacao-complexa · **Tamanho:** G
-**Status:** aprovada · **Atualizada em:** 2026-11-22
+**Status:** rascunho · **Atualizada em:** 2026-11-22
 
 ## Contexto
 A F5 do [PRD](../docs/prd.md) pede que cada gesto do usuário (resposta a perguntas, `spec-aprovada`, comentário no PR e checklist de ação externa concluída) dispare a etapa seguinte, até o próximo portão. Hoje o dispatcher ([SPEC-105](SPEC-105.md), [ADR 0015](../docs/adr/0015-dispatcher-no-github-actions.md)) só roda a triagem quando `agente` é aplicada, e o resto do fluxo depende do `/fabrica:avancar` na máquina do usuário. Depois da [SPEC-106](SPEC-106.md) ([ADR 0016](../docs/adr/0016-isolamento-do-job-do-dispatcher.md)), as escritas do job saem com o `FABRICA_GH_TOKEN`, cujos eventos disparam workflows: o filtro do workflow virou a única trava contra cascata, e agente e usuário usam a mesma conta do GitHub.
@@ -113,7 +113,7 @@ Regras, iguais às de estados.md:
 | CA24 | `agente.yml` envia o `stage.json` de `$RUNNER_TEMP/fabrica-dispatch/` como artifact do run, em todo run que chega ao passo do despacho, com `if: always()` e `retention-days: 3`. O passo não pode ler nem imprimir o valor de nenhum secret. | unitário — `scripts/test-dispatch.sh`, lendo o YAML com PyYAML; e2e — repositório de teste, com o artifact no run do CA15 |
 | CA25 | `hooks/protect-main.sh` usa a variável `FABRICA_GITHOOKS_DEST` como destino dos hooks quando ela existe e não é vazia; sem ela, o destino é `$HOME/.config/fabrica/githooks`, como hoje. Um commit ou push cujo `core.hooksPath` global é igual ao destino passa; diferente, sai com `deny`. Um comando do Bash que cita `FABRICA_GITHOOKS_DEST` é negado, como os que citam `GIT_CONFIG`. | unitário — `scripts/test-protect-main.sh`, com a variável definida e sem ela |
 | CA26 | `job-isolation.sh lock` grava `FABRICA_GITHOOKS_DEST=<pasta dos hooks>` no `agent.env`, com o mesmo caminho que o `prepare` usa para a pasta dos hooks. | unitário — `scripts/test-job-isolation.sh` |
-| CA27 | No ponta a ponta com esta versão do plugin, uma etapa de ajuste de spec faz commit e push na branch da issue, publica o comentário `<!-- fabrica:spec -->`, e o `stage.json` do run não traz a mensagem de hooks não instalados. | e2e — `ftenorio99/fabrica-teste`, com o `git log` da branch de teste e o artifact do run |
+| CA27 | No ponta a ponta com esta versão do plugin, uma etapa de ajuste de spec faz commit e push na branch da issue e publica o comentário `<!-- fabrica:spec -->`. O bloqueio do `protect-main` não aparece no `stage.json` do run. O aviso do `session-start.sh` sobre os hooks, que confere `$HOME/.config/fabrica/githooks`, pode aparecer; esta spec não o altera. | e2e — `ftenorio99/fabrica-teste`, com o `git log` da branch de teste e o artifact do run |
 | CA21 | `docs/guias/dispatcher.md` explica os gestos que acordam o workflow, o laço até o portão e o teto, o freio, a resolução do PR, o tempo de 110 min e os limites (gesto feito com outra execução em curso, hosts de dependências do `implementar`); `skills/status/estados.md` diz que o `issue-state.py` implementa a tabela de estados e precisa mudar no mesmo PR; `AGENTS.md` cita o `issue-state.py` e o `bash scripts/test-issue-state.sh`; `docs/README.md` atualiza a linha do guia; a [ADR 0017](../docs/adr/0017-leitor-de-estado-em-codigo-para-o-dispatcher.md) passa a `aceito`; a `version` do `plugin.json` vai de 0.45.0 para 0.46.1, porque o CA25 muda o comportamento do `protect-main`. | manual — leitura do diff na revisão |
 
 ## Fora de escopo
@@ -203,3 +203,4 @@ nenhum
 - 2026-11-22: aprovada.
 - 2026-11-22: mudança (incluir) — destino dos hooks no `protect-main` do job, escolha do usuário na issue (opção 1). CAs: incluídos CA25 a CA27; removidos nenhum; alterados CA21 (a versão final vai a 0.46.1).
 - 2026-11-22: aprovada.
+- 2026-11-22: mudança (alterar) — o CA27 deixa de exigir a ausência do aviso do `session-start.sh`, escolha do usuário na issue (opção b). CAs: incluídos nenhum; removidos nenhum; alterados CA27.
