@@ -1,7 +1,7 @@
 # SPEC-107: Retomada por evento: resposta, `spec-aprovada`, comentário no PR e checklist concluída disparam a etapa seguinte, sem cascata
 
 **Issue:** #107 · **PRD:** F5 (item 7 do fatiamento, M2) · **Classe:** implementacao-complexa · **Tamanho:** G
-**Status:** aprovada · **Atualizada em:** 2026-11-19
+**Status:** rascunho · **Atualizada em:** 2026-11-22
 
 ## Contexto
 A F5 do [PRD](../docs/prd.md) pede que cada gesto do usuário (resposta a perguntas, `spec-aprovada`, comentário no PR e checklist de ação externa concluída) dispare a etapa seguinte, até o próximo portão. Hoje o dispatcher ([SPEC-105](SPEC-105.md), [ADR 0015](../docs/adr/0015-dispatcher-no-github-actions.md)) só roda a triagem quando `agente` é aplicada, e o resto do fluxo depende do `/fabrica:avancar` na máquina do usuário. Depois da [SPEC-106](SPEC-106.md) ([ADR 0016](../docs/adr/0016-isolamento-do-job-do-dispatcher.md)), as escritas do job saem com o `FABRICA_GH_TOKEN`, cujos eventos disparam workflows: o filtro do workflow virou a única trava contra cascata, e agente e usuário usam a mesma conta do GitHub.
@@ -108,6 +108,9 @@ Regras, iguais às de estados.md:
 | CA18 | **Checklist:** com um comentário `<!-- fabrica:acao etapa=revisar -->` de 2 itens e a label `acao-externa` postados à mão na issue do CA16, marcar 1 item gera run com pulo; marcar o 2º roda o `revisar`, que remove a `acao-externa`. | e2e — repositório de teste |
 | CA19 | **Sem cascata:** nos testes do CA15 ao CA18, todo run gerado por comentário ou label do agente (inclusive `fabrica:dispatcher`) termina `skipped`, nenhum run `skipped` aparece como `cancelled`, e o número de runs que chamaram o `claude` é igual ao número de gestos feitos. | e2e — repositório de teste, com a saída do `gh run list --workflow agente.yml --json event,conclusion,createdAt` |
 | CA20 | **Modo `auto` no runner:** os testes do CA15 ao CA18 dizem se o `auto` deixou `spec`, `implementar` e `revisar` terminarem. Se alguma falhar por `permissao`, o CA correspondente fica reprovado, e a implementação para com `escalonado` e registra o resultado na issue, sem contornar o modo de permissão. | e2e — repositório de teste |
+| CA22 | `job-isolation.sh prepare` copia `githooks/` do plugin para `/opt/fabrica-githooks`, com dono `runner` e sem escrita para `fabrica-agent`, e grava ali um arquivo de configuração do git, também sem escrita para o agente, com a pasta de hooks como `core.hooksPath`. O `job-isolation.sh lock` grava no `agent.env` a variável que faz o git do agente ler só esse arquivo, e não o `~/.gitconfig` dele. Os caminhos de destino são configuráveis por variável, para o teste. | unitário — `scripts/test-job-isolation.sh`, com os destinos numa pasta temporária |
+| CA23 | Com a configuração do CA22 ativa, um commit feito pelo usuário `fabrica-agent` numa branch `main` é recusado pelo hook, e um commit numa branch de feature passa. Um `git config --global` do agente não muda a pasta de hooks em uso. | unitário — `scripts/test-job-isolation.sh`, com git real num repositório temporário |
+| CA24 | `agente.yml` envia o `stage.json` de `$RUNNER_TEMP/fabrica-dispatch/` como artifact do run, em todo run que chega ao passo do despacho, com `if: always()` e `retention-days: 3`. O passo não pode ler nem imprimir o valor de nenhum secret. | unitário — `scripts/test-dispatch.sh`, lendo o YAML com PyYAML; e2e — repositório de teste, com o artifact no run do CA15 |
 | CA21 | `docs/guias/dispatcher.md` explica os gestos que acordam o workflow, o laço até o portão e o teto, o freio, a resolução do PR, o tempo de 110 min e os limites (gesto feito com outra execução em curso, hosts de dependências do `implementar`); `skills/status/estados.md` diz que o `issue-state.py` implementa a tabela de estados e precisa mudar no mesmo PR; `AGENTS.md` cita o `issue-state.py` e o `bash scripts/test-issue-state.sh`; `docs/README.md` atualiza a linha do guia; a [ADR 0017](../docs/adr/0017-leitor-de-estado-em-codigo-para-o-dispatcher.md) passa a `aceito`; a `version` do `plugin.json` vai de 0.45.0 para 0.46.0. | manual — leitura do diff na revisão |
 
 ## Fora de escopo
@@ -124,6 +127,9 @@ Regras, iguais às de estados.md:
 - `scripts/issue-state.py` (novo): subcomandos `branch` e `state` da seção 5.
 - `scripts/test-issue-state.sh` (novo): CA6 a CA9, no estilo do `scripts/test-acao-status.sh`.
 - `scripts/test-dispatch.sh`: CA1 a CA5 e CA10 a CA14; os casos da SPEC-105 e da SPEC-106 que mudam (pulo de issue triada, timeouts, grupo de concorrência, assinatura `run <nº>`) são ajustados, com a mudança registrada no PR.
+- `scripts/job-isolation.sh`: `prepare` copia `githooks/` para `/opt/fabrica-githooks` e grava o arquivo de configuração do git do agente (CA22); `lock` grava `GIT_CONFIG_GLOBAL` no `agent.env`, que o `run-as-agent.sh` passa ao agente, porque ele roda com ambiente fechado (`env -i`).
+- `templates/workflows/agente.yml`: passo de upload do `stage.json` como artifact (CA24).
+- `scripts/test-job-isolation.sh`: CA22 e CA23. `scripts/test-dispatch.sh`: CA24.
 - `docs/adr/0017-leitor-de-estado-em-codigo-para-o-dispatcher.md` (novo, `proposto`).
 - `skills/status/estados.md`, `docs/guias/dispatcher.md`, `docs/README.md`, `AGENTS.md`, `.claude-plugin/plugin.json` (0.45.0 → 0.46.0).
 
@@ -147,10 +153,15 @@ Regras, iguais às de estados.md:
 - Tempo de 100 min no passo e 110 no job, porque o laço pode ter `implementar` e `revisar` e precisa terminar antes das 2 h da `em-andamento`. Alternativa descartada: manter 30 e 40 min, que derrubariam o `implementar` no meio.
 - Checkout da branch padrão, porque o `pull_request_review` traz como `GITHUB_REF` o merge do PR, e as etapas criam a própria worktree a partir da `origin`. Alternativa descartada: o checkout padrão do evento, que deixaria a cópia de trabalho num commit de merge temporário.
 - O dispatcher não confere "marcador de spec sem a branch", porque distinguir 404 de erro de rede no `gh api` complica o script, e a etapa que precisa da branch já para nesse caso ("sem avanço"). Alternativa descartada: conferir com `gh api repos/<repo>/branches/<branch>`.
+- Hooks do git no job (ajuste de 2026-11-22): o `fabrica-agent` precisa de commit e push nas etapas de ajuste, então os hooks da `main` ficam ativos para ele, e não se declara que o agente não usa git. Os hooks ficam em `/opt/fabrica-githooks`, dono `runner`, sem escrita para o agente, porque uma pasta que ele escreve pode ser editada por ele mesmo. A configuração que aponta para essa pasta é um arquivo root-owned, passado ao agente por `GIT_CONFIG_GLOBAL` no `agent.env`: ele é o único arquivo de configuração global que o git do agente lê, então o `~/.gitconfig` dele não sobrescreve a pasta. Alternativa descartada: `git config --system` em `/etc/gitconfig`, que a configuração global do agente (`~/.gitconfig`) sobrescreve. Alternativa descartada: instalar com `setup-githooks.sh` no home do agente, que ele pode alterar. Não se cria ADR nova: é aplicação do isolamento da ADR 0016. (decisão do usuário no comentário de 2026-11-22, com a forma refinada aqui)
+- Artifact do `stage.json` (ajuste de 2026-11-22): o arquivo fica como artifact do run por 3 dias, para a causa de uma etapa que sai sem publicar ficar visível. Alternativa descartada: colar o conteúdo no comentário de falha, que é público no repositório e pode ser longo.
+- Limite dos hooks no job: o `.git/config` do checkout, que o agente escreve, e a opção `-c` do git não são cobertos pelo CA22; a proteção contra essas duas é a regra do `protect-main` do lado do Claude e o CA23 testa só a configuração do job. Registrado como risco.
 
 **Fontes da documentação:**
 - GitHub Actions — documentação consultada em 2026-11-19: [eventos que disparam workflows](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows) (`issues`, `issue_comment` em issue ou PR, `pull_request_review` e `pull_request_review_comment`; o workflow tem de existir na branch padrão), [concorrência](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/control-workflow-concurrency) (um pendente por grupo, `cancel-in-progress: false`, grupo com contexto `github`) e [expressões](https://docs.github.com/en/actions/reference/workflows-and-actions/expressions) (`startsWith` não diferencia maiúsculas, `!`, `||`, `&&`). Versão não confirmada: a documentação do site não é versionada.
 - gh 2.104.0 — `gh pr view --help` (campos `state`, `headRefName`, `closingIssuesReferences`, `statusCheckRollup`, `reviewDecision`, `reviews`, `comments`, `updatedAt`), `gh pr list --help` (`--head`, `--state`, os mesmos campos), `gh issue view --help` (`state`, `labels`, `comments`), `gh api --help` (`--paginate`, `--slurp`), `gh pr comment --help` (`--body-file`).
+- git — variável `GIT_CONFIG_GLOBAL` e `core.hooksPath`: **não verificada**. A consulta a `git help config` foi barrada pelo hook `protect-main` nesta etapa; confirmar com `git help config` no CA22 antes de implementar.
+- actions/upload-artifact e `retention-days`: **não verificada**; confirmar no CA24.
 
 **ADR:** [docs/adr/0017-leitor-de-estado-em-codigo-para-o-dispatcher.md](../docs/adr/0017-leitor-de-estado-em-codigo-para-o-dispatcher.md) (proposto).
 
@@ -159,6 +170,7 @@ Regras, iguais às de estados.md:
 - `bash scripts/test-dispatch.sh`: CA1 a CA5 leem o YAML com PyYAML; CA10 a CA14 rodam o `dispatch.sh` com um `gh` falso que responde a `issue view`, `pr view`, `pr list`, `api .../timeline`, `api .../comments`, `issue edit`, `issue comment` e `pr comment` a partir de arquivos, uma resposta por chamada quando o caso precisa de estados em sequência, e com `FABRICA_CLAUDE_BIN` falso.
 - `bash scripts/test-stage-model.sh`, `bash scripts/test-acao-status.sh` e `bash scripts/test-job-isolation.sh` continuam passando.
 - CA15 a CA20: no `ftenorio99/fabrica-teste`, com o workflow copiado da branch e os secrets já cadastrados; issues e PRs de teste fechados no fim com um comentário dizendo que eram teste.
+- CA22 a CA24: `bash scripts/test-job-isolation.sh` e `bash scripts/test-dispatch.sh`, como acima.
 
 ## Passos de produção
 nenhum
@@ -171,7 +183,11 @@ nenhum
 - **Workflow do PR:** no `pull_request_review`, o GitHub usa o workflow da ref de merge do PR. O PR do agente não altera workflows, porque o `FABRICA_GH_TOKEN` não tem a permissão Workflows (SPEC-106).
 - **Tabela duplicada:** o `issue-state.py` repete a lógica de estados.md; a ADR 0017 obriga mudar os dois no mesmo PR.
 - **Tamanho:** se a implementação passar de 2 dias, o corte é eventos de issue (resposta, `spec-aprovada`, checklist) numa issue e eventos de PR (resolução do PR, comentário e review) noutra.
+- **Hooks no job, limite:** o `.git/config` do checkout e a opção `-c` do git podem sobrescrever o `core.hooksPath` do agente (ver Decisões). Aceito; o CA23 prova só a configuração do job.
+- **Artifact com a saída do Claude:** o `stage.json` pode trazer trechos da saída da etapa, visíveis a quem lê o repositório por 3 dias. Por isso a retenção é curta e o CA24 exige que o passo não imprima secret.
+- **Upload de artifact:** o passo `actions/upload-artifact` não foi confirmado com a documentação atual do GitHub Actions; confirmar no CA24 (e2e).
 
 ## Histórico
 - 2026-11-19: criação.
 - 2026-11-19: aprovada.
+- 2026-11-22: mudança (incluir) — ajuste dos hooks do git no job, que o `fabrica-agent` precisa para commit e push nas etapas de ajuste (ver Decisões). CAs: incluídos CA22 a CA24; removidos nenhum; alterados nenhum.
