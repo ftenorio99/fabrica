@@ -173,7 +173,7 @@ sys.exit(0 if "acao-externa" in [l.get("name") for l in json.load(open(sys.argv[
   branch="$(issue_state branch "$state_dir/issue.json")" || { say "o issue-state.py não leu a issue #$issue."; return 1; }
   if [[ -n "$branch" ]]; then
     prs="$("$gh_bin" pr list --repo "$repo" --head "$branch" --state all \
-      --json number,state,isDraft,mergedAt,statusCheckRollup,reviewDecision,reviews,comments,updatedAt)" \
+      --json number,state,isDraft,mergedAt,reviewDecision,reviews,comments,updatedAt)" \
       || { say "o gh não listou os PRs da branch da issue #$issue."; return 1; }
   fi
 

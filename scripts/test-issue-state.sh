@@ -179,6 +179,12 @@ pkg $base_labels - "$(pr OPEN false '[{"state":"ERROR"}]')" "0|$TRI" "60|$SPEC"
 check CA8 "status com ERROR é linha 10" "10" "$(field linha)"
 pkg $base_labels - "$(pr OPEN false '[{"conclusion":"SUCCESS"},{"status":"IN_PROGRESS","conclusion":""},{"state":"PENDING"}]')" "0|$TRI" "60|$SPEC"
 check CA8 "item pendente não é falha" "13" "$(field linha)"
+# SPEC-107, CA29: sem o campo statusCheckRollup (o job não o pede), a linha 10 não vale.
+no_field='[{"number":30,"state":"OPEN","isDraft":false,"mergedAt":null,"reviewDecision":"","reviews":[],"comments":[],"updatedAt":"2026-11-19T10:00:00Z"}]'
+pkg agente,spec-aprovada - "$no_field" "0|$TRI" "60|$SPEC"
+check CA29 "sem o campo de CI, PR sem pronto-revisao vai à linha 12" "12" "$(field linha)"
+pkg agente,spec-aprovada,pronto-revisao - "$no_field" "0|$TRI" "60|$SPEC"
+check CA29 "sem o campo de CI, PR com pronto-revisao vai à linha 13" "13" "$(field linha)"
 two_prs='[{"number":20,"state":"CLOSED","isDraft":false,"mergedAt":null,"statusCheckRollup":[],"reviewDecision":"","reviews":[],"comments":[],"updatedAt":"2026-11-19T12:00:00Z"},{"number":21,"state":"OPEN","isDraft":false,"mergedAt":null,"statusCheckRollup":[],"reviewDecision":"","reviews":[],"comments":[],"updatedAt":"2026-11-19T11:00:00Z"}]'
 pkg agente,spec-aprovada - "$two_prs" "0|$TRI" "60|$SPEC"
 check CA8 "entre um PR fechado e um aberto vale o aberto" "linha=12 etapa=revisar quem=agente inconsistencia=-" "$(state)"

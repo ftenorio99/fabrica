@@ -158,6 +158,8 @@ calls="$tmp/calls.log"
 cat > "$bin/gh" <<EOF
 #!/usr/bin/env bash
 printf '%s\n' "\$*" >> "$calls"
+# SPEC-107, CA28: o token do job não tem a permissão de checks.
+case "\$*" in *statusCheckRollup*) echo "GraphQL: Resource not accessible by personal access token" >&2; exit 1 ;; esac
 case "\$1 \$2" in
   "issue view") cat "$tmp/view.json" ;;
   "pr view") [[ -f "$tmp/prview.json" ]] || exit 1; cat "$tmp/prview.json" ;;
@@ -276,6 +278,7 @@ check CA10 "PR com uma issue e a branch dela: sai com 0" "0" "$(dispatch run pr 
 check CA10 "PR: roda o revisar da issue resolvida" "/fabrica:revisar 7" "$(tail -n 1 "$tmp/claude.args" 2>/dev/null)"
 check CA10 "PR: a em-andamento vai para a issue, não para o PR" "issue edit 7 --repo dono/projeto --add-label em-andamento" "$(grep '^issue edit' "$calls" | head -n 1)"
 check CA10 "PR: lista os PRs pela branch da issue, antes e depois da etapa" "2" "$(grep -c -- '^pr list --repo dono/projeto --head feat/7-coisa --state all' "$calls")"
+check CA28 "nenhum comando gh pede statusCheckRollup" "0" "$(grep -c statusCheckRollup "$calls")"
 check CA10 "PR: unmark remove a label da issue resolvida" "0|issue edit 7 --repo dono/projeto --remove-label em-andamento" \
   "$(dispatch unmark pr 30)|$(grep '^issue edit' "$calls" | tail -n 1)"
 
