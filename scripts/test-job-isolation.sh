@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Testa o isolamento do job do dispatcher (SPEC-106, CA1 a CA8 e CA10): o addon
+# Testa o isolamento do job do dispatcher (SPEC-106, CA1 a CA8 e CA10; SPEC-107,
+# CA22 a CA26; SPEC-108, CA8 a CA12, marcados como 108-CA<n>): o addon
 # do proxy, o job-isolation.sh e o run-as-agent.sh, com sudo, useradd, chown,
 # iptables, claude e mitmdump falsos. O addon roda com um módulo mitmproxy
 # falso, então não precisa do pacote.
@@ -187,6 +188,12 @@ EOF
 cat > "$bin/chown" <<'EOF'
 #!/usr/bin/env bash
 echo "chown $*" >> "$FAKE_CALLS"
+# Registra se a lista final de domínios já existia quando o checkout foi
+# passado ao agente (SPEC-108, CA8).
+if [[ "$1" == "-R" && "$2" == fabrica-agent:* ]]; then
+  [[ -f "$FAKE_STATE/etc/dominios.txt" ]] && echo sim > "$FAKE_STATE/lista-antes-do-chown" \
+    || echo nao > "$FAKE_STATE/lista-antes-do-chown"
+fi
 EOF
 for tool in iptables ip6tables; do
   cat > "$bin/$tool" <<EOF
@@ -352,6 +359,8 @@ check CA7 "o mapa de marcadores não tem segredo" "0" "$(grep -c -e "$oauth_real
 # CA5 (lock): configuração inválida não sobe nada.
 c2="$(new_case lock-vazio)"
 : > "$c2/plugin/templates/workflows/dominios-liberados.txt"
+iso "$c2" prepare "$c2/plugin" "$c2/work/projeto" >/dev/null 2>&1
+: > "$c2/calls.log"
 PORT="$(free_port)"
 rc="$(PLUGIN_COPY="$c2/plugin" CLAUDE_CODE_OAUTH_TOKEN="$oauth_real" FABRICA_GH_TOKEN="$gh_real" iso "$c2" lock >/dev/null 2>&1; echo $?)"
 check CA5 "lock com lista vazia sai com 1" "1" "$rc"
@@ -361,6 +370,88 @@ c3="$(new_case lock-sem-token)"
 rc="$(PLUGIN_COPY="$c3/plugin" CLAUDE_CODE_OAUTH_TOKEN="$oauth_real" iso "$c3" lock >/dev/null 2>&1; echo $?)"
 check CA5 "lock sem o FABRICA_GH_TOKEN sai com 1 e não fecha a rede" "1 0" \
   "$rc $(grep -c -E '^(iptables|ip6tables)' "$c3/calls.log")"
+
+# --- SPEC-108: lista de domínios do projeto (.fabrica/dominios.txt) ---
+
+# 108-CA8: lista válida do projeto, acrescentada à do plugin sem repetição.
+c="$(new_case dominios-ok)"
+mkdir -p "$c/work/projeto/.fabrica"
+printf '# pnpm e corepack\nregistry.npmjs.org\n\n  Registry-1.Docker.IO  \napi.github.com\nregistry.npmjs.org\r\n' > "$c/work/projeto/.fabrica/dominios.txt"
+rc="$(iso "$c" prepare "$c/plugin" "$c/work/projeto" >/dev/null 2>&1; echo $?)"
+check 108-CA8 "prepare com lista válida sai com 0" "0" "$rc"
+check 108-CA8 "a lista final começa com a do plugin, sem mudança" "igual" \
+  "$(head -n "$(wc -l < "$domains_file")" "$c/etc/dominios.txt" | cmp -s - "$domains_file" && echo igual || echo diferente)"
+check 108-CA8 "os hosts do projeto vêm depois, normalizados e sem repetição" "registry.npmjs.org registry-1.docker.io" \
+  "$(tail -n +"$(($(wc -l < "$domains_file") + 1))" "$c/etc/dominios.txt" | grep -v -e '^#' -e '^$' | paste -sd ' ')"
+check 108-CA8 "um host que já está na lista do plugin não se repete" "1" "$(grep -c -x 'api.github.com' "$c/etc/dominios.txt")"
+check 108-CA8 "a lista final é 0644" "644" "$(stat -c %a "$c/etc/dominios.txt")"
+check 108-CA8 "a lista final já existia quando o checkout passou ao agente" "sim" "$(cat "$c/lista-antes-do-chown" 2>/dev/null)"
+check 108-CA8 "o addon aceita a lista final" "0" \
+  "$(TOKEN_A=valor python3 -I "$addon" check "$c/etc/dominios.txt" "$tmp/cfg/markers-ok.json" >/dev/null 2>&1; echo $?)"
+check 108-CA8 "o arquivo do projeto não é alterado" "6" "$(wc -l < "$c/work/projeto/.fabrica/dominios.txt")"
+check 108-CA8 "um .fabrica/dominios.txt que é link falha fechado" "1 False" \
+  "$(c2="$(new_case dominios-link)"; mkdir -p "$c2/work/projeto/.fabrica"; echo segredo.example.com > "$c2/fora.txt"
+     ln -s "$c2/fora.txt" "$c2/work/projeto/.fabrica/dominios.txt"
+     echo "$(iso "$c2" prepare "$c2/plugin" "$c2/work/projeto" >/dev/null 2>&1; echo $?) $([[ -f "$c2/etc/dominios.txt" ]] && echo True || echo False)")"
+check 108-CA8 "uma pasta .fabrica que é link falha fechado" "1" \
+  "$(c2="$(new_case dominios-pasta-link)"; mkdir -p "$c2/fora"; echo x.example.com > "$c2/fora/dominios.txt"
+     ln -s "$c2/fora" "$c2/work/projeto/.fabrica"
+     iso "$c2" prepare "$c2/plugin" "$c2/work/projeto" >/dev/null 2>&1; echo $?)"
+
+# 108-CA9: sem arquivo, ou só com comentários e linhas vazias, igual à do plugin.
+c="$(new_case dominios-sem)"
+iso "$c" prepare "$c/plugin" "$c/work/projeto" >/dev/null 2>&1
+check 108-CA9 "sem .fabrica/dominios.txt, a lista final é igual à do plugin" "igual" \
+  "$(cmp -s "$c/etc/dominios.txt" "$domains_file" && echo igual || echo diferente)"
+c="$(new_case dominios-comentarios)"
+mkdir -p "$c/work/projeto/.fabrica"
+printf '# nada por enquanto\n\n   \n' > "$c/work/projeto/.fabrica/dominios.txt"
+iso "$c" prepare "$c/plugin" "$c/work/projeto" >/dev/null 2>&1
+check 108-CA9 "só com comentários e linhas vazias, a lista final é igual à do plugin" "igual" \
+  "$(cmp -s "$c/etc/dominios.txt" "$domains_file" && echo igual || echo diferente)"
+
+# 108-CA10: cada forma inválida falha fechado, com a linha em stderr.
+for bad in '*' '*.npmjs.org' 'https://x.org' 'x.org:443' 'a b.org' 'localhost' '10.0.0.1' '-x.org' 'x-.org' 'x..org'; do
+  c="$(new_case "dominios-invalido-$(printf '%s' "$bad" | md5sum | cut -c1-8)")"
+  mkdir -p "$c/work/projeto/.fabrica"
+  printf 'registry.npmjs.org\n%s\n' "$bad" > "$c/work/projeto/.fabrica/dominios.txt"
+  err="$(iso "$c" prepare "$c/plugin" "$c/work/projeto" 2>&1 >/dev/null)"; rc=$?
+  check 108-CA10 "\"$bad\": sai com 1, com a linha em stderr, sem lista final e sem passar o checkout" "1 True False 0" \
+    "$rc $([[ "$err" == *"linha 2: \"$bad\""* ]] && echo True || echo False) $([[ -f "$c/etc/dominios.txt" ]] && echo True || echo False) $(grep -c '^chown -R fabrica-agent' "$c/calls.log")"
+done
+c="$(new_case dominios-invalido-depois)"
+mkdir -p "$c/etc" "$c/work/projeto/.fabrica"
+echo velho > "$c/etc/dominios.txt"
+echo '*.org' > "$c/work/projeto/.fabrica/dominios.txt"
+iso "$c" prepare "$c/plugin" "$c/work/projeto" >/dev/null 2>&1
+check 108-CA10 "uma lista final de um prepare anterior não sobra depois da falha" "False" \
+  "$([[ -f "$c/etc/dominios.txt" ]] && echo True || echo False)"
+
+# 108-CA11: o lock lê a lista final; sem ela, falha antes de subir o proxy.
+c="$(new_case dominios-lock)"
+mkdir -p "$c/work/projeto/.fabrica"
+echo registry.npmjs.org > "$c/work/projeto/.fabrica/dominios.txt"
+iso "$c" prepare "$c/plugin" "$c/work/projeto" >/dev/null 2>&1
+PORT="$(free_port)"
+rc="$(CLAUDE_CODE_OAUTH_TOKEN="$oauth_real" FABRICA_GH_TOKEN="$gh_real" iso "$c" lock >/dev/null 2>&1; echo $?)"
+check 108-CA11 "lock com a lista final sai com 0" "0" "$rc"
+check 108-CA11 "o proxy recebe a lista final" "True" \
+  "$(grep -q "fabrica_domains=$c/etc/dominios.txt " "$c/proxy.argv" && echo True || echo False)"
+check 108-CA12 "o markers.json não tem host do projeto" "0" "$(grep -c 'npmjs' "$c/etc/markers.json")"
+check 108-CA12 "o markers.json continua com os hosts fixos de cada segredo" \
+  '["api.anthropic.com"] ["github.com","api.github.com","uploads.github.com","codeload.github.com"]' \
+  "$(python3 -I -c 'import json, sys; print(" ".join(json.dumps(v["hosts"], separators=(",", ":")) for v in sorted(json.load(open(sys.argv[1])).values(), key=lambda v: v["env"])))' "$c/etc/markers.json")"
+c="$(new_case dominios-lock-sem-prepare)"
+mkdir -p "$c/opt-githooks"; : > "$c/opt-gitconfig"
+err="$(PLUGIN_COPY="$c/plugin" CLAUDE_CODE_OAUTH_TOKEN=x FABRICA_GH_TOKEN=y iso "$c" lock 2>&1 >/dev/null)"; rc=$?
+check 108-CA11 "lock sem a lista final sai com 1 e pede o prepare" "1 True" \
+  "$rc $([[ "$err" == *"rode job-isolation.sh prepare antes"* ]] && echo True || echo False)"
+check 108-CA11 "lock sem a lista final não sobe o proxy nem mexe no iptables" "0 False" \
+  "$(grep -c -E '^(iptables|ip6tables)' "$c/calls.log") $([[ -f "$c/proxy.pid" ]] && echo True || echo False)"
+PORT="$(free_port)"
+rc="$(PLUGIN_COPY="$c/plugin" FABRICA_DOMAINS_FILE="$domains_file" CLAUDE_CODE_OAUTH_TOKEN=x FABRICA_GH_TOKEN=y iso "$c" lock >/dev/null 2>&1; echo $?)"
+check 108-CA11 "o FABRICA_DOMAINS_FILE continua trocando o arquivo" "0 True" \
+  "$rc $(grep -q "fabrica_domains=$domains_file " "$c/proxy.argv" && echo True || echo False)"
 
 # CA8: run-as-agent.sh.
 c4="$(new_case wrapper)"
