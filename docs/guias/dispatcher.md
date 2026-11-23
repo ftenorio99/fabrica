@@ -1,6 +1,6 @@
 # Dispatcher no GitHub Actions (piloto)
 
-O dispatcher é um workflow do GitHub Actions que roda as etapas de agente sem sessão na sua máquina: a cada gesto seu na issue ou no PR, o runner instala o Claude Code e o plugin, relê o estado da issue e roda as etapas até o próximo portão em que você age ([ADR 0015](../adr/0015-dispatcher-no-github-actions.md), [ADR 0017](../adr/0017-leitor-de-estado-em-codigo-para-o-dispatcher.md)). No piloto, ele vale só para o repositório de teste `ftenorio99/fabrica-teste`; a instalação nos projetos pelo `/fabrica:setup` vem depois (#108).
+O dispatcher é um workflow do GitHub Actions que roda as etapas de agente sem sessão na sua máquina: a cada gesto seu na issue ou no PR, o runner instala o Claude Code e o plugin, relê o estado da issue e roda as etapas até o próximo portão em que você age ([ADR 0015](../adr/0015-dispatcher-no-github-actions.md), [ADR 0017](../adr/0017-leitor-de-estado-em-codigo-para-o-dispatcher.md)). O `/fabrica:setup` instala o workflow num projeto, com a sua confirmação (veja [Como ligar num repositório](#como-ligar-num-repositório)); o primeiro projeto real a recebê-lo é o kairo.
 
 ## Os gestos que acordam o workflow
 | Gesto | Evento |
@@ -35,8 +35,11 @@ O filtro por marcador é a trava principal contra cascata, mas um comentário de
 O agente roda isolado (veja [Isolamento do job](#isolamento-do-job)). A lógica fica no `scripts/dispatch.sh` do plugin; o workflow só prepara o runner e chama o script. A etapa roda pelo mesmo `scripts/stage-model.sh run` do `/fabrica:avancar`, com o modelo de [modelos.md](../../skills/avancar/modelos.md) e o modo de permissão `auto`.
 
 ## Como ligar num repositório
-1. **Copie o workflow:** `templates/workflows/agente.yml` do plugin vai para `.github/workflows/agente.yml` do repositório, na branch padrão (o GitHub só roda workflows de `issues` a partir dela). Como a `main` é protegida, a cópia entra por PR.
-2. **Labels:** rode `bash scripts/setup-labels.sh <dono>/<repo>` do plugin, se o repositório ainda não as tem.
+1. **Rode o `/fabrica:setup` no clone do projeto.** Ele cria as labels e, no passo do dispatcher, confere o workflow com o `scripts/setup-dispatcher.sh --check`: sem `.github/workflows/agente.yml`, explica o dispatcher e pergunta se instala; com o arquivo igual ao `templates/workflows/agente.yml` do plugin, não pergunta nada; com o arquivo diferente, mostra quantas linhas mudam e pergunta se substitui. Uma edição local do workflow também aparece como diferença e se perde na troca. O setup grava o arquivo na cópia de trabalho e não faz o commit.
+2. **Leve o workflow à branch padrão por um PR.** O GitHub só roda workflows de `issues` a partir dela, e a `main` é protegida. Se o projeto precisa de hosts a mais (veja [Hosts do projeto](#hosts-do-projeto)), o `.fabrica/dominios.txt` pode ir no mesmo PR.
+
+O setup termina com um checklist dos três secrets abaixo, marcando como feito o que já está cadastrado: ele lê só os nomes, com `gh secret list --json name`, e nunca cadastra um secret nem pede o valor de um token. O cadastro é seu:
+
 3. **Secret `CLAUDE_CODE_OAUTH_TOKEN`:** gere com `claude setup-token` na sua máquina (usa a sua assinatura). Copie o valor **inteiro**, começando em `sk-ant-oat01-`, e cadastre sem colar no prompt: com o valor numa variável do terminal, `printf '%s' "$TOKEN" | gh secret set CLAUDE_CODE_OAUTH_TOKEN --repo <dono>/<repo>`. Antes, teste o valor na sua máquina: `env -u ANTHROPIC_API_KEY CLAUDE_CODE_OAUTH_TOKEN="$TOKEN" claude -p "responda ok" --output-format json` deve dar `is_error` falso.
 4. **Secret `FABRICA_PLUGIN_TOKEN`:** o repositório `ftenorio99/fabrica` é privado, e o token do job só alcança o próprio repositório. Crie um token *fine-grained* em GitHub → Settings → Developer settings → Fine-grained tokens, com acesso só ao repositório `ftenorio99/fabrica` e só a permissão **Contents: read**, e cadastre com `gh secret set FABRICA_PLUGIN_TOKEN --repo <dono>/<repo>`.
 5. **Secret `FABRICA_GH_TOKEN`:** é o token das escritas do job (labels, comentários, o que o agente faz pelo `gh`). Crie outro token *fine-grained* com acesso **só ao repositório do projeto**, expiração de até 90 dias e as permissões: Contents, Issues e Pull requests em leitura e escrita; Actions e Commit statuses em leitura; Metadata em leitura (obrigatória). **Não** dê Workflows. Cadastre com `gh secret set FABRICA_GH_TOKEN --repo <dono>/<repo>`. Renove-o antes de expirar: um token expirado derruba o job com erro do `gh`.
@@ -46,15 +49,31 @@ Cada secret aparece só no passo que o usa: o `FABRICA_PLUGIN_TOKEN` no passo qu
 ## Isolamento do job
 Antes de a etapa rodar, o job fecha o agente numa caixa ([ADR 0016](../adr/0016-isolamento-do-job-do-dispatcher.md)):
 - **Dois usuários.** O `claude -p` e tudo o que ele executa rodam como `fabrica-agent`, sem `sudo` e sem rede direta. Um proxy local (`mitmproxy`) roda como `fabrica-proxy` e guarda os segredos.
-- **Rede.** As regras do `iptables` só deixam o `fabrica-agent` falar com a porta do proxy. O proxy libera só os hosts de `templates/workflows/dominios-liberados.txt` (a API da Anthropic e o GitHub) e responde 403 ao resto. A lista vem do plugin instalado no job: ela não é copiada para o projeto.
+- **Rede.** As regras do `iptables` só deixam o `fabrica-agent` falar com a porta do proxy. O proxy libera só os hosts de `templates/workflows/dominios-liberados.txt` (a API da Anthropic e o GitHub), acrescidos dos [hosts do projeto](#hosts-do-projeto), e responde 403 ao resto. A lista do plugin vem do plugin instalado no job: ela não é copiada para o projeto.
 - **Segredos.** O agente recebe **marcadores** no lugar do `CLAUDE_CODE_OAUTH_TOKEN` e do `FABRICA_GH_TOKEN`. O proxy troca o marcador pelo valor real só no cabeçalho `Authorization` e só nos hosts daquele segredo. O valor real nunca chega ao ambiente nem aos arquivos que o agente lê.
-- **Falha fechada.** Sem lista de domínios válida, ou sem um dos dois tokens, o `lock` falha e o agente não roda.
+- **Falha fechada.** Sem lista de domínios válida, com uma linha inválida no `.fabrica/dominios.txt` ou sem um dos dois tokens, o job falha antes de o agente rodar.
+- **Sem Docker.** O `fabrica-agent` não tem acesso ao `docker.sock`, que equivale a root e desfaria o isolamento. A parte da verificação do `implementar` que precisa de Docker (banco, Compose) fica pendente para o CI do PR ([ADR 0011](../adr/0011-verificacao-de-integracao-na-etapa.md)).
 
-A lista cobre as etapas que só falam com a Anthropic e o GitHub. O `implementar` de um projeto que baixa dependências (npm, Docker Hub etc.) vai precisar de hosts a mais; isso fica para a #108.
+A lista do plugin cobre as etapas que só falam com a Anthropic e o GitHub. O `implementar` de um projeto que baixa dependências (npm, Docker Hub etc.) precisa de hosts a mais, declarados pelo projeto.
 
-**Ampliar a lista:** o log do proxy aparece no fim do run, no passo "Mostra o log do proxy": cada linha `bloqueado <host>` é um pedido que o proxy recusou. Se a etapa precisa do host, acrescente só o host exato ao `dominios-liberados.txt` **do plugin** (um PR na fábrica; a lista por projeto fica para a #108), com uma linha de comentário dizendo o motivo, e rode o aceite de novo. Não use curinga largo (`*.github.com` abre o `gist.github.com`).
+### Hosts do projeto
+O projeto pode versionar `.fabrica/dominios.txt` com os hosts que as etapas dele precisam além da lista do plugin ([ADR 0018](../adr/0018-lista-de-dominios-por-projeto.md)). Exemplo de um projeto com pnpm:
 
-**Teste de aceite:** copie também `templates/workflows/isolamento-aceite.yml` para `.github/workflows/` do repositório de teste e rode pela aba Actions (*Run workflow*). Ele repete a preparação e roda o `scripts/test-job-acceptance.sh`, que imprime `ok <verificação>` ou `falha <verificação>: <motivo>`:
+```
+# pnpm e corepack baixam os pacotes daqui.
+registry.npmjs.org
+```
+
+- **Formato:** um host exato por linha; linhas em branco e comentários com `#` são ignorados, e maiúsculas viram minúsculas. O arquivo só **acrescenta** hosts à lista do plugin; nunca tira.
+- **Regras:** o host tem pelo menos um ponto, rótulos de letras, dígitos e hífens (sem hífen nas pontas) e o último rótulo com uma letra. Não valem curinga (nem `*.dominio`), esquema ou caminho (`https://`, `/`), porta (`:443`), espaço no meio, nome sem ponto (`localhost`) nem IP.
+- **Falha fechada:** uma única linha inválida faz o `job-isolation.sh prepare` falhar com a linha e o motivo no log do run. O agente não roda, e a issue recebe o comentário de falha com o motivo `sem-resultado`. Sem o arquivo, ou só com comentários, a lista é a do plugin.
+- **Vale pela branch padrão:** o job lê o arquivo do checkout da branch padrão, antes de o agente rodar. Um host proposto num PR só vale depois do merge.
+- **Revisão humana:** trate uma mudança no `.fabrica/dominios.txt` como trata o `.github/`: confira cada host novo no PR, inclusive num PR do agente. O revisor automático não a destaca.
+- **Sem segredo:** os hosts do projeto nunca recebem os tokens; a troca do marcador continua só na API da Anthropic e no GitHub.
+
+**Ampliar a lista:** o log do proxy aparece no fim do run, no passo "Mostra o log do proxy": cada linha `bloqueado <host>` é um pedido que o proxy recusou. Se a etapa do projeto precisa do host, acrescente só o host exato ao `.fabrica/dominios.txt` do projeto, com uma linha de comentário dizendo o motivo, por um PR. Um host que todas as etapas de todos os projetos precisam (como a API da Anthropic) vai para o `dominios-liberados.txt` do plugin, por um PR na fábrica, e pede o aceite de novo; lá, não use curinga largo (`*.github.com` abre o `gist.github.com`).
+
+**Teste de aceite:** copie também `templates/workflows/isolamento-aceite.yml` para `.github/workflows/` do repositório de teste (o `/fabrica:setup` não o copia para os projetos) e rode pela aba Actions (*Run workflow*). Ele repete a preparação e roda o `scripts/test-job-acceptance.sh`, que imprime `ok <verificação>` ou `falha <verificação>: <motivo>`:
 
 | Verificação | O que confere |
 |---|---|
@@ -86,11 +105,11 @@ O comentário não traz o texto da resposta do Claude nem valores de secrets; os
 Uma falha na instalação do Claude Code ou do plugin (secret errado ou ausente, por exemplo) também deixa um comentário, com a etapa `não decidida` e o motivo `sem-resultado`, na issue ou, num gesto no PR, no próprio PR. Como o script que comenta vem do próprio plugin, esse comentário sai de um passo de reserva do workflow, com texto fixo e só o link do run. Veja a causa no log do run.
 
 ## Limites do piloto
-- **O agente ainda age com o token do GitHub:** o marcador esconde o valor, mas um agente enganado pode pedir ao proxy qualquer operação que o `FABRICA_GH_TOKEN` permita no repositório do projeto. O limite é o escopo do token: só o repositório, sem Workflows e com expiração curta. Use o piloto só em repositório de teste, com issues escritas por você.
+- **O agente ainda age com o token do GitHub:** o marcador esconde o valor, mas um agente enganado pode pedir ao proxy qualquer operação que o `FABRICA_GH_TOKEN` permita no repositório do projeto. O limite é o escopo do token: só o repositório, sem Workflows e com expiração curta. Use o dispatcher só com issues escritas por você.
 - **O token novo dispara workflows:** ao contrário do `GITHUB_TOKEN`, os eventos criados com o `FABRICA_GH_TOKEN` disparam outros workflows, inclusive este. Por isso a trava contra cascata é o filtro do job (marcador `<!-- fabrica:` e nome da label), seguida da releitura do estado, do teto e do [freio](#freio). As labels e os comentários das etapas geram runs que terminam `skipped`.
 - **Gesto com outra execução em curso:** um gesto feito enquanto um run trabalha na mesma issue (por exemplo, um comentário no PR durante o `implementar`) vira pulo pela `em-andamento` recente. O laço em curso relê o estado depois de cada etapa e costuma pegá-lo; se ele já tinha passado desse ponto, o gesto fica sem execução até o próximo gesto ou o `/fabrica:avancar`.
 - **Comentário em linha gasta dois runs:** ele gera um evento de review e um de comentário de review. Um deles roda a etapa; o outro termina em pulo depois da instalação (2 a 3 min de runner).
-- **Hosts de dependências do `implementar`:** a lista de domínios ainda não tem os registros de pacotes; um `implementar` que baixa dependências falha no proxy (#108).
+- **Hosts de dependências do `implementar`:** cada projeto declara os seus no `.fabrica/dominios.txt` (veja [Hosts do projeto](#hosts-do-projeto)); um host que falta aparece como `bloqueado` no log do proxy e faz a etapa falhar.
 - **CI do PR do agente:** com o `FABRICA_GH_TOKEN`, o PR que o agente abrir dispara o CI sozinho, sem a aprovação manual do run que o `GITHUB_TOKEN` exigia.
 - **CI vermelho no job:** o token do job não lê o CI do PR (não tem a permissão de checks), então o dispatcher não manda o `revisar` por CI vermelho. O `/fabrica:status` local continua lendo o CI ([estados.md](../../skills/status/estados.md)).
 - **Linha de custo:** depende do log da sessão no runner; sem ele, sai `tokens=nao-medido`.

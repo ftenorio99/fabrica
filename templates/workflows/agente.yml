@@ -4,7 +4,10 @@
 # as etapas de agente até o próximo portão, no runner, com o plugin instalado e
 # o agente isolado (sem rede direta, sem os tokens em claro). Os comentários e
 # as labels do próprio agente não passam no filtro do job, então não há
-# cascata. Copie este arquivo para .github/workflows/agente.yml do projeto.
+# cascata. O /fabrica:setup copia este arquivo para .github/workflows/agente.yml
+# do projeto, com confirmação (scripts/setup-dispatcher.sh), e o usuário o leva
+# à branch padrão por um PR. A rede do agente é a lista de domínios do plugin
+# mais os hosts extras do .fabrica/dominios.txt do projeto (SPEC-108, ADR 0018).
 # Secrets do repositório:
 #   CLAUDE_CODE_OAUTH_TOKEN  claude setup-token
 #   FABRICA_GH_TOKEN         fine-grained, só neste repositório (as escritas do job)
