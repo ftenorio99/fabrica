@@ -147,7 +147,7 @@ else
 fi
 
 # 10. O log do proxy só lista hosts da lista e mostra o bloqueio do teste 3.
-domains="$plugin_copy/templates/workflows/dominios-liberados.txt"
+domains="$dir/dominios.txt"
 seen="$(sed -n 's/.*permitido \([^ ]*\)$/\1/p' "$dir/proxy.log" | sort -u)"
 outside=""
 for host in $seen; do
