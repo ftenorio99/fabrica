@@ -66,6 +66,7 @@ registry.npmjs.org
 
 - **Formato:** um host exato por linha; linhas em branco e comentários com `#` são ignorados, e maiúsculas viram minúsculas. O arquivo só **acrescenta** hosts à lista do plugin; nunca tira.
 - **Regras:** o host tem pelo menos um ponto, rótulos de letras, dígitos e hífens (sem hífen nas pontas) e o último rótulo com uma letra. Não valem curinga (nem `*.dominio`), esquema ou caminho (`https://`, `/`), porta (`:443`), espaço no meio, nome sem ponto (`localhost`) nem IP.
+- **Link simbólico:** o job recusa `.fabrica/dominios.txt` e a pasta `.fabrica` quando são links simbólicos. Assim, um link não leva ao log do job o conteúdo de um arquivo de fora do checkout. O arquivo precisa ser comum, versionado no próprio repositório.
 - **Falha fechada:** uma única linha inválida faz o `job-isolation.sh prepare` falhar com a linha e o motivo no log do run. O agente não roda, e a issue recebe o comentário de falha com o motivo `sem-resultado`. Sem o arquivo, ou só com comentários, a lista é a do plugin.
 - **Vale pela branch padrão:** o job lê o arquivo do checkout da branch padrão, antes de o agente rodar. Um host proposto num PR só vale depois do merge.
 - **Revisão humana:** trate uma mudança no `.fabrica/dominios.txt` como trata o `.github/`: confira cada host novo no PR, inclusive num PR do agente. O revisor automático não a destaca.
