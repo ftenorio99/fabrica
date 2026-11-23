@@ -1,6 +1,6 @@
 # ADR 0018: Lista de domínios por projeto no job do dispatcher
 
-**Status:** proposto · **Data:** 2026-11-22 · **Origem:** issue #108
+**Status:** aceito · **Data:** 2026-11-22 · **Origem:** issue #108
 
 ## Contexto
 O job do dispatcher deixa o agente alcançar só os hosts de `templates/workflows/dominios-liberados.txt`, do plugin ([ADR 0016](0016-isolamento-do-job-do-dispatcher.md)). A lista cobre a API da Anthropic e o GitHub, o suficiente para a triagem, a spec e a revisão. O `implementar` de um projeto real baixa dependências (no kairo, o pnpm do `registry.npmjs.org`), e cada projeto tem as suas. Pôr esses hosts na lista do plugin os abriria para todos os projetos; deixá-los fora faz o `implementar` falhar no proxy.

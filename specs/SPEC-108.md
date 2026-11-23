@@ -1,7 +1,7 @@
 # SPEC-108: Dispatcher instalado num projeto pelo `/fabrica:setup`, com o workflow e o guia dos secrets, e ligado no kairo
 
 **Issue:** #108 · **PRD:** F4 (item 8 do fatiamento, M2) · **Classe:** implementacao-complexa · **Tamanho:** G
-**Status:** rascunho · **Atualizada em:** 2026-11-22
+**Status:** aprovada · **Atualizada em:** 2026-11-23
 
 ## Contexto
 O dispatcher (#105, #106, #107; [ADR 0015](../docs/adr/0015-dispatcher-no-github-actions.md) a [0017](../docs/adr/0017-leitor-de-estado-em-codigo-para-o-dispatcher.md)) roda as etapas de agente no GitHub Actions, mas hoje só funciona no repositório de teste `ftenorio99/fabrica-teste`, ligado à mão pelos passos de [docs/guias/dispatcher.md](../docs/guias/dispatcher.md). O guia deixa para esta issue duas pendências: a instalação nos projetos pelo `/fabrica:setup` e a lista de domínios por projeto, que o `implementar` precisa para baixar dependências. O kairo é o primeiro projeto real a receber o dispatcher.
@@ -143,3 +143,4 @@ nenhum
 
 ## Histórico
 - 2026-11-22: criação.
+- 2026-11-23: aprovada.
