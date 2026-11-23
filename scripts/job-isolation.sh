@@ -6,11 +6,14 @@
 #       cria os usuários fabrica-proxy e fabrica-agent, copia o plugin sem o
 #       .git para uma pasta que o agente lê, instala os hooks do git da
 #       main numa pasta que o agente só lê (com o arquivo de configuração
-#       que a aponta) e passa o checkout ao agente
+#       que a aponta), grava a lista final de domínios (a do plugin seguida
+#       dos hosts de .fabrica/dominios.txt do checkout; SPEC-108, ADR 0018)
+#       e passa o checkout ao agente
 #   job-isolation.sh lock
 #       com CLAUDE_CODE_OAUTH_TOKEN e FABRICA_GH_TOKEN no ambiente: grava os
 #       segredos num arquivo só do proxy, sorteia os marcadores, sobe o
-#       mitmdump com o egress-addon.py e fecha a rede do agente
+#       mitmdump com o egress-addon.py e a lista final de domínios e fecha a
+#       rede do agente
 #
 # Falha fechada: qualquer erro sai com 1 antes de o agente poder rodar.
 # Saídas: 0 pronto; 1 erro; 2 uso inválido.
@@ -50,6 +53,75 @@ usage() { say "uso: job-isolation.sh prepare <pasta do plugin> <pasta do checkou
 
 random_hex() { od -An -N16 -tx1 /dev/urandom | tr -d ' \n'; }
 
+# project_host_error <linha já sem espaços nas pontas e em minúsculas>:
+# imprime o motivo de a linha não ser um host exato aceito, ou nada.
+# Mais estrita que a lista do plugin: nenhum curinga (SPEC-108, ADR 0018).
+project_host_error() {
+  local host="$1" label='[a-z0-9]([a-z0-9-]*[a-z0-9])?'
+  case $host in
+    *'*'*) echo "curinga não é aceito na lista do projeto"; return ;;
+    */*) echo "esquema ou caminho não é aceito, só o host"; return ;;
+    *:*) echo "porta não é aceita, só o host"; return ;;
+    *[[:space:]]*) echo "espaço no meio da linha"; return ;;
+    *.*) ;;
+    *) echo "host sem ponto"; return ;;
+  esac
+  [[ "$host" =~ ^$label(\.$label)+$ ]] || { echo "host inválido"; return; }
+  [[ "${host##*.}" =~ [a-z] ]] || echo "IP não é aceito, só nome de host"
+}
+
+# build_domains <lista do plugin> <pasta do checkout>: grava em
+# $dir/dominios.txt, de root e 0644, a lista do plugin seguida dos hosts de
+# <checkout>/.fabrica/dominios.txt que ela ainda não tem. Uma linha inválida
+# falha fechado, sem gravar a lista final.
+build_domains() {
+  local plugin_list="$1" project_list="$2/.fabrica/dominios.txt"
+  local -A seen=()
+  local -a extra=()
+  local line host reason n=0 bad=0 tmp_list
+
+  rm -f "$dir/dominios.txt" || fail "não consegui limpar $dir/dominios.txt."
+  [[ -f "$plugin_list" ]] || fail "não achei a lista de domínios do plugin em $plugin_list."
+  while IFS= read -r line || [[ -n "$line" ]]; do
+    host="$(printf '%s' "$line" | tr -d '[:space:]' | tr '[:upper:]' '[:lower:]')"
+    [[ -n "$host" && "$host" != \#* ]] && seen[$host]=1
+  done < "$plugin_list"
+
+  if [[ -e "$project_list" || -L "$project_list" ]]; then
+    # Root lê o arquivo: um link (no arquivo ou na pasta) poderia apontar
+    # para fora do checkout e levar o conteúdo ao log do job.
+    [[ -f "$project_list" && ! -L "$project_list" && ! -L "$2/.fabrica" ]] \
+      || fail "o .fabrica/dominios.txt do projeto não é um arquivo comum; o agente não vai rodar."
+    while IFS= read -r line || [[ -n "$line" ]]; do
+      n=$((n + 1))
+      host="$(printf '%s' "$line" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' | tr '[:upper:]' '[:lower:]')"
+      [[ -z "$host" || "$host" == \#* ]] && continue
+      reason="$(project_host_error "$host")"
+      if [[ -n "$reason" ]]; then
+        say ".fabrica/dominios.txt, linha $n: \"$line\": $reason."
+        bad=1
+        continue
+      fi
+      [[ -n "${seen[$host]:-}" ]] && continue
+      seen[$host]=1
+      extra+=("$host")
+    done < "$project_list"
+    [[ $bad -eq 0 ]] || fail "a lista de domínios do projeto tem linha inválida; o agente não vai rodar."
+  fi
+
+  mkdir -p "$dir" || fail "não consegui criar $dir."
+  chmod 0755 "$dir"
+  tmp_list="$(mktemp "$dir/.dominios.XXXXXX")" || fail "não consegui gravar a lista final de domínios."
+  {
+    cat "$plugin_list"
+    if [[ ${#extra[@]} -gt 0 ]]; then
+      printf '\n# Hosts do projeto (.fabrica/dominios.txt da branch padrão).\n'
+      printf '%s\n' "${extra[@]}"
+    fi
+  } > "$tmp_list" && chmod 0644 "$tmp_list" && mv -f "$tmp_list" "$dir/dominios.txt" \
+    || { rm -f "$tmp_list"; fail "não consegui gravar a lista final de domínios."; }
+}
+
 cmd_prepare() {
   [[ $# -eq 2 ]] || usage
   local plugin_src="$1" workspace="$2" user group d
@@ -83,6 +155,10 @@ cmd_prepare() {
   } > "$gitconfig_dst" || fail "não consegui gravar $gitconfig_dst."
   chmod 0644 "$gitconfig_dst"
 
+  # Lista final de domínios (SPEC-108, ADR 0018): lida do checkout enquanto
+  # ele ainda não é do agente, que poderia editá-la antes do lock.
+  build_domains "$plugin_dst/templates/workflows/dominios-liberados.txt" "$workspace"
+
   group="${FABRICA_WORKSPACE_GROUP:-${SUDO_USER:-runner}}"
   "$chown_bin" -R "$agent_user:$group" "$workspace" || fail "não consegui passar $workspace ao agente."
   chmod -R g+rwX "$workspace"
@@ -92,7 +168,7 @@ cmd_prepare() {
     chmod o+x "$d" 2>/dev/null || true
     d="$(dirname "$d")"
   done
-  say "usuários prontos, plugin copiado e checkout passado ao agente."
+  say "usuários prontos, plugin copiado, lista de domínios gravada e checkout passado ao agente."
 }
 
 proxy_ready() {
@@ -104,7 +180,7 @@ cmd_lock() {
   [[ $# -eq 0 ]] || usage
   local oauth="${CLAUDE_CODE_OAUTH_TOKEN:-}" ghtoken="${FABRICA_GH_TOKEN:-}"
   local addon="${FABRICA_ADDON_FILE:-$plugin_dst/scripts/egress-addon.py}"
-  local domains="${FABRICA_DOMAINS_FILE:-$plugin_dst/templates/workflows/dominios-liberados.txt}"
+  local domains="${FABRICA_DOMAINS_FILE:-$dir/dominios.txt}"
   local anth_marker gh_marker i
 
   [[ -n "$oauth" ]] || fail "o CLAUDE_CODE_OAUTH_TOKEN não está no ambiente."
@@ -112,7 +188,8 @@ cmd_lock() {
   case $oauth$ghtoken in
     *$'\n'*|*"'"*) fail "um dos tokens tem quebra de linha ou aspas simples." ;;
   esac
-  [[ -f "$addon" && -f "$domains" ]] || fail "não achei o addon ou a lista de domínios."
+  [[ -f "$domains" ]] || fail "não achei a lista final de domínios $domains; rode job-isolation.sh prepare antes."
+  [[ -f "$addon" ]] || fail "não achei o addon $addon."
   [[ -f "$gitconfig_dst" && -d "$hooks_dst" ]] \
     || fail "os hooks do git do agente não estão instalados; rode job-isolation.sh prepare antes."
 
