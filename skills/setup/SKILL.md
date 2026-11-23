@@ -95,7 +95,7 @@ Rode `bash <diretório base>/../../scripts/check-gh.sh` e siga a linha que ele i
 - Se o script falhar porque falta o `jq`, diga para instalá-lo e siga: a statusline é opcional.
 
 ## 6. Dispatcher
-O dispatcher roda as etapas de agente no GitHub Actions a cada gesto do usuário na issue ou no PR ([guia](../../docs/guias/dispatcher.md)). O workflow é por projeto: este passo roda só dentro de um repositório git. Fora dele, pule o passo e registre no resumo "dispatcher: não instalado fora de um repositório git".
+O dispatcher roda as etapas de agente no GitHub Actions a cada gesto do usuário na issue ou no PR ([guia](../../docs/guias/dispatcher.md)). O workflow é por projeto: este passo roda só dentro de um repositório git. Fora dele, pule o passo e registre no resumo "dispatcher: por projeto, não instalado fora de um repositório git".
 
 Rode `bash <diretório base>/../../scripts/setup-dispatcher.sh --check` e siga a linha impressa:
 
