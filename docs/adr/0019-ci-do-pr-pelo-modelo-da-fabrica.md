@@ -1,6 +1,6 @@
 # ADR 0019: CI do PR pelo modelo da fábrica, com o `make e2e` como contrato
 
-**Status:** proposto · **Data:** 2026-11-23 · **Origem:** issue #128
+**Status:** aceito · **Data:** 2026-11-23 · **Origem:** issue #128
 
 ## Contexto
 A F6 do [PRD](../prd.md) pede que o CI do PR suba o app e o banco no próprio job e rode o Playwright. A [ADR 0011](0011-verificacao-de-integracao-na-etapa.md) já exige um CI em `pull_request` em todo projeto, como reserva e conferência da verificação que a etapa roda, mas a fábrica não entrega esse CI: cada projeto escreveu o seu, de um jeito (o `kairo` chama `make e2e`; o `ankyra` sobe o Postgres por `services:`; o `mnemo` e o `skopia` não têm CI).

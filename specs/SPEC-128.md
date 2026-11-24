@@ -1,7 +1,7 @@
 # SPEC-128: CI do PR sobe o app e o banco no job e roda o Playwright, e a spec pede casos adversariais nos CAs de ponta a ponta
 
 **Issue:** #128 · **PRD:** F6 (item 9 do fatiamento, M3) · **Classe:** implementacao-complexa · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-11-23
+**Status:** aprovada · **Atualizada em:** 2026-11-23
 
 ## Contexto
 A F6 do [PRD](../docs/prd.md) pede que o CI do PR suba o app e o banco no próprio job e rode o Playwright, com casos adversariais além do caminho feliz. A [ADR 0011](../docs/adr/0011-verificacao-de-integracao-na-etapa.md) já torna o CI em `pull_request` obrigatório nos projetos, como reserva e conferência, mas a fábrica não entrega esse CI: cada projeto escreveu o seu (o `kairo` roda `make e2e` num job próprio; o `ankyra`, com um Postgres de `services:`; o `mnemo` e o `skopia` não têm CI). E a spec não pede casos adversariais: o único lugar onde eles aparecem é o item P5 do runbook de lançamento ([skills/lancamento/runbook.md](../skills/lancamento/runbook.md)), já em produção.
@@ -149,3 +149,4 @@ nenhum
 
 ## Histórico
 - 2026-11-23: criação.
+- 2026-11-23: aprovada.
