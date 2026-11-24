@@ -42,5 +42,6 @@ Se o seu CI sobe o banco por `services:`, confira que o `make e2e` não tenta su
 ## Adaptar a cópia
 O `ci.yml` do projeto é seu: o setup não o compara com o modelo nem oferece atualização quando o modelo muda. Edite-o quando precisar, por exemplo:
 - outros navegadores no Playwright: troque `chromium` nos dois passos de instalação;
+- pacote `playwright` em vez de `@playwright/test`: troque o nome do pacote no passo `Lê a versão do Playwright`, que lê a versão da `node_modules`;
 - outra stack (Python, Go): troque a preparação do Node pela da sua stack e mantenha os `make`;
 - variáveis que o `.env.example` não cobre: um bloco `env:` no job, sem secrets de produção.
