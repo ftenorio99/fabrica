@@ -1,10 +1,10 @@
 # SPEC-<nº>: <título da issue>
 
-**Issue:** #<nº> · **PRD:** <F1, F2…> · **Classe:** <da triagem> · **Tamanho:** <da triagem>
+**Issue:** #<nº> · **PRD:** <F1, F2…> · **Fonte do escopo:** <caminho da story ou documento, ou —> · **Classe:** <da triagem> · **Tamanho:** <da triagem>
 **Status:** rascunho | aprovada · **Atualizada em:** <AAAA-MM-DD>
 
 ## Contexto
-<Por que esta issue existe e onde ela entra no produto. Duas a quatro frases, citando o PRD.>
+<Por que esta issue existe e onde ela entra no produto. Duas a quatro frases, citando o PRD e, se houver, a fonte do escopo.>
 
 ## Objetivo
 <Uma frase: o que passa a ser verdade quando a issue terminar.>
