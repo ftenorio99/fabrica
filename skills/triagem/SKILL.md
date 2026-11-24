@@ -17,6 +17,7 @@ A triagem decide se a issue está pronta para virar spec. Ela não escreve códi
 - `gh issue view <nº> --json number,title,body,labels,comments,state`
 - Se a issue estiver fechada ou não tiver a label `agente`, pare e avise o usuário no chat.
 - As regras do projeto (`AGENTS.md`; num projeto ainda não migrado, `CLAUDE.md`) e `docs/prd.md`: identifique as funcionalidades do PRD (F1, F2…) ligadas à issue.
+- **Fonte do escopo:** se as regras do projeto disserem que o escopo de cada issue vem de um documento além do PRD (ex.: uma story em `docs/stories/`), identifique o caminho que o corpo da issue aponta para ele. Confira que o arquivo existe na `main` com `gh api repos/{owner}/{repo}/contents/<caminho> --jq .path`. Se as regras pedem essa fonte e a issue não aponta nenhuma, ou o caminho não existe, é lacuna (passo 3). Sem essa regra no projeto, a fonte é `—`.
 - Specs e ADRs existentes (`specs/`, `docs/adr/`) e o código que a issue provavelmente vai tocar. Leia o suficiente para estimar, não para implementar.
 - Se já houver um comentário de triagem anterior, esta é uma nova rodada: leia as respostas que vieram depois dele. Ignore os comentários de lição (`<!-- fabrica:licao`), que não são resposta (veja [estados.md](../status/estados.md)).
 
@@ -63,6 +64,7 @@ Uma escolha que a issue deixa em aberto **não** é lacuna quando você tem uma 
 Isso vale para escolhas de comportamento: nelas, a sua preferência, sem uma fonte dessas, não basta. Decisões técnicas (biblioteca, nome de rota, estrutura de pastas) continuam não sendo lacuna mesmo sem fonte: a spec as decide. Com uma fonte para citar, leve-as também como recomendação. Essas escolhas vão para a spec como recomendações (passo 4), e o usuário as confirma ou muda no portão `spec-aprovada`.
 
 Continuam sendo lacuna, e viram pergunta:
+- o documento de escopo que o projeto manda usar (ex.: a story) não está apontado na issue ou não existe na `main`;
 - a divisão de uma issue maior que 2 dias, mesmo com uma divisão recomendada;
 - a regra de negócio, a prioridade ou o comportamento sem recomendação defensável;
 - uma escolha em que as fontes se contradizem, por exemplo a issue contra o PRD.
@@ -82,6 +84,7 @@ Publique um comentário na issue (`gh issue comment <nº> --body-file <arquivo>`
 | Classe | implementacao-complexa |
 | Tamanho | G |
 | PRD | F7 |
+| Fonte do escopo | `docs/stories/...` ou `—` |
 | Depende de | #12 |
 | Interface | sim |
 | Modelo | sonnet — <razão em uma linha> |
