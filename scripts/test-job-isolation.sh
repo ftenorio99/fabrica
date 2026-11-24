@@ -286,6 +286,10 @@ check CA22 "o arquivo de configuração aponta para a pasta dos hooks" "True" \
   "$(grep -q "hooksPath = $c/opt-githooks\$" "$c/opt-gitconfig" && echo True || echo False)"
 check CA22 "o arquivo de configuração não tem escrita para o grupo nem para outros" "644" \
   "$(stat -c %a "$c/opt-gitconfig")"
+check CA1 "o arquivo de configuração tem user.name do agente" "fabrica-agent" \
+  "$(git config --file "$c/opt-gitconfig" --get user.name)"
+check CA1 "o arquivo de configuração tem user.email noreply do agente" "fabrica-agent@users.noreply.github.com" \
+  "$(git config --file "$c/opt-gitconfig" --get user.email)"
 check CA22 "prepare sem a pasta githooks/ no plugin falha" "1" \
   "$(c2="$(new_case semhooks)"; rm -rf "$c2/plugin/githooks"; iso "$c2" prepare "$c2/plugin" "$c2/work/projeto" >/dev/null 2>&1; echo $?)"
 
@@ -299,8 +303,9 @@ printf '[core]\n\thooksPath = %s\n' "$g/vazio" > "$g/home/.gitconfig"
 repo="$g/repo"
 git init -q -b main "$repo"
 git -C "$repo" -c user.name=teste -c user.email=teste@exemplo.com commit -q --allow-empty -m inicial
+printf '[user]\n\tname = outro\n\temail = outro@exemplo.com\n' >> "$g/home/.gitconfig"
 agent_git() {
-  env HOME="$g/home" GIT_CONFIG_GLOBAL="$cfg" git -C "$repo" -c user.name=teste -c user.email=teste@exemplo.com "$@"
+  env -i PATH="$PATH" HOME="$g/home" GIT_CONFIG_GLOBAL="$cfg" git -C "$repo" "$@"
 }
 check CA23 "commit direto na main é recusado pelo hook da fábrica" "1" \
   "$(agent_git commit -q --allow-empty -m x 2>&1 >/dev/null | grep -c 'bloqueado')"
@@ -308,6 +313,16 @@ check CA23 "a main não recebe o commit recusado" "1" "$(agent_git rev-list --co
 agent_git switch -q -c feat/1-teste
 check CA23 "commit numa branch de feature passa" "aceito" \
   "$(agent_git commit -q --allow-empty -m x >/dev/null 2>&1 && echo aceito || echo recusado)"
+# CA2: a identidade vem do arquivo, não do ~/.gitconfig com outro [user].
+want="fabrica-agent <fabrica-agent@users.noreply.github.com>"
+check CA2 "autor e committer são os do arquivo do prepare" "$want|$want" \
+  "$(agent_git log -1 --format='%an <%ae>|%cn <%ce>')"
+# CA3: controle negativo, sem [user] o commit falha.
+cp "$cfg" "$g/semuser"; git config --file "$g/semuser" --remove-section user
+before="$(agent_git rev-list --count feat/1-teste)"
+neg_rc="$(env -i PATH="$PATH" HOME="$g/home" GIT_CONFIG_GLOBAL="$g/semuser" git -C "$repo" -c user.useConfigOnly=true commit -q --allow-empty -m y >/dev/null 2>&1; echo $?)"
+check CA3 "sem [user] o commit falha" "falhou" "$([[ $neg_rc -ne 0 ]] && echo falhou || echo passou)"
+check CA3 "a branch não muda" "$before" "$(agent_git rev-list --count feat/1-teste)"
 # Como o runner: a pasta é do root e o agente não escreve nela. O git grava
 # por arquivo de trabalho e renomeação, então a pasta sem escrita é o que
 # impede a alteração.

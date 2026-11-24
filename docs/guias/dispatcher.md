@@ -82,6 +82,7 @@ registry.npmjs.org
 | `dominio-liberado` | `gh api user` funciona pelo proxy, com o marcador. |
 | `dominio-fora-da-lista` | `example.com` recebe 403 do proxy. |
 | `git-pelo-proxy` | `git ls-remote` do próprio repositório funciona, com o marcador no `Basic`. |
+| `commit-do-agente` | Um `git commit` do agente, sem `-c user.*`, sai como `fabrica-agent <fabrica-agent@users.noreply.github.com>`. |
 | `marcador-no-ambiente` | O `CLAUDE_CODE_OAUTH_TOKEN` e o `GH_TOKEN` do agente são marcadores. |
 | `segredo-fora-do-alcance` | Nenhum arquivo nem `/proc/*/environ` legível pelo agente tem os valores reais. |
 | `ca-privada-ilegivel` | O agente não lê a chave privada da CA do proxy. |
@@ -90,6 +91,8 @@ registry.npmjs.org
 | `proxy-so-lista` | O log do proxy mostra o bloqueio e só hosts da lista. |
 
 Rode o aceite depois de mudar a lista de domínios, o proxy ou a versão do `mitmproxy`.
+
+Os commits do agente no job saem como `fabrica-agent <fabrica-agent@users.noreply.github.com>`, pela seção `[user]` do arquivo de configuração do git que o `prepare` grava (o git do agente não lê o `~/.gitconfig`). É um padrão para o histórico, não uma barreira: o agente pode trocá-la com `-c` ou na `.git/config` do checkout.
 
 ## Quando falha
 O job fica vermelho e a issue resolvida recebe um comentário que começa com `<!-- fabrica:dispatcher -->`, com a etapa que falhou (`não decidida` quando a falha veio antes da primeira etapa), o motivo e o link do run. Num gesto no PR em que o dispatcher nem chegou a resolver a issue (o `gh` não leu o PR), o comentário vai para o PR:

@@ -143,7 +143,9 @@ cmd_prepare() {
   # Hooks do git da main (SPEC-107, CA22): cópia de root, sem escrita para o
   # agente, e o arquivo de configuração global do agente que aponta para ela.
   # Sem a configuração, o git do agente não teria os hooks, por isso falha
-  # aqui e o lock não sobe.
+  # aqui e o lock não sobe. A mesma configuração dá ao agente a identidade de
+  # commit (SPEC-203): sem ela o git dele, que não lê o ~/.gitconfig, não tem
+  # user.name nem user.email.
   [[ -d "$plugin_src/githooks" ]] || fail "não achei a pasta githooks/ em $plugin_src."
   rm -rf "$hooks_dst" || fail "não consegui limpar $hooks_dst."
   mkdir -p "$hooks_dst" || fail "não consegui criar $hooks_dst."
@@ -152,6 +154,9 @@ cmd_prepare() {
   {
     echo "[core]"
     echo "	hooksPath = $hooks_dst"
+    echo "[user]"
+    echo "	name = $agent_user"
+    echo "	email = $agent_user@users.noreply.github.com"
   } > "$gitconfig_dst" || fail "não consegui gravar $gitconfig_dst."
   chmod 0644 "$gitconfig_dst"
 
