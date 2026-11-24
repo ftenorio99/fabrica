@@ -1,7 +1,7 @@
 # SPEC-203: Identidade de commit do agente no job do dispatcher
 
 **Issue:** #203 · **PRD:** F1, F4 · **Fonte do escopo:** — · **Classe:** implementacao-complexa · **Tamanho:** P
-**Status:** rascunho · **Atualizada em:** 2026-11-24
+**Status:** aprovada · **Atualizada em:** 2026-11-24
 
 ## Contexto
 O job do dispatcher roda o `claude` como `fabrica-agent`, com ambiente fechado (`env -i` no `scripts/run-as-agent.sh`) e com `GIT_CONFIG_GLOBAL` apontando para `/opt/fabrica-gitconfig` (SPEC-107, CA22). Esse arquivo só tem `[core] hooksPath`, e o `~/.gitconfig` do agente deixa de ser lido. O git do agente fica sem `user.name` e `user.email`, e no runner (usuário de sistema sem GECOS, hostname sem domínio) o `git commit` pode falhar com "Author identity unknown". A falha foi vista na revisão da #107 (PR #202). Ainda não se sabe se ela explica o commit que não saiu no CA15 parte 2.
@@ -84,3 +84,4 @@ nenhum
 
 ## Histórico
 - 2026-11-24: criação.
+- 2026-11-24: aprovada.
