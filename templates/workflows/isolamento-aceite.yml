@@ -1,0 +1,70 @@
+# Teste de aceite do isolamento do dispatcher (SPEC-106, ADR 0016). Copie para
+# .github/workflows/isolamento-aceite.yml do repositório de teste e rode pela
+# aba Actions (Run workflow). Os secrets são os mesmos do agente.yml.
+# Rode de novo depois de mudar a lista de domínios, o proxy ou a versão do
+# mitmproxy. Guia: docs/guias/dispatcher.md do plugin.
+name: isolamento-aceite
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  aceite:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout do projeto
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Instala o Claude Code
+        run: |
+          npm install -g @anthropic-ai/claude-code
+          claude --version
+
+      - name: Instala o plugin da fábrica
+        id: plugin
+        env:
+          GH_TOKEN: ${{ secrets.FABRICA_PLUGIN_TOKEN }}
+          CLAUDE_CODE_PLUGIN_PREFER_HTTPS: "1"
+        run: |
+          gh auth setup-git
+          claude plugin marketplace add ftenorio99/fabrica
+          claude plugin install fabrica@fabrica
+          path="$(claude plugin list --json | python3 -I -c 'import json, sys; print(next(p["installPath"] for p in json.load(sys.stdin) if p.get("id") == "fabrica@fabrica"))')"
+          test -f "$path/scripts/job-isolation.sh"
+          echo "path=$path" >> "$GITHUB_OUTPUT"
+
+      - name: Instala o mitmproxy
+        run: |
+          sudo python3 -m venv /opt/fabrica-mitm
+          sudo /opt/fabrica-mitm/bin/pip install --quiet mitmproxy==12.3.1
+          /opt/fabrica-mitm/bin/mitmdump --version
+
+      - name: Prepara o isolamento
+        env:
+          FABRICA_PLUGIN_DIR: ${{ steps.plugin.outputs.path }}
+        run: sudo bash "$FABRICA_PLUGIN_DIR/scripts/job-isolation.sh" prepare "$FABRICA_PLUGIN_DIR" "$GITHUB_WORKSPACE"
+
+      - name: Trava a rede e os segredos
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          FABRICA_GH_TOKEN: ${{ secrets.FABRICA_GH_TOKEN }}
+          FABRICA_PLUGIN_DIR: ${{ steps.plugin.outputs.path }}
+        run: sudo --preserve-env=CLAUDE_CODE_OAUTH_TOKEN,FABRICA_GH_TOKEN bash "$FABRICA_PLUGIN_DIR/scripts/job-isolation.sh" lock
+
+      - name: Teste de aceite
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          FABRICA_GH_TOKEN: ${{ secrets.FABRICA_GH_TOKEN }}
+          FABRICA_PLUGIN_TOKEN: ${{ secrets.FABRICA_PLUGIN_TOKEN }}
+          FABRICA_PLUGIN_DIR: ${{ steps.plugin.outputs.path }}
+        run: sudo --preserve-env=CLAUDE_CODE_OAUTH_TOKEN,FABRICA_GH_TOKEN,FABRICA_PLUGIN_TOKEN,GITHUB_REPOSITORY,GITHUB_REPOSITORY_OWNER bash "$FABRICA_PLUGIN_DIR/scripts/test-job-acceptance.sh"
+
+      - name: Mostra o log do proxy
+        if: always()
+        run: sudo cat /etc/fabrica/proxy.log || true

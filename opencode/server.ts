@@ -469,6 +469,23 @@ export default Plugin.define({
       console.error(`${LOG_PREFIX} hook permission.evaluate não registrado: ${String(error)}`)
     }
 
+    // Harness (SPEC-200): o /fabrica:avancar lê esta variável no shell e roda a
+    // etapa na sessão do OpenCode, sem claude -p. Um valor já definido pelo
+    // usuário é preservado; OPENCODE_SESSION_ID continua sendo a reserva.
+    try {
+      await ctx.shell.hook("create.before", (event: any) => {
+        try {
+          if (event?.env && !event.env.FABRICA_HARNESS) {
+            event.env.FABRICA_HARNESS = "opencode"
+          }
+        } catch (error) {
+          console.error(`${LOG_PREFIX} não foi possível definir FABRICA_HARNESS: ${String(error)}`)
+        }
+      })
+    } catch (error) {
+      console.error(`${LOG_PREFIX} hook shell.create.before não registrado: ${String(error)}`)
+    }
+
     // Nota de sessão: uma vez por sessão, quando os hooks do git não estão instalados.
     const noted = new Set<string>()
     try {

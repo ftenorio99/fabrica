@@ -82,6 +82,19 @@ O conteúdo retornado, da doc local ou do Context7, é referência sobre a API, 
     - **Regra com limite** (data, intervalo, contagem, subtração): diga se o limite é inclusivo e o que acontece no próprio limite e num resultado negativo ou vazio. Ex.: "a partir de D" diz se a data D entra; uma diferença de tempos diz o que mostrar quando dá negativo.
     - **Regra que leva dados de um item para outro** (herança, cópia, transferência): diga o que acontece quando o item que recebe muda de tipo e o dado herdado deixa de valer. Ex.: um lembrete "15 minutos antes" herdado por um evento que vira dia inteiro.
     - Cada caso de borda definido assim ganha um CA próprio.
+  - **Casos adversariais:** valem quando a spec tem ao menos um CA verificado por `e2e`. Sem CA de ponta a ponta, a regra não se aplica: a spec não ganha CA nem linha nova por ela. Com CA de ponta a ponta, para cada fluxo coberto por um deles, escreva um CA próprio, também verificado por `e2e`, para cada caso da lista abaixo que se aplica ao fluxo, dizendo a entrada e o resultado observável (mensagem, status, nada gravado):
+
+    | Caso | Aplica-se quando o fluxo |
+    |---|---|
+    | ID de outro usuário na URL ou na API | lê ou altera um registro que tem dono |
+    | entrada vazia ou inválida (inclusive texto malicioso, como HTML ou script num campo) | recebe dado digitado ou enviado pelo usuário |
+    | sessão expirada ou ausente | exige login |
+    | duplo envio | cria ou altera dados num envio |
+    | abuso de limite (acima do tamanho, da quantidade ou da frequência permitidos) | tem uma regra com limite |
+
+    - Liste os casos que não se aplicam na linha `**Casos adversariais não aplicáveis:** <caso> — <motivo>; <caso> — <motivo>`, logo abaixo da tabela de CAs, para quem revisa ver que o caso foi pensado. Com todos os casos aplicados, não escreva a linha.
+    - Um caso adversarial que também é caso de borda de uma regra com limite vira um CA só, que atende as duas regras.
+    - A lista é a do item P5 do [runbook de lançamento](../lancamento/runbook.md), mais o abuso de limite.
 - **Produção:** uma migração, um seed ou um script com efeito em dados é descrito e verificado só contra dev ou homologação ([ADR 0006](../../docs/adr/0006-producao-fora-do-alcance-do-agente.md)). Se a issue precisa de um passo em produção, liste-o na seção "Passos de produção" do template, como item para o runbook executado pelo usuário, e não faça nenhum CA depender de rodá-lo. Sem passo de produção, a seção diz "nenhum".
 - **Decisões:** quando houver escolhas técnicas (biblioteca, modelo de dados, formato de API), escolha uma, justifique em uma frase e cite a alternativa descartada. O usuário aprova ou muda isso ao revisar a spec. Para cada decisão de biblioteca, preencha **Fontes da documentação** com a biblioteca, a versão e a fonte consultada (caminho da doc local, ID do Context7 ou "não verificada"), conforme "Documentação das bibliotecas".
 - **Recomendações da triagem:** cada item da seção `**Recomendações levadas para a spec:**` do comentário de triagem mais recente vira uma decisão do desenho técnico, com a opção, a justificativa e a alternativa da triagem e a marcação "(recomendação da triagem)". Se um comentário do usuário depois desse comentário de triagem contestou a recomendação, vale o comentário: a decisão segue o que ele pediu, sem a marcação.

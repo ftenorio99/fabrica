@@ -30,7 +30,8 @@ Tudo acontece no GitHub do próprio projeto: as tarefas são issues, o estado de
 | [Isolamento do agente](guias/isolamento-do-agente.md) | Escolher entre a VM do `sbx` e o modo sem sandbox, preparar a VM, ampliar os domínios e listar os padrões de produção. |
 | [Migrar para o AGENTS.md](guias/migrar-para-agents-md.md) | O projeto tem as regras só no `CLAUDE.md`, ou tem os dois arquivos sem o import. |
 | [Antigravity](guias/antigravity.md) | Usar a fábrica pelo Antigravity CLI (`agy`): o que funciona, o que não funciona e as issues que acompanham os consertos. |
-| [Dispatcher no GitHub Actions](guias/dispatcher.md) | Ligar o piloto do workflow que roda a triagem quando a label `agente` é aplicada, com os secrets, o comentário de falha e os limites. |
+| [CI do PR](guias/ci-do-pr.md) | Instalar o modelo de CI da fábrica, que roda `make lint`, `make test` e `make e2e` em cada PR, preparar o `.env.example` para ele e adaptar a cópia do projeto. |
+| [Dispatcher no GitHub Actions](guias/dispatcher.md) | Ligar o piloto do workflow que acorda com os gestos do usuário (label `agente` ou `spec-aprovada`, comentário na issue ou no PR, review, checklist marcada) e roda as etapas até o próximo portão, com o teto, o freio, a resolução do PR, os três secrets, o isolamento do job (proxy, lista de domínios e teste de aceite), o comentário de falha e os limites. |
 
 ## Fontes da verdade
 Este manual explica e remete. As regras ficam em:

@@ -18,6 +18,9 @@
 | CA1 | <comportamento observável> | unitário / e2e / manual / depois do merge — <motivo> |
 | CA2 | <...> | <...> |
 
+<!-- Opcional: só numa spec com CA de ponta a ponta, e só se algum caso adversarial da lista não se aplica ao fluxo. Sem uso, apague esta linha e a de baixo. -->
+**Casos adversariais não aplicáveis:** <caso> — <motivo>
+
 ## Fora de escopo
 - <O que parece fazer parte, mas fica para outra issue.>
 

@@ -1,0 +1,13 @@
+# Domínios que o agente alcança no job do dispatcher (SPEC-106, ADR 0016).
+# Um host por linha. `*.dominio` vale só para subdomínios. Sem curingas largos.
+# Ampliar: acrescente só o host exato que o log do proxy mostrar como bloqueado
+# e que a etapa realmente precisa, com o motivo numa linha de comentário.
+
+# API do Claude Code: é por onde o `claude -p` fala com o modelo.
+api.anthropic.com
+
+# GitHub: API (issues, labels, comentários), git por HTTPS e o que o `gh` baixa.
+github.com
+api.github.com
+uploads.github.com
+codeload.github.com

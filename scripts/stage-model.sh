@@ -11,7 +11,8 @@
 # FABRICA_MODELS_FILE (troca o caminho de modelos.md, só para os testes).
 # O modo de permissão do run é bypassPermissions só dentro da VM do sbx com o
 # projeto em modo sbx (sbx-context.sh e setup-isolation.sh); senão, auto.
-# Saída: 0 sucesso; 1 uso inválido; 2 duas ou mais labels modelo:*.
+# Saída: 0 sucesso; 1 uso/configuração inválida; 2 duas ou mais labels modelo:*;
+# 3 harness de sessão (a etapa roda no modelo da sessão, sem claude -p).
 set -uo pipefail
 export LC_ALL=C.UTF-8
 
@@ -136,6 +137,17 @@ cmd_run() {
   local stage="$1" number="$2" selection rc alias id effort
   shift 2
   [[ "$number" =~ ^[1-9][0-9]*$ ]] || fail "o número da issue precisa ser um inteiro positivo."
+
+  local harness
+  harness="$(bash "$script_dir/harness.sh" detect)"; rc=$?
+  [[ $rc -eq 0 ]] || fail "não consegui detectar a harness."
+  case $harness in
+    opencode | antigravity)
+      echo "stage-model: a harness $harness roda a etapa na sessão; não use stage-model.sh run." >&2
+      exit 3
+      ;;
+  esac
+
   selection="$(cmd_model "$stage" "$@")"; rc=$?
   [[ $rc -eq 0 ]] || exit $rc
   read -r alias id effort <<< "$selection"

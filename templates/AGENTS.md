@@ -38,4 +38,4 @@ Documentos: `docs/prd.md` (produto), `specs/` (uma spec por issue), `docs/adr/` 
 - Quando sair uma LTS nova, a atualização entra por um PR `chore` com lint, testes e build verdes.
 
 ## Projeto
-<!-- Stack, comandos (make test, make lint, make e2e), arquitetura e convenções deste projeto. -->
+<!-- Stack, comandos (make test, make lint, make e2e), arquitetura e convenções deste projeto. O make e2e sobe sozinho o banco (pelo Docker Compose) e o app e roda o Playwright: o CI do PR só o chama. -->
