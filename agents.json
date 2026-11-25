@@ -1,1 +1,8 @@
-{"entries":[{"path":"agy-agents/revisor.md"}]}
+{
+  "entries": [
+    {"path": "agy-agents/revisor.md"},
+    {"path": "agy-agents/triador.md"},
+    {"path": "agy-agents/especificador.md"},
+    {"path": "agy-agents/implementador.md"}
+  ]
+}
