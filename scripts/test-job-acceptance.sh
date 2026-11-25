@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Teste de aceite do isolamento do job do dispatcher (SPEC-106, CA11). Roda no
+# Teste de aceite do isolamento do job do dispatcher (SPEC-106, CA11; SPEC-204,
+# CA8 e CA9). Roda no
 # runner do GitHub Actions, como root, depois de `job-isolation.sh prepare` e
 # `lock` (veja templates/workflows/isolamento-aceite.yml). Imprime
 # `ok <verificação>` ou `falha <verificação>: <motivo>` e sai com 1 se alguma
@@ -8,7 +9,8 @@
 #
 # Variáveis: CLAUDE_CODE_OAUTH_TOKEN, FABRICA_GH_TOKEN e FABRICA_PLUGIN_TOKEN
 # (os valores reais, para conferir que o agente não os alcança) e
-# GITHUB_REPOSITORY e GITHUB_REPOSITORY_OWNER.
+# GITHUB_REPOSITORY, GITHUB_REPOSITORY_OWNER e GITHUB_RUN_ID (o nome da branch
+# de teste do push).
 set -uo pipefail
 export LC_ALL=C.UTF-8
 
@@ -170,6 +172,48 @@ if grep -q 'bloqueado example.com' "$dir/proxy.log" && [[ -z "$outside" ]]; then
   ok proxy-so-lista
 else
   bad proxy-so-lista "sem o bloqueio de example.com no log, ou host fora da lista liberado:${outside:- nenhum}"
+fi
+
+# 12. Push para a main barrado no proxy (SPEC-204, CA8), mesmo com os hooks do
+# git desligados pelo .git/config local, que é o cenário da issue #204.
+pdir="$(sudo -n -u "$agent" -H mktemp -d)"
+branch="fabrica-aceite-${GITHUB_RUN_ID:-$$}"
+pout="$(as_agent bash -c '
+  set -u
+  cd "$1"
+  git -c credential.helper= -c "http.extraHeader=Authorization: Basic $2" clone -q "https://github.com/$3" repo || { echo "erro=clone"; exit 0; }
+  cd repo
+  git config credential.helper ""
+  git config http.extraHeader "Authorization: Basic $2"
+  default="$(git symbolic-ref --short HEAD)"
+  before="$(git ls-remote origin "refs/heads/$default" | cut -f1)"
+  mkdir -p "$1/sem-hooks"
+  git config core.hooksPath "$1/sem-hooks"
+  git commit -q --allow-empty -m "aceite: push na $default" || { echo "erro=commit"; exit 0; }
+  if git push -q origin "HEAD:refs/heads/$default" 2>/dev/null; then echo "main=passou"; else echo "main=barrado"; fi
+  after="$(git ls-remote origin "refs/heads/$default" | cut -f1)"
+  if [[ -n "$before" && "$before" == "$after" ]]; then echo "sha=igual"; else echo "sha=mudou:$before:$after"; fi
+  if git push -q origin "HEAD:refs/heads/$4" 2>"$1/push-branch.err"; then echo "branch=passou"; else echo "branch=barrado"; fi
+  if git push -q origin --delete "refs/heads/$4" 2>/dev/null; then echo "apagada=sim"; else echo "apagada=nao"; fi
+' _ "$pdir" "$basic" "$repo" "$branch" 2>"$work/push.err")"
+perr="$(sudo -n -u "$agent" cat "$pdir/push-branch.err" 2>/dev/null | head -c 200)"
+sudo -n -u "$agent" rm -rf "$pdir"
+if [[ "$pout" == *main=barrado* && "$pout" == *sha=igual* && "$pout" == *branch=passou* ]] \
+    && grep -q 'bloqueado github.com: push para a main/master' "$dir/proxy.log"; then
+  ok push-main-barrado
+else
+  bad push-main-barrado "$(echo "$pout" | tr '\n' ' ')$(head -c 200 "$work/push.err") $perr"
+fi
+[[ "$pout" == *apagada=sim* ]] || echo "aviso: a branch $branch não foi apagada no repositório de teste; apague-a à mão."
+
+# 13. Corpo de push ilegível (SPEC-204, CA9): 403 do proxy, que falha fechado.
+resp="$(as_agent curl -sS --max-time 15 -w '\n%{http_code}' -X POST \
+  -H 'Content-Type: application/x-git-receive-pack-request' --data-binary 'lixo<script>' \
+  "https://github.com/$repo.git/git-receive-pack" 2>"$work/curl.err")"
+if [[ "${resp##*$'\n'}" == 403 && "$resp" == *ilegível* ]]; then
+  ok push-corpo-ilegivel
+else
+  bad push-corpo-ilegivel "esperava 403 com o texto do corpo ilegível, veio: $(echo "$resp" | tail -c 200) $(head -c 200 "$work/curl.err")"
 fi
 
 if [[ $failed -eq 0 ]]; then
