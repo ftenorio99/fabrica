@@ -78,6 +78,8 @@ Passe ao revisor:
 
 O revisor devolve, para cada critério de aceite, se está atendido e com qual evidência, e uma lista de achados com severidade `bloqueante`, `importante` ou `sugestão`.
 
+**Antigravity (`browser`):** quando `harness.sh detect` retornar `antigravity`, o projeto tiver interface web local e o subagente built-in `browser` estiver disponível, a etapa (ou o revisor) pode acioná-lo via `invoke_subagent(TypeName="browser", ...)` (ou `/browser`) para verificações visuais ou E2E complementares. Se `browser` estiver indisponível (ambiente headless/VM) ou falhar com assinatura de ambiente, siga normalmente sem bloquear a revisão.
+
 ## 4. Corrigir
 - **Assinatura de ambiente só no revisor:** se o revisor anotou "o ambiente não roda a verificação (<assinatura>)" num comando que não estava na verificação pendente para o CI (por exemplo, o `make e2e` passou no `implementar` e falhou com assinatura no revisor), isso não é achado a corrigir nem conta como rodada. Acrescente o comando à verificação pendente e siga os itens da "Verificação pendente para o CI" do passo 3: sem CI, o "Pedido" ao usuário; com CI, o PR em rascunho, a espera do CI do head e uma nova chamada ao revisor com o resultado. Os demais achados seguem as regras abaixo antes disso.
 - Um CA que o revisor devolve como `depois do merge` não é achado nem pendência: ele vai para o PR com ⏳ (passo 5).
