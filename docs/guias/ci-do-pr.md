@@ -5,7 +5,7 @@ A [ADR 0011](../adr/0011-verificacao-de-integracao-na-etapa.md) exige em todo pr
 ## O que o modelo roda
 Em cada PR e em cada push na `main`, dois jobs em paralelo, num runner descartável do GitHub Actions:
 - **`verificacao`:** `make lint` e `make test`;
-- **`e2e`:** `make e2e`, o Playwright. Quando falha, o relatório fica no run como o artefato `playwright-report`, por 7 dias. Sem o alvo `e2e:` no `Makefile`, o job termina verde com a linha `ci: o Makefile não tem o alvo e2e; nada a rodar`.
+- **`e2e`:** `make e2e`, o Playwright. Quando falha, o relatório fica no run como o artefato `playwright-report`, por 7 dias. Sem o alvo `e2e:` no `Makefile`, o job termina verde com a linha `ci: o Makefile não tem o alvo e2e; nada a rodar`. Com o alvo `screenshots:`, o job roda também o `make screenshots` depois do `make e2e` e guarda `screenshots/` como o artefato `telas`, por 7 dias, que a etapa `revisar` publica no PR ([telas e screenshots](telas-e-screenshots.md)).
 
 Antes dos comandos, os dois jobs preparam o ambiente do mesmo jeito: o Node da versão do `.nvmrc`, o pnpm se há `pnpm-lock.yaml` (na versão do `packageManager`) e as dependências, pela primeira situação que valer: `pnpm install --frozen-lockfile`, `npm ci` ou `make install`. Sem lockfile nem alvo `install`, o job segue sem instalar e avisa no log.
 
@@ -45,3 +45,5 @@ O `ci.yml` do projeto é seu: o setup não o compara com o modelo nem oferece at
 - pacote `playwright` em vez de `@playwright/test`: troque o nome do pacote no passo `Lê a versão do Playwright`, que lê a versão da `node_modules`;
 - outra stack (Python, Go): troque a preparação do Node pela da sua stack e mantenha os `make`;
 - variáveis que o `.env.example` não cobre: um bloco `env:` no job, sem secrets de produção.
+
+Uma cópia anterior às telas não gera o artefato `telas`. Os passos para acrescentá-lo estão no guia [telas e screenshots](telas-e-screenshots.md#cópia-antiga-do-ciyml).

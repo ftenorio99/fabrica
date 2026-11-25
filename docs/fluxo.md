@@ -33,10 +33,10 @@ Os retângulos são etapas de agente, que você dispara com o comando. Os hexág
 | Backlog | agente, com a sua confirmação | milestones `M<n> · <nome>` e issues enxutas do marco atual e do seguinte |
 | Puxar | você | a label `agente` numa issue de backlog |
 | Triagem | agente | comentário de triagem, com o campo `Interface`; perguntas na issue só para o que ela não sabe recomendar, e as recomendações seguem para a spec; no [atalho](#atalho), a spec curta e a label `spec-pronta` |
-| Spec | agente | `specs/SPEC-<nº>.md` na branch da issue e a label `spec-pronta`; na primeira issue com interface, também o `docs/design.md` do projeto ([ADR 0009](adr/0009-aprovacao-visual-sem-ferramenta-de-design.md)) |
+| Spec | agente | `specs/SPEC-<nº>.md` na branch da issue e a label `spec-pronta`; numa issue com interface, a descrição de cada tela e, na primeira, também o `docs/design.md` do projeto ([ADR 0009](adr/0009-aprovacao-visual-sem-ferramenta-de-design.md)) |
 | **Aprovar a spec** | **você** | a label `spec-aprovada`, que também confirma as recomendações que a triagem levou para a spec |
 | Implementação | agente | código e testes na branch, verificações registradas |
-| Revisão | agente | revisão contra a spec, PR com evidências e a label `pronto-revisao` |
+| Revisão | agente | revisão contra a spec, PR com evidências e a label `pronto-revisao`; numa issue com interface, o PR mostra os screenshots de cada tela no celular e no computador ([guia](guias/telas-e-screenshots.md)) |
 | **Merge** | **você** | squash na `main`; a issue fecha sozinha |
 
 Você pode rodar cada etapa do agente pelo comando dela, ou deixar o [`/fabrica:avancar`](comandos.md#fabricaavancar-número-da-issue) executar as etapas em sequência. Ele para sozinho onde a tabela diz "você".
@@ -63,7 +63,7 @@ Quando a implementação ou a revisão dependem de uma ação sua fora do GitHub
 Produção fica fora do alcance dos agentes ([ADR 0006](adr/0006-producao-fora-do-alcance-do-agente.md)). Quando você decidir lançar o projeto, rode [`/fabrica:lancamento`](comandos.md#fabricalancamento-número-da-issue-de-runbook): ele confere o que dá para conferir no repositório e em dev ou homologação e abre uma issue de runbook com a checklist dos passos que você faz em produção, partindo dos "Passos de produção" das specs. A etapa fica fora do ciclo das issues e do `/fabrica:avancar`, e vale só para o primeiro lançamento. Veja o guia [Lançamento](guias/lancamento.md).
 
 ## Atalho
-Uma issue pequena e sem ambiguidade não precisa da etapa de spec. Quando a triagem vê que a issue é pequena, simples ou de documentação, sem perguntas e sem arquivos sensíveis, ela publica no próprio comentário uma **spec curta**, com o objetivo, os critérios de aceite, o que fica fora do escopo e o nome da branch, e aplica `spec-pronta`.
+Uma issue pequena e sem ambiguidade não precisa da etapa de spec. Quando a triagem vê que a issue é pequena, simples ou de documentação, sem perguntas, sem arquivos sensíveis e sem interface, ela publica no próprio comentário uma **spec curta**, com o objetivo, os critérios de aceite, o que fica fora do escopo e o nome da branch, e aplica `spec-pronta`.
 
 Os seus portões são os mesmos: você aprova a spec curta com `spec-aprovada`, e a issue segue para a implementação, a revisão e o merge como qualquer outra. Ela também conta para o limite de 3 em andamento.
 
