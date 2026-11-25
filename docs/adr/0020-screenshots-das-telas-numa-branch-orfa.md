@@ -1,6 +1,6 @@
 # ADR 0020: Screenshots das telas numa branch órfã do projeto, publicados pela etapa de agente
 
-**Status:** proposto · **Data:** 2026-11-24 · **Origem:** issue #129
+**Status:** aceito · **Data:** 2026-11-24 · **Origem:** issue #129
 
 ## Contexto
 A F7 do [PRD](../prd.md) pede que a implementação anexe ao PR screenshots reais das telas, no celular e no computador, para o usuário aprovar. O GitHub não tem API para subir imagem num comentário ou no corpo de um PR: o upload só existe pelo navegador. A imagem precisa ficar em algum lugar que o PR mostre, inclusive num repositório privado, sem serviço externo e sem secret novo.

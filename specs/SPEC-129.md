@@ -1,7 +1,7 @@
 # SPEC-129: Spec descreve as telas, e a implementação anexa screenshots no celular e no computador ao PR
 
 **Issue:** #129 · **PRD:** F7 (item 11 do fatiamento) · **Fonte do escopo:** — · **Classe:** implementacao-complexa · **Tamanho:** G
-**Status:** rascunho · **Atualizada em:** 2026-11-24
+**Status:** aprovada · **Atualizada em:** 2026-11-25
 
 ## Contexto
 A F7 do [PRD](../docs/prd.md) pede aprovação visual: a spec descreve as telas, e a implementação anexa ao PR screenshots reais, no celular e no computador. A primeira metade já existe: o `docs/design.md` e o campo `Interface` da triagem ([ADR 0009](../docs/adr/0009-aprovacao-visual-sem-ferramenta-de-design.md), #45), e o CI do PR roda o Playwright ([ADR 0019](../docs/adr/0019-ci-do-pr-pelo-modelo-da-fabrica.md), #128). Esta issue liga as duas pontas: a descrição de cada tela na spec e as imagens no PR.
@@ -163,3 +163,4 @@ nenhum
 
 ## Histórico
 - 2026-11-24: criação.
+- 2026-11-25: aprovada.
