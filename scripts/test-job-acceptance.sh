@@ -74,7 +74,20 @@ else
   bad git-pelo-proxy "git ls-remote não devolveu um commit: $(head -c 200 "$work/git.err")"
 fi
 
-# 5. O ambiente do agente só tem marcadores.
+# 5. Commit do agente (SPEC-203): a identidade vem do arquivo de configuração
+# do prepare. O repositório fica numa pasta do agente, fora do $work de root.
+cdir="$(sudo -n -u "$agent" -H mktemp -d)"
+cout="$(as_agent bash -c 'cd "$1" && git init -q -b main && git switch -q -c feat/aceite && git commit -q --allow-empty -m aceite && git log -1 --format="%an <%ae>|%cn <%ce>"' _ "$cdir" 2>"$work/commit.err")"
+crc=$?
+sudo -n -u "$agent" rm -rf "$cdir"
+want="$agent <$agent@users.noreply.github.com>"
+if [[ $crc -eq 0 && "$cout" == "$want|$want" ]]; then
+  ok commit-do-agente
+else
+  bad commit-do-agente "$(head -c 200 "$work/commit.err")${cout:+ saída: $cout}"
+fi
+
+# 6. O ambiente do agente só tem marcadores.
 oauth_seen="$(as_agent printenv CLAUDE_CODE_OAUTH_TOKEN)"
 gh_seen="$(as_agent printenv GH_TOKEN)"
 if [[ "$oauth_seen" == fabrica-marker-* && "$gh_seen" == fabrica-marker-* \
@@ -84,7 +97,7 @@ else
   bad marcador-no-ambiente "o CLAUDE_CODE_OAUTH_TOKEN ou o GH_TOKEN do agente não é um marcador"
 fi
 
-# 6. Nenhum arquivo nem /proc legível pelo agente tem os valores reais. O root
+# 7. Nenhum arquivo nem /proc legível pelo agente tem os valores reais. O root
 # procura os valores nas pastas onde um segredo poderia ter ficado, com o
 # `find`/`grep` dele, e depois confere, para cada arquivo encontrado, se o agente
 # consegue abri-lo: o proxy.env, por exemplo, tem os valores e o agente não o lê.
@@ -125,28 +138,28 @@ else
   ok segredo-fora-do-alcance
 fi
 
-# 7. A chave privada da CA do proxy.
+# 8. A chave privada da CA do proxy.
 if as_agent test -r "$proxy_home/.mitmproxy/mitmproxy-ca.pem" 2>/dev/null; then
   bad ca-privada-ilegivel "o agente lê a chave privada da CA"
 else
   ok ca-privada-ilegivel
 fi
 
-# 8. Sem sudo.
+# 9. Sem sudo.
 if as_agent sudo -n true >/dev/null 2>&1; then
   bad sem-sudo "o agente roda sudo"
 else
   ok sem-sudo
 fi
 
-# 9. O token do plugin não ficou no home do agente.
+# 10. O token do plugin não ficou no home do agente.
 if grep -r -a -l -F "$FABRICA_PLUGIN_TOKEN" "/home/$agent" >/dev/null 2>&1; then
   bad home-sem-token "o home do agente guarda o FABRICA_PLUGIN_TOKEN"
 else
   ok home-sem-token
 fi
 
-# 10. O log do proxy só lista hosts da lista e mostra o bloqueio do teste 3.
+# 11. O log do proxy só lista hosts da lista e mostra o bloqueio do teste 3.
 domains="$dir/dominios.txt"
 seen="$(sed -n 's/.*permitido \([^ ]*\)$/\1/p' "$dir/proxy.log" | sort -u)"
 outside=""
