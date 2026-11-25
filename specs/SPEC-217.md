@@ -1,7 +1,7 @@
 # SPEC-217: agy: subagentes especializados por etapa e EnableSubagentTools
 
 **Issue:** #217 · **PRD:** — · **Fonte do escopo:** — · **Classe:** implementacao-complexa · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-11-25
+**Status:** aprovada · **Atualizada em:** 2026-11-25
 
 ## Contexto
 Hoje apenas [`agy-agents/revisor.md`](../agy-agents/revisor.md) está declarado em [`agents.json`](../agents.json). A #216 já separou `implementar` e `revisar` como estágios consecutivos no `pipeline` do `run_workflow` em [`skills/avancar/SKILL.md`](../skills/avancar/SKILL.md), evitando a restrição de subagente criando subagente (ADR 0013) no fluxo automático.
@@ -82,3 +82,4 @@ nenhum
 
 ## Histórico
 - 2026-11-25: criação.
+- 2026-11-25: aprovada.
