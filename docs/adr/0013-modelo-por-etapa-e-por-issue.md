@@ -2,6 +2,7 @@
 
 **Status:** aceito · **Data:** 2026-11-18 · **Origem:** issue #179
 **Emenda:** 2026-11-19, issue #200 (detecção da harness e caminho de sessão).
+**Emenda:** 2026-11-25, issue #220 (detecção automática do `antigravity` via `ANTIGRAVITY_AGENT`/`ANTIGRAVITY_CONVERSATION_ID`, orquestração via `run_workflow` da #216, subagentes estáticos em `agy-agents/` da #217 e mapeamento de tiers via `stage-model.sh agy-tier` da #218).
 
 ## Contexto
 Todas as etapas da fábrica rodavam no modelo da sessão. O usuário trabalha com três modelos do Claude Code (Opus 5.5, Sonnet 5.5 e Haiku 5.5) e quer o mais caro só onde o julgamento compensa. Dois critérios pesam:
@@ -15,7 +16,8 @@ A primeira versão escolhia o caminho pela presença do binário `claude`, o que
 ## Decisão
 - A etapa que lê texto de issue primeiro (`triagem`) roda no Sonnet. A `spec` roda no Opus em esforço médio. `implementar` e `revisar` seguem a label `modelo:haiku|sonnet|opus` da issue, que a triagem sugere e o usuário pode trocar até a `spec-aprovada`.
 - O `/fabrica:avancar` detecta a harness com `scripts/harness.sh` antes de conferir o binário. Em `opencode` ou `antigravity`, executa a etapa na sessão: sem `claude -p`, sem label `modelo:*`, sem escalonamento e sem o modelo desta tabela. Em `claude-code` ou `binario`, executa cada etapa num processo `claude -p --model <id>` próprio, com o prompt só com o comando e o número ([ADR 0008](0008-texto-externo-fora-do-prompt.md)).
-- A detecção usa `CLAUDECODE` em primeiro lugar (um `claude -p` aberto de dentro do OpenCode precisa continuar sendo Claude Code), depois `FABRICA_HARNESS` (injetada pelo adaptador do OpenCode) e, por fim, `OPENCODE_SESSION_ID`; sem nenhum sinal, vale a regra do binário. O Antigravity usa `FABRICA_HARNESS=antigravity` manual até o #149.
+- A detecção usa `CLAUDECODE` em primeiro lugar (um `claude -p` aberto de dentro do OpenCode ou do Antigravity precisa continuar sendo Claude Code), depois `FABRICA_HARNESS` (injetada pelo adaptador do OpenCode ou override manual), depois `OPENCODE_SESSION_ID` e, por fim, `ANTIGRAVITY_AGENT` / `ANTIGRAVITY_CONVERSATION_ID`; sem nenhum sinal, vale a regra do binário.
+- No `antigravity`, o `/fabrica:avancar` orquestra as etapas com `run_workflow` (`parallel` entre issues e `pipeline` por issue com `implementar` → `revisar` em estágios separados, #216), usando os subagentes estáticos de `agy-agents/` (#217) e traduzindo as labels `modelo:*` para tiers do `agy` (`flash_lite`, `flash`, `pro`) via `scripts/stage-model.sh agy-tier` (#218), sem `claude -p` e sem escalonamento automático. O `opencode` permanece no caminho genérico de sessão, sem `stage-model.sh`, sem `modelo:*` e sem escalonamento.
 - A tabela etapa → modelo e os IDs ficam num arquivo só, `skills/avancar/modelos.md`.
 - Uma falha de qualidade sobe o modelo: Haiku → Sonnet na primeira, Sonnet → Opus na segunda.
 - O processo `claude -p` roda em `bypassPermissions` só dentro da VM do sbx (`sbx-context.sh` diz `onde vm` e `setup-isolation.sh --check` diz `sbx`) e em `auto` nos outros casos. O `auto` bloqueou a etapa `spec` no `-p`, no host, em 3 de 3 execuções.

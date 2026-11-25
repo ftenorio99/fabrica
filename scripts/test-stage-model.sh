@@ -72,7 +72,7 @@ chmod +x "$fake"
 
 # run <etapa> <nº> [label...]: com HOME fora do clone, como numa máquina comum
 # (e fora da VM do sbx, para o modo de permissão ser sempre auto, onde quer que o teste rode)
-run() { env -u PROXY_CA_CERT_B64 -u CLAUDECODE -u FABRICA_HARNESS -u OPENCODE_SESSION_ID HOME="$tmp/home" FABRICA_SBX_PERSISTENT_FILE="$tmp/ausente.sh" FABRICA_CLAUDE_BIN="$fake" bash "$script" run "$@" 2>/dev/null; }
+run() { env -u PROXY_CA_CERT_B64 -u CLAUDECODE -u FABRICA_HARNESS -u OPENCODE_SESSION_ID -u ANTIGRAVITY_AGENT -u ANTIGRAVITY_CONVERSATION_ID HOME="$tmp/home" FABRICA_SBX_PERSISTENT_FILE="$tmp/ausente.sh" FABRICA_CLAUDE_BIN="$fake" bash "$script" run "$@" 2>/dev/null; }
 args() { tr '\n' ' ' < "$args_file" | sed 's/ $//'; }
 
 # CA5: argumentos do claude.
@@ -110,7 +110,7 @@ cp "$script" "$installed/scripts/stage-model.sh"
 cp "$script_dir/harness.sh" "$installed/scripts/harness.sh"
 cp "$script_dir/../skills/avancar/modelos.md" "$installed/skills/avancar/modelos.md"
 rm -f "$args_file"
-env -u CLAUDECODE -u FABRICA_HARNESS -u OPENCODE_SESSION_ID HOME="$tmp/home" \
+env -u CLAUDECODE -u FABRICA_HARNESS -u OPENCODE_SESSION_ID -u ANTIGRAVITY_AGENT -u ANTIGRAVITY_CONVERSATION_ID HOME="$tmp/home" \
   FABRICA_CLAUDE_BIN="$fake" bash "$installed/scripts/stage-model.sh" run triagem 12 >/dev/null 2>&1
 check CA6 "de dentro de ~/.claude/plugins/ não leva --plugin-dir" "no" \
   "$(grep -qx -- '--plugin-dir' "$args_file" && echo yes || echo no)"
@@ -128,6 +128,7 @@ mode_of() {
   rm -f "$proj/.fabrica/isolamento.txt" "$args_file"
   [[ "$iso" == "-sem-arquivo" ]] || printf '%s\n' "$iso" > "$proj/.fabrica/isolamento.txt"
   (cd "$proj" && env -u PROXY_CA_CERT_B64 -u CLAUDECODE -u FABRICA_HARNESS -u OPENCODE_SESSION_ID \
+    -u ANTIGRAVITY_AGENT -u ANTIGRAVITY_CONVERSATION_ID \
     HOME="$tmp/home" FABRICA_SBX_PERSISTENT_FILE="$persistent" \
     FABRICA_CLAUDE_BIN="$fake" bash "$script" run triagem 12 >/dev/null 2>&1)
   perm_mode
@@ -146,7 +147,7 @@ mkdir -p "$broken/scripts" "$broken/skills/avancar"
 cp "$script" "$broken/scripts/stage-model.sh"
 cp "$script_dir/harness.sh" "$broken/scripts/harness.sh"
 cp "$script_dir/../skills/avancar/modelos.md" "$broken/skills/avancar/modelos.md"
-run_broken() { (cd "$proj" && env -u PROXY_CA_CERT_B64 -u CLAUDECODE -u FABRICA_HARNESS -u OPENCODE_SESSION_ID HOME="$tmp/home" FABRICA_CLAUDE_BIN="$fake" bash "$broken/scripts/stage-model.sh" run triagem 12 >/dev/null 2>&1); }
+run_broken() { (cd "$proj" && env -u PROXY_CA_CERT_B64 -u CLAUDECODE -u FABRICA_HARNESS -u OPENCODE_SESSION_ID -u ANTIGRAVITY_AGENT -u ANTIGRAVITY_CONVERSATION_ID HOME="$tmp/home" FABRICA_CLAUDE_BIN="$fake" bash "$broken/scripts/stage-model.sh" run triagem 12 >/dev/null 2>&1); }
 printf '#!/usr/bin/env bash\nexit 3\n' > "$broken/scripts/sbx-context.sh"
 printf '#!/usr/bin/env bash\necho sbx\n' > "$broken/scripts/setup-isolation.sh"
 rm -f "$args_file"; run_broken
