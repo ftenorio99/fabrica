@@ -367,6 +367,76 @@ result $? B150 "agy: o motivo é o mesmo do Claude Code"
 [[ -z $(jq -n '{hookEventName: "PreToolUse", toolCall: {name: "view_file", args: {AbsolutePath: "/tmp/x"}}}' | bash "$hook" 2>&1) ]]
 result $? B150 "agy: ferramenta sem CommandLine passa sem saída"
 
+# ---------------------------------------------------------------------------
+# SPEC-204, CA10 a CA13: Edit, Write e MultiEdit nos arquivos de configuração
+# do git. fdec <ferramenta> <file_path> [cwd] [VAR=valor...]: deny, allow (sem
+# saída) ou "saída inesperada".
+R=$tmp/frepo
+git init -q "$R"
+mkdir -p "$R/src" "$R/config" "$R/.github" "$R/docs" "$R/.git/worktrees/wt1" "$R/.git/modules/sub"
+touch "$R/.git/config.worktree" "$R/.git/worktrees/wt1/config.worktree" "$R/.git/modules/sub/config"
+config_msg="Este arquivo é a configuração do git; editá-lo pode desligar os hooks que protegem a main. Se for intencional, edite você mesmo no terminal."
+fdec() {
+  local tool=$1 file=$2 cwd=${3:-$R} out
+  shift 3 2>/dev/null || shift $#
+  out=$(jq -n --arg t "$tool" --arg f "$file" --arg d "$cwd" \
+    '{tool_name: $t, tool_input: {file_path: $f, content: "x"}, cwd: $d}' | env "$@" bash "$hook" 2>&1)
+  if [[ -z $out ]]; then
+    echo allow
+  elif [[ $(jq -r '.hookSpecificOutput.permissionDecision + "|" + .hookSpecificOutput.permissionDecisionReason' <<<"$out" 2>/dev/null) == "deny|$config_msg" ]]; then
+    echo deny
+  else
+    echo "saída inesperada: $out"
+  fi
+}
+# fcheck <esperado> <CA> <rótulo> <ferramenta> <file_path> [cwd] [VAR=valor...]
+fcheck() {
+  local expected=$1 ca=$2 label=$3; shift 3
+  [[ $(fdec "$@") == "$expected" ]]
+  result $? "$ca" "$expected: $label"
+}
+
+for tool in Edit Write MultiEdit; do
+  fcheck deny CA10 "$tool em <repo>/.git/config" "$tool" "$R/.git/config"
+done
+fcheck deny CA10 "<repo>/.git/config.worktree" Write "$R/.git/config.worktree"
+fcheck deny CA10 "<repo>/.git/worktrees/<id>/config.worktree" Edit "$R/.git/worktrees/wt1/config.worktree"
+fcheck deny CA10 "<repo>/.git/modules/<m>/config" Edit "$R/.git/modules/sub/config"
+fcheck deny CA10 "\$HOME/.gitconfig" Write "$HOME/.gitconfig"
+fcheck deny CA10 "\$HOME/.config/git/config sem XDG_CONFIG_HOME" Write "$HOME/.config/git/config"
+fcheck deny CA10 "\$XDG_CONFIG_HOME/git/config" Write "$tmp/xdg/git/config" "$R" XDG_CONFIG_HOME="$tmp/xdg"
+fcheck deny CA10 "arquivo do GIT_CONFIG_GLOBAL" Write "$tmp/global.cfg" "$R" GIT_CONFIG_GLOBAL="$tmp/global.cfg"
+fcheck allow CA10 "o mesmo arquivo, sem GIT_CONFIG_GLOBAL, passa" Write "$tmp/global.cfg"
+fcheck deny CA10 "arquivo na pasta dos hooks (destino padrão)" Write "$dest/pre-commit"
+fcheck deny CA10 "arquivo novo na pasta dos hooks" Write "$dest/post-checkout"
+fcheck deny CA10 "arquivo na pasta do FABRICA_GITHOOKS_DEST" Edit "$tmp/jobhooks/pre-push" "$R" FABRICA_GITHOOKS_DEST="$tmp/jobhooks"
+
+ln -s "$R/.git/config" "$tmp/link-config"
+ln -s "$R/.git" "$tmp/link-gitdir"
+fcheck deny CA11 "caminho relativo .git/config, a partir do cwd" Write ".git/config" "$R"
+fcheck deny CA11 "caminho relativo ../frepo/.git/config" Write "../frepo/.git/config" "$R/src"
+fcheck deny CA11 "<repo>/src/../.git/config" Edit "$R/src/../.git/config"
+fcheck deny CA11 "link simbólico para o .git/config" Write "$tmp/link-config"
+fcheck deny CA11 "pasta que é link para o .git" Write "$tmp/link-gitdir/config"
+fcheck deny CA11 "caminho que não existe: .git/modules/novo/config" Write "$R/.git/modules/novo/config"
+fcheck deny CA11 "caminho que não existe, por link: <link>/worktrees/x/config.worktree" Write "$tmp/link-gitdir/worktrees/x/config.worktree"
+ln -s "$HOME" "$tmp/link-home"
+fcheck deny CA11 "HOME por link simbólico" Write "$tmp/link-home/.gitconfig"
+
+for f in "$R/src/config" "$R/config/app.yml" "$R/.github/config" "$R/.gitignore" "$R/.gitmodules" \
+  "$R/docs/gitconfig.md" "$R/src/commit-push.sh" "src/config"; do
+  fcheck allow CA12 "${f#"$R/"}" Write "$f"
+  fcheck allow CA12 "${f#"$R/"}, com os hooks não instalados" Write "$f" "$R" HOME="$tmp/sem-hooks"
+done
+
+plugin_hooks="$script_dir/../hooks/hooks.json"
+[[ $(jq -c '[.hooks.PreToolUse[] | select(.matcher == "Edit|Write|MultiEdit") | .hooks[].command]' "$plugin_hooks") == '["${CLAUDE_PLUGIN_ROOT}/hooks/protect-main.sh"]' ]]
+result $? CA13 "hooks.json: Edit|Write|MultiEdit chama só o protect-main"
+[[ $(jq -c '[.hooks.PreToolUse[] | select(.matcher == "Bash") | .hooks[].command]' "$plugin_hooks") == '["${CLAUDE_PLUGIN_ROOT}/hooks/protect-main.sh","${CLAUDE_PLUGIN_ROOT}/hooks/protect-production.sh"]' ]]
+result $? CA13 "hooks.json: a entrada do Bash não muda"
+[[ -z $(jq -n --arg f "$R/.git/config" '{hookEventName: "PreToolUse", toolCall: {name: "write_to_file", args: {TargetFile: $f}}}' | bash "$hook" 2>&1) ]]
+result $? CA13 "agy: ferramenta de arquivo sem CommandLine passa sem saída"
+
 # Tempo: comando de 40 KB. Uma execução de aquecimento é descartada e vale a
 # mediana de 5, para um pico isolado da máquina não reprovar o caso (#49).
 big="git commit -m \"$(head -c 40000 /dev/zero | tr '\0' a)\""
