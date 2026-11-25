@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Testa o isolamento do job do dispatcher (SPEC-106, CA1 a CA8 e CA10; SPEC-107,
-# CA22 a CA26; SPEC-108, CA8 a CA12, marcados como 108-CA<n>): o addon
+# CA22 a CA26; SPEC-108, CA8 a CA12, marcados como 108-CA<n>; SPEC-204, CA1
+# a CA7, marcados como 204-CA<n>): o addon
 # do proxy, o job-isolation.sh e o run-as-agent.sh, com sudo, useradd, chown,
 # iptables, claude e mitmdump falsos. O addon roda com um módulo mitmproxy
 # falso, então não precisa do pacote.
@@ -38,7 +39,8 @@ check() {
 # --- addon: funções puras e hooks, com um módulo mitmproxy falso ---
 
 # py <expressão python>: avalia a expressão com o addon carregado como `m`,
-# `mk(host, auth=None, extra=None)` para criar um fluxo e `logs` com o log.
+# `mk(host, auth=None, extra=None)` para criar um fluxo, `mkpush(corpo, ...)`
+# para criar um POST de push e `logs` com o log.
 py() {
   python3 -I -c '
 import importlib.util, sys, types, base64
@@ -62,6 +64,30 @@ def mk(host, auth=None, extra=None):
         headers["Authorization"] = auth
     headers.update(extra or {})
     return types.SimpleNamespace(request=types.SimpleNamespace(host=host, headers=headers, content=b"corpo"), response=None)
+class Req(types.SimpleNamespace):
+    @property
+    def content(self):
+        if self.body is None:
+            raise ValueError("Invalid Content-Encoding")
+        return self.body
+def mkpush(body, path="/dono/repo.git/git-receive-pack", host="github.com", method="POST", auth=None):
+    headers = {} if auth is None else {"Authorization": auth}
+    return types.SimpleNamespace(request=Req(host=host, path=path, method=method, headers=headers, body=body, stream=True), response=None)
+def pkt(text):
+    data = text.encode() if isinstance(text, str) else text
+    return b"%04x" % (len(data) + 4) + data
+Z40, Z64 = "0" * 40, "0" * 64
+A40, B40 = "a" * 40, "b" * 40
+A64, B64 = "a" * 64, "b" * 64
+def cmd(old, new, ref, caps=False):
+    return pkt(f"{old} {new} {ref}" + ("\0report-status side-band-64k" if caps else "") + "\n")
+def push(*lines):
+    return b"".join(lines) + b"0000" + b"PACK\x00\x00\x00\x02"
+def decide(flow, e=None):
+    e = e or egress(["github.com", "api.github.com"], {"fabrica-marker-bbbbbbbbbbbbbbbb": {"secret": "REAL-GITHUB", "hosts": ["github.com", "api.github.com"]}})
+    e.requestheaders(flow)
+    e.request(flow)
+    return "403" if flow.response is not None and flow.response.status_code == 403 else "passa"
 def egress(domains, markers):
     e = m.Egress()
     e.domains = domains
@@ -129,6 +155,65 @@ check CA4 "o log não traz o valor real" "False" \
   "$(py "(lambda f, e: (e.request(f), 'REAL-GITHUB' in ' '.join(logs))[1])(mk('github.com', 'Bearer fabrica-marker-bbbbbbbbbbbbbbbb'), egress($doms_expr, $markers_expr))")"
 check CA4 "o 403 não traz o valor real" "False" \
   "$(py "(lambda f: (egress($doms_expr, $markers_expr).request(f), b'REAL' in f.response.content)[1])(mk('evil.example', 'Bearer fabrica-marker-bbbbbbbbbbbbbbbb'))")"
+
+# SPEC-204: push para a main/master barrado no proxy.
+gh_auth="'Basic ' + b64('x-access-token:fabrica-marker-bbbbbbbbbbbbbbbb')"
+pc() { check "$1" "$2" "$3" "$(py "decide(mkpush($4))")"; }
+pc 204-CA1 "criação da main (old-id zero) dá 403" "403" 'push(cmd(Z40, A40, "refs/heads/main", True))'
+pc 204-CA1 "atualização da main dá 403" "403" 'push(cmd(A40, B40, "refs/heads/main", True))'
+pc 204-CA1 "remoção da main (new-id zero) dá 403" "403" 'push(cmd(A40, Z40, "refs/heads/main", True))'
+pc 204-CA1 "atualização da master dá 403" "403" 'push(cmd(A40, B40, "refs/heads/master", True))'
+pc 204-CA1 "ids de 64 dígitos (SHA-256) dão 403" "403" 'push(cmd(A64, B64, "refs/heads/main", True))'
+pc 204-CA1 "remoção com ids de 64 dígitos dá 403" "403" 'push(cmd(A64, Z64, "refs/heads/master", True))'
+pc 204-CA1 "main como segundo comando, depois de outra branch, dá 403" "403" 'push(cmd(Z40, A40, "refs/heads/feat/x", True), cmd(A40, B40, "refs/heads/main"))'
+pc 204-CA1 "caminho sem .git também é lido" "403" 'push(cmd(A40, B40, "refs/heads/main", True)), path="/dono/repo/git-receive-pack"'
+check 204-CA1 "o 403 não repassa: o Authorization não é trocado" "403 x-access-token:fabrica-marker-bbbbbbbbbbbbbbbb" \
+  "$(py "(lambda f: decide(f) + ' ' + unb64(f.request.headers['Authorization'].split(' ')[1]))(mkpush(push(cmd(A40, B40, 'refs/heads/main', True)), auth=$gh_auth))")"
+check 204-CA1 "o texto do 403 diz main/master e PR" "True" \
+  "$(py "(lambda f: (decide(f), b'main/master' in f.response.content and b'PR' in f.response.content)[1])(mkpush(push(cmd(A40, B40, 'refs/heads/main', True))))")"
+check 204-CA1 "funções puras: refs lidos e protegidos" "['refs/heads/feat/x', 'refs/heads/main'] True" \
+  "$(py "(lambda r: str(r) + ' ' + str(m.push_to_protected_ref(r)))(m.parse_receive_pack(push(cmd(Z40, A40, 'refs/heads/feat/x', True), cmd(A40, B40, 'refs/heads/main'))))")"
+
+pc 204-CA2 "push para refs/heads/feat/x passa" "passa" 'push(cmd(A40, B40, "refs/heads/feat/x", True))'
+pc 204-CA2 "push para refs/heads/main-old passa" "passa" 'push(cmd(A40, B40, "refs/heads/main-old", True))'
+pc 204-CA2 "push para refs/heads/feature/main passa" "passa" 'push(cmd(A40, B40, "refs/heads/feature/main", True))'
+pc 204-CA2 "push para refs/tags/main passa" "passa" 'push(cmd(Z40, A40, "refs/tags/main", True))'
+pc 204-CA2 "remoção de uma branch de feature passa" "passa" 'push(cmd(A40, Z40, "refs/heads/feat/x", True))'
+check 204-CA2 "push permitido recebe a troca do marcador" "passa x-access-token:REAL-GITHUB" \
+  "$(py "(lambda f: decide(f) + ' ' + unb64(f.request.headers['Authorization'].split(' ')[1]))(mkpush(push(cmd(A40, B40, 'refs/heads/feat/x', True)), auth=$gh_auth))")"
+
+pc 204-CA3 "a sonda 0000 passa" "passa" 'b"0000"'
+
+pc 204-CA4 "corpo vazio dá 403" "403" 'b""'
+pc 204-CA4 "tamanho com caractere não hexadecimal dá 403" "403" 'b"00zz" + b"x" * 40 + b"0000"'
+pc 204-CA4 "tamanho 0001 dá 403" "403" 'b"0001" + push(cmd(A40, B40, "refs/heads/feat/x", True))'
+pc 204-CA4 "tamanho 0003 dá 403" "403" 'b"0003" + push(cmd(A40, B40, "refs/heads/feat/x", True))'
+pc 204-CA4 "pkt-line cortada no meio dá 403" "403" 'cmd(A40, B40, "refs/heads/feat/x", True)[:30]'
+pc 204-CA4 "lista sem 0000 nem push-cert-end dá 403" "403" 'cmd(A40, B40, "refs/heads/feat/x", True)'
+pc 204-CA4 "corpo lixo dá 403" "403" 'b"lixo<script>"'
+pc 204-CA4 "Content-Encoding que não decodifica dá 403" "403" 'None'
+check 204-CA4 "o texto do 403 diz que o corpo é ilegível" "True" \
+  "$(py "(lambda f: (decide(f), 'ilegível'.encode() in f.response.content)[1])(mkpush(b'lixo'))")"
+
+cert='pkt("push-cert\0report-status\n"), pkt("certificate version 0.1\n"), pkt("pusher Agente <a@b> 1700000000 +0000\n"), pkt("pushee https://github.com/dono/repo.git\n"), pkt("nonce 123\n"), pkt("push-option x\n"), pkt("\n")'
+sig='pkt("-----BEGIN PGP SIGNATURE-----\n"), pkt("abc\n"), pkt("-----END PGP SIGNATURE-----\n"), pkt("push-cert-end\n")'
+pc 204-CA5 "push-cert com comando para a main dá 403" "403" "b''.join([$cert, cmd(A40, B40, 'refs/heads/main'), $sig]) + b'PACK'"
+pc 204-CA5 "push-cert sem main nem master passa" "passa" "b''.join([$cert, cmd(A40, B40, 'refs/heads/feat/x'), $sig]) + b'PACK'"
+pc 204-CA5 "linhas shallow antes da lista são ignoradas" "passa" "push(pkt('shallow ' + A40 + '\n'), cmd(A40, B40, 'refs/heads/feat/x', True))"
+pc 204-CA5 "shallow seguido de comando para a main dá 403" "403" "push(pkt('shallow ' + A40 + '\n'), cmd(A40, B40, 'refs/heads/main', True))"
+
+check 204-CA6 "requestheaders desliga o streaming do receive-pack" "False" \
+  "$(py '(lambda f: (egress(["github.com"], {}).requestheaders(f), f.request.stream)[1])(mkpush(b"0000"))')"
+check 204-CA6 "requestheaders não mexe no upload-pack" "True" \
+  "$(py '(lambda f: (egress(["github.com"], {}).requestheaders(f), f.request.stream)[1])(mkpush(b"0000", path="/dono/repo.git/git-upload-pack"))')"
+
+pc 204-CA7 "GET info/refs?service=git-receive-pack passa" "passa" 'b"", path="/dono/repo.git/info/refs?service=git-receive-pack", method="GET"'
+pc 204-CA7 "POST git-upload-pack com corpo qualquer passa" "passa" 'b"lixo", path="/dono/repo.git/git-upload-pack"'
+pc 204-CA7 "api.github.com segue as regras de hoje" "passa" 'b"lixo", host="api.github.com", path="/repos/dono/repo/git-receive-pack"'
+check 204-CA7 "host fora da lista continua 403 pelo host" "True" \
+  "$(py '(lambda f: (decide(f), b"lista de dom" in f.response.content)[1])(mkpush(b"0000", host="evil.example"))')"
+check 204-CA7 "o log do bloqueio cita host e motivo, sem corpo nem Authorization" "bloqueado github.com: push para a main/master" \
+  "$(py "(lambda f, e: (decide(f, e), logs[-1] if 'refs/heads' not in ' '.join(logs) and 'marker' not in ' '.join(logs) and 'REAL' not in ' '.join(logs) else 'vazou')[1])(mkpush(push(cmd(A40, B40, 'refs/heads/main', True)), auth=$gh_auth), egress(['github.com'], {'fabrica-marker-bbbbbbbbbbbbbbbb': {'secret': 'REAL-GITHUB', 'hosts': ['github.com']}}))")"
 
 # CA5: falha fechada na configuração.
 cfg="$tmp/cfg"; mkdir -p "$cfg"
