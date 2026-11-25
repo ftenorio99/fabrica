@@ -1,6 +1,6 @@
 # ADR 0020: Push na main barrado pelo proxy do job
 
-**Status:** proposto · **Data:** 2026-11-24 · **Origem:** issue #204
+**Status:** aceito · **Data:** 2026-11-24 · **Origem:** issue #204
 
 ## Contexto
 A [ADR 0002](0002-protecao-da-main-por-hooks-do-git.md) protege a `main` com hooks globais do git e deixa ao `protect-main` só checagens de texto no Bash, com um modelo de ameaça de erros e comandos inocentes. No job do dispatcher ([ADR 0016](0016-isolamento-do-job-do-dispatcher.md)), o agente roda sozinho sobre texto de issue, e um agente enganado passa a fazer parte da ameaça. Ali, o agente pode desligar os hooks gravando o `.git/config` da worktree com Write, ou rodando um script gravado por ele, e nenhuma checagem de texto nem permissão de arquivo impede isso: o git precisa escrever na pasta `.git`, e o config é trocado por renomeação. A proteção do GitHub (rulesets) exige GitHub Pro nos repositórios privados.

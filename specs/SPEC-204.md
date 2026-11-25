@@ -1,7 +1,7 @@
 # SPEC-204: Risco: agente pode gravar o .git/config da worktree e escapar do protect-main
 
 **Issue:** #204 · **PRD:** F1 · **Fonte do escopo:** — · **Classe:** implementacao-complexa · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-11-24
+**Status:** aprovada · **Atualizada em:** 2026-11-25
 
 ## Contexto
 A `main` é protegida por hooks globais do git ([ADR 0002](../docs/adr/0002-protecao-da-main-por-hooks-do-git.md)), e o `hooks/protect-main.sh` só impede, por checagens de texto no comando Bash, que o agente desligue esses hooks. A SPEC-107 registrou, como risco aceito, que o agente pode gravar o `.git/config` da worktree com as ferramentas Edit ou Write, definir ali a pasta de hooks (a configuração local vence a global) e então commitar e fazer push na `main` sem os hooks. A ADR 0002 limita o modelo de ameaça a erros e comandos inocentes, mas no job do dispatcher ([ADR 0016](../docs/adr/0016-isolamento-do-job-do-dispatcher.md)) o agente roda sozinho sobre texto de issue, e um agente enganado é parte da ameaça. Esta issue revê aquela decisão.
@@ -83,7 +83,7 @@ O texto do 403 diz que o dispatcher não deixa o agente enviar para a `main`/`ma
 - git 2.53.0 — `man gitprotocol-pack` ("update-requests", "command-list", "push-cert") e `man git-config` (`config.worktree` em `$GIT_DIR/worktrees/<id>/`). A sonda `0000` antes de um push grande e a renomeação por `config.lock`: não verificadas na documentação; o CA3 e o CA8 confirmam o comportamento.
 - gh — o desenho técnico não cita comando nem flag do `gh`.
 
-**ADR:** [docs/adr/0020-push-na-main-barrado-pelo-proxy-do-job.md](../docs/adr/0020-push-na-main-barrado-pelo-proxy-do-job.md) (proposto).
+**ADR:** [docs/adr/0020-push-na-main-barrado-pelo-proxy-do-job.md](../docs/adr/0020-push-na-main-barrado-pelo-proxy-do-job.md) (aceito).
 
 ## Testes
 - `bash scripts/test-job-isolation.sh`: CA1 a CA7, montando corpos de receive-pack em bytes (ids de 40 e 64 dígitos, várias linhas, push-cert, corpos quebrados) e chamando `requestheaders` e `request` do addon com flows falsos; confere `flow.response.status_code == 403` e que o `Authorization` não foi trocado nos bloqueados.
@@ -101,3 +101,4 @@ nenhum
 
 ## Histórico
 - 2026-11-24: criação.
+- 2026-11-25: aprovada.
