@@ -4,6 +4,7 @@ Este guia é para quando você quer usar a fábrica pelo Antigravity CLI (`agy`)
 
 ## O que funciona
 - **Instalação:** `agy plugin install` converte as 13 skills (comandos `/fabrica:*`), o agente `revisor` e os hooks `PreToolUse` e `SessionStart`.
+- **Orquestração no `/fabrica:avancar`:** com `FABRICA_HARNESS=antigravity`, o `/fabrica:avancar` usa `run_workflow` para rodar issues independentes em paralelo (`parallel`) e cada issue em estágios isolados (`triagem` → `spec` → `implementar` → `revisar`). `implementar` e `revisar` rodam em estágios consecutivos (para o `revisar` poder chamar o subagente `revisor` sem exceder a profundidade de subagentes), com teto inclusivo de 4 etapas por execução, lock `em-andamento` garantido por `try/finally` e isolamento por worktree (`issue-worktree.sh`, `workspace="inherit"`). O `/swarm` não é disparado automaticamente; fica disponível como opção manual quando você inicia a sessão com `/swarm` para lotes amplos de issues, com um worker dedicado de revisão/verificação.
 - **Proteções:** os hooks de proteção (`protect-main.sh`, `protect-production.sh`) negam de verdade, também com `--dangerously-skip-permissions`.
 - **Etapas:** os comandos `/fabrica:*` rodam em modo `-p` e recebem argumento (fase 0 da #149).
 - **Perguntas ao usuário:** o equivalente ao `AskUserQuestion` é a ferramenta `ask_question`. Nas etapas que perguntam (`prd`, `setup`), a pergunta sai como chamada da ferramenta, não como texto solto.
