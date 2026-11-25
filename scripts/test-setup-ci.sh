@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Testa o modelo templates/workflows/ci.yml e o scripts/setup-ci.sh
-# (SPEC-128, CA1, CA2, CA3 e CA7 a CA10) em pastas e repositórios git
-# temporários.
+# (SPEC-128, CA1, CA2, CA3 e CA7 a CA10; SPEC-129, CA17) em pastas e
+# repositórios git temporários.
 # Uso: bash scripts/test-setup-ci.sh
 set -uo pipefail
 
@@ -39,6 +39,8 @@ def step(job, name):
     return next(s for s in steps(job) if s.get("name") == name)
 def idx(job, pred):
     return next(i for i, s in enumerate(steps(job)) if pred(s))
+def upload(name):
+    return next(s for s in steps("e2e") if "upload-artifact" in s.get("uses", "") and s["with"]["name"] == name)
 print(eval(sys.argv[2]))
 ' "$model" "$1"
 }
@@ -74,10 +76,10 @@ check CA3 "o make e2e só roda com o alvo" "steps.alvo.outputs.tem == 'sim'" "$(
 check CA3 "a instalação do Playwright só roda com o alvo" "True" \
   "$(wf 'all("steps.alvo.outputs.tem == '"'"'sim'"'"'" in s.get("if", "") for s in steps("e2e") if "playwright" in s.get("run", "") or "cache" in s.get("uses", ""))')"
 check CA3 "o relatório sobe só em falha" "failure()" \
-  "$(wf 'next(s for s in steps("e2e") if "upload-artifact" in s.get("uses", ""))["if"]')"
+  "$(wf 'upload("playwright-report")["if"]')"
 check CA3 "o artefato é playwright-report, de playwright-report/, por 7 dias" "playwright-report playwright-report/ 7" \
-  "$(wf '" ".join(str(next(s for s in steps("e2e") if "upload-artifact" in s.get("uses", ""))["with"][k]) for k in ("name", "path", "retention-days"))')"
-check CA3 "o upload é o último passo do e2e" "True" "$(wf '"upload-artifact" in steps("e2e")[-1].get("uses", "")')"
+  "$(wf '" ".join(str(upload("playwright-report")["with"][k]) for k in ("name", "path", "retention-days"))')"
+check CA3 "o upload do relatório é o último passo do e2e" "True" "$(wf 'steps("e2e")[-1] is upload("playwright-report")')"
 check CA3 "o job e2e não roda lint nem test" "[]" \
   "$(wf '[s["run"] for s in steps("e2e") if s.get("run", "").strip() in ("make lint", "make test")]')"
 
@@ -87,11 +89,33 @@ wf 'step("e2e", "Confere o alvo e2e")["run"]' > "$alvo_script"
 d="$tmp/sem-alvo" && mkdir -p "$d" && printf 'test:\n\techo t\n' > "$d/Makefile"
 out="$(cd "$d" && GITHUB_OUTPUT="$tmp/gho-sem" bash "$alvo_script")"
 check CA3 "sem e2e: imprime a linha do nada a rodar" "ci: o Makefile não tem o alvo e2e; nada a rodar" "$out"
-check CA3 "sem e2e: a saída do passo é tem=nao" "tem=nao" "$(cat "$tmp/gho-sem")"
+check CA3 "sem e2e: a saída do passo é tem=nao" "tem=nao" "$(head -n 1 "$tmp/gho-sem")"
 d="$tmp/com-alvo" && mkdir -p "$d" && printf 'e2e: db-up\n\tnpx playwright test\n' > "$d/Makefile"
 out="$(cd "$d" && GITHUB_OUTPUT="$tmp/gho-com" bash "$alvo_script")"
 check CA3 "com e2e: o passo não imprime nada" "" "$out"
-check CA3 "com e2e: a saída do passo é tem=sim" "tem=sim" "$(cat "$tmp/gho-com")"
+check CA3 "com e2e: a saída do passo é tem=sim" "tem=sim" "$(head -n 1 "$tmp/gho-com")"
+
+# CA17 (SPEC-129): make screenshots e artefato telas, só com o alvo screenshots.
+telas_if="steps.alvo.outputs.tem == 'sim' && steps.alvo.outputs.telas == 'sim'"
+check CA17 "sem screenshots: a saída do passo é telas=nao" "telas=nao" "$(sed -n 2p "$tmp/gho-com")"
+d="$tmp/com-telas" && mkdir -p "$d" && printf 'e2e: db-up\n\tnpx playwright test\nscreenshots: db-up\n\tnpx playwright test -c playwright.telas.config.ts\n' > "$d/Makefile"
+out="$(cd "$d" && GITHUB_OUTPUT="$tmp/gho-telas" bash "$alvo_script")"
+check CA17 "com screenshots: a saída do passo é tem=sim e telas=sim" "tem=sim telas=sim" "$(tr '\n' ' ' < "$tmp/gho-telas" | sed 's/ $//')"
+d="$tmp/sem-mk" && mkdir -p "$d"
+(cd "$d" && GITHUB_OUTPUT="$tmp/gho-sem-mk" bash "$alvo_script" >/dev/null)
+check CA17 "sem Makefile: telas=nao" "telas=nao" "$(sed -n 2p "$tmp/gho-sem-mk")"
+check CA17 "o make screenshots apaga screenshots/ e roda o alvo" "rm -rf screenshots make screenshots" \
+  "$(wf '" ".join(step("e2e", "Roda o make screenshots")["run"].split())')"
+check CA17 "o make screenshots só roda com os alvos e2e e screenshots" "$telas_if" "$(wf 'step("e2e", "Roda o make screenshots")["if"]')"
+check CA17 "o make screenshots vem depois do make e2e" "True" \
+  "$(wf 'idx("e2e", lambda s: s.get("run", "").strip() == "make e2e") < idx("e2e", lambda s: s.get("name") == "Roda o make screenshots")')"
+check CA17 "o artefato telas sobe só com os alvos" "$telas_if" "$(wf 'upload("telas")["if"]')"
+check CA17 "o artefato telas vem depois do make screenshots" "True" \
+  "$(wf 'idx("e2e", lambda s: s.get("name") == "Roda o make screenshots") < idx("e2e", lambda s: s is upload("telas"))')"
+check CA17 "o artefato é telas, de screenshots/, por 7 dias, ignorando a pasta vazia" "telas screenshots/ 7 ignore" \
+  "$(wf '" ".join(str(upload("telas")["with"][k]) for k in ("name", "path", "retention-days", "if-no-files-found"))')"
+check CA17 "o upload das telas usa o mesmo SHA do upload do relatório" "True" \
+  "$(wf 'upload("telas")["uses"] == upload("playwright-report")["uses"]')"
 
 # CA7: o passo de instalação e o do .env, extraídos do YAML.
 check CA7 "o passo de instalação é igual nos dois jobs" "True" \

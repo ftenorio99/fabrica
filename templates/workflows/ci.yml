@@ -9,6 +9,11 @@
 # local da fábrica (ADR 0011). O CI só o chama. Sem o alvo e2e no Makefile, o
 # job "e2e" termina verde sem rodar nada.
 #
+# Telas (SPEC-129, ADR 0020): com o alvo screenshots no Makefile, o job "e2e"
+# roda o make screenshots depois do make e2e e guarda a pasta screenshots/
+# como o artefato "telas", que a etapa de agente publica no PR. Sem o alvo,
+# os dois passos são pulados.
+#
 # Valores de teste: o modelo não usa nenhum secret. Sem .env, o .env.example
 # é copiado para .env. Os valores dele são os locais de desenvolvimento, sem
 # valor real, e precisam bastar para o make test e o make e2e.
@@ -110,6 +115,11 @@ jobs:
             echo "ci: o Makefile não tem o alvo e2e; nada a rodar"
             echo "tem=nao" >> "$GITHUB_OUTPUT"
           fi
+          if [ -f Makefile ] && grep -q '^screenshots:' Makefile; then
+            echo "telas=sim" >> "$GITHUB_OUTPUT"
+          else
+            echo "telas=nao" >> "$GITHUB_OUTPUT"
+          fi
 
       # A chave do cache dos navegadores é a versão do Playwright resolvida.
       - name: Lê a versão do Playwright
@@ -138,6 +148,22 @@ jobs:
       - name: Roda o make e2e
         if: steps.alvo.outputs.tem == 'sim'
         run: make e2e
+
+      # Screenshots das telas para o PR, só com o alvo screenshots no Makefile.
+      - name: Roda o make screenshots
+        if: steps.alvo.outputs.tem == 'sim' && steps.alvo.outputs.telas == 'sim'
+        run: |
+          rm -rf screenshots
+          make screenshots
+
+      - name: Guarda as telas
+        if: steps.alvo.outputs.tem == 'sim' && steps.alvo.outputs.telas == 'sim'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: telas
+          path: screenshots/
+          retention-days: 7
+          if-no-files-found: ignore
 
       - if: failure()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
