@@ -45,7 +45,7 @@ A triagem decide se a issue está pronta para virar spec. Ela não escreve códi
   - classe `implementacao-simples` ou `documentacao`;
   - nenhuma lacuna (passo 3). As recomendações levadas para a spec não contam como lacuna;
   - nenhum arquivo sensível entre os arquivos prováveis (autenticação, pagamentos, migrações de banco, `.github/`).
-  - não é `Interface: sim` num projeto sem `docs/design.md`: a spec curta não cria o arquivo, que nasce no `/fabrica:spec`.
+  - não é `Interface: sim`, mesmo num projeto com `docs/design.md`: a descrição das telas é parte da spec completa, e a spec curta não tem lugar para ela ([ADR 0020](../../docs/adr/0020-screenshots-das-telas-numa-branch-orfa.md)). Nesse caso, escreva `**Atalho:** não — issue com interface precisa da descrição das telas na spec completa`.
 
   Em cada rodada de triagem, avalie o critério de novo.
 

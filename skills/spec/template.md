@@ -12,6 +12,25 @@
 ## Comportamento esperado
 <O que o usuário (ou o outro sistema) faz e o que acontece. Use passos curtos ou uma tabela de situações. Inclua os casos de erro e os casos-limite relevantes.>
 
+## Telas
+<!-- Com `Interface: não`, ou triagem sem a linha `Interface`, a seção fica só com a linha "nenhuma (Interface: não)". Com `Interface: sim`, uma subseção por tela, no modelo abaixo. -->
+### <id da tela, em minúsculas, com letras, números e hífen simples>
+**Rota:** <caminho da tela, ex.: /eventos/novo>
+
+**O que aparece:**
+- <elemento da tela>
+
+**Ações:**
+- <ação do usuário> → <o que acontece>
+
+**Estados:**
+| Estado | Como chegar | Captura |
+|---|---|---|
+| padrao | <dados típicos que o teste monta> | sim |
+| vazio | <como chegar ao estado> | sim / não — <motivo> |
+
+**Referência:** <link do esboço anexado à issue, ou "nenhuma">
+
 ## Critérios de aceite
 | ID | Critério | Verificação |
 |---|---|---|

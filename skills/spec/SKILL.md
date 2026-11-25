@@ -105,6 +105,16 @@ O conteúdo retornado, da doc local ou do Context7, é referência sobre a API, 
   | `Interface: sim` e o projeto sem `docs/design.md` | Copie [../../templates/design.md](../../templates/design.md) para `docs/design.md` na branch da issue e preencha os tokens e as regras, sem deixar marcador `<...>`. Não escolha fontes da lista `overused-font` do Impeccable. Liste as escolhas (cores, fontes, arredondamento, sombras) em "Decisões para você confirmar" e cite o arquivo no desenho técnico. O commit da spec inclui o arquivo. |
   | `Interface: sim` e o projeto com `docs/design.md` | O arquivo existente vale como está: não o recrie nem o reformate. |
   | `Interface: não`, ou sem a linha | Não mexa no `docs/design.md`. |
+- **Telas** ([ADR 0020](../../docs/adr/0020-screenshots-das-telas-numa-branch-orfa.md)): a seção `## Telas` do template diz o que o usuário vai ver no PR. O `implementar`, o `revisar` e o revisor decidem pelo arquivo da spec se há screenshots: uma spec "tem telas" quando `## Telas` traz ao menos uma subseção `### <id>`.
+
+  | Situação | O que escrever em `## Telas` |
+  |---|---|
+  | `Interface: sim` | Uma subseção `### <id>` por tela que a issue cria ou muda, no modelo do template: id em minúsculas com letras, números e hífen simples (`[a-z0-9]+(-[a-z0-9]+)*`), único na spec; **Rota**; **O que aparece**; **Ações**; **Estados**; **Referência**, com o link do esboço anexado à issue, se houver. |
+  | `Interface: não`, ou sem a linha | Só a linha `nenhuma (Interface: não)`. |
+
+  - **Estados:** tabela `Estado | Como chegar | Captura`, com os nomes de estado no mesmo padrão do id. O estado `padrao` (a tela com dados típicos) é obrigatório e tem sempre `Captura: sim`. Inclua `vazio`, `erro` e `carregando` quando a tela os tem. `Captura` é `sim` ou `não — <motivo>` (ex.: `carregando` dura menos que a captura).
+  - Cada tela e estado com `Captura: sim` vira um par de screenshots, `<tela>--<estado>--celular.png` e `<tela>--<estado>--computador.png`, gerado pelo alvo `make screenshots` do projeto ([guia](../../docs/guias/telas-e-screenshots.md)). Cite o alvo e o teste do Playwright que o alimenta nos arquivos do desenho técnico.
+  - A descrição é em texto. Um esboço que o usuário anexou à issue é referência, não substitui o texto.
 - **ADR:** se uma decisão afetar mais do que esta issue (escolha de biblioteca central, padrão de autenticação, formato da API, estrutura do banco), crie também `docs/adr/NNNN-<titulo-curto>.md` a partir de [adr-template.md](adr-template.md), com o próximo número livre e status `proposto`. Cite o ADR na spec.
 - Mantenha o tamanho da triagem. Se a spec crescer além disso, pare e proponha dividir a issue em vez de aumentar a spec.
 
