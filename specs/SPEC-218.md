@@ -1,7 +1,7 @@
 # SPEC-218: agy: mapeamento de modelos para os tiers do Antigravity
 
 **Issue:** #218 · **PRD:** — · **Fonte do escopo:** — · **Classe:** implementacao-complexa · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-11-25
+**Status:** aprovada · **Atualizada em:** 2026-11-25
 
 ## Contexto
 Atualmente [`skills/avancar/modelos.md`](../skills/avancar/modelos.md) mapeia os apelidos da fábrica (`haiku`, `sonnet`, `opus`) apenas para os IDs do Claude Code, [`scripts/stage-model.sh`](../scripts/stage-model.sh) não expõe tradução para os tiers do Antigravity (`flash_lite`, `flash`, `pro`, `inherit`), [`skills/revisar/SKILL.md`](../skills/revisar/SKILL.md) omite o parâmetro `model` quando `harness.sh detect` retorna `antigravity`, e [`skills/avancar/SKILL.md`](../skills/avancar/SKILL.md) fixa `model="inherit"` no `run_workflow`.
@@ -90,3 +90,4 @@ nenhum
 
 ## Histórico
 - 2026-11-25: criação.
+- 2026-11-25: aprovada.
