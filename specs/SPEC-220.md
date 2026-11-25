@@ -1,7 +1,7 @@
 # SPEC-220: agy: detecção automática da harness, governança e testes
 
 **Issue:** #220 · **PRD:** — · **Fonte do escopo:** — · **Classe:** implementacao-complexa · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-11-25
+**Status:** aprovada · **Atualizada em:** 2026-11-25
 
 ## Contexto
 Atualmente [`scripts/harness.sh`](../scripts/harness.sh) detecta apenas `CLAUDECODE`, `FABRICA_HARNESS` e `OPENCODE_SESSION_ID`, exigindo que o usuário defina `FABRICA_HARNESS=antigravity` manualmente no Antigravity (`agy`). Entretanto, o ambiente de shell do `agy` já exporta nativamente as variáveis `ANTIGRAVITY_AGENT` e `ANTIGRAVITY_CONVERSATION_ID`.
@@ -87,3 +87,4 @@ nenhum
 
 ## Histórico
 - 2026-11-25: criação.
+- 2026-11-25: aprovada.
