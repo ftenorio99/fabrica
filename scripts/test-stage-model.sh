@@ -156,6 +156,24 @@ printf '#!/usr/bin/env bash\nexit 3\n' > "$broken/scripts/setup-isolation.sh"
 rm -f "$args_file"; run_broken
 check CA13 "setup-isolation.sh falhando usa auto" "auto" "$(perm_mode)"
 
+# CA1/CA2/CA3 (SPEC-218): tradução para tiers do Antigravity via agy-tier.
+agy_tier() { bash "$script" agy-tier "$@" 2>/dev/null; }
+agy_tier_code() { bash "$script" agy-tier "$@" >/dev/null 2>&1; echo $?; }
+check CA2 "agy-tier triagem usa flash" "flash" "$(agy_tier triagem)"
+check CA2 "agy-tier triagem ignora label" "flash" "$(agy_tier triagem modelo:opus)"
+check CA2 "agy-tier spec usa pro" "pro" "$(agy_tier spec)"
+check CA2 "agy-tier spec ignora label" "pro" "$(agy_tier spec modelo:haiku)"
+check CA2 "agy-tier implementar sem label usa flash" "flash" "$(agy_tier implementar)"
+check CA2 "agy-tier implementar modelo:haiku usa flash_lite" "flash_lite" "$(agy_tier implementar modelo:haiku)"
+check CA2 "agy-tier implementar modelo:opus usa pro" "pro" "$(agy_tier implementar modelo:opus)"
+check CA2 "agy-tier revisar sem label usa flash" "flash" "$(agy_tier revisar)"
+check CA2 "agy-tier revisar modelo:haiku usa flash" "flash" "$(agy_tier revisar modelo:haiku)"
+check CA2 "agy-tier revisar modelo:opus usa pro" "pro" "$(agy_tier revisar modelo:opus)"
+check CA3 "agy-tier duas labels modelo:* sai com código 2" "2" "$(agy_tier_code implementar modelo:haiku modelo:opus)"
+check CA3 "agy-tier etapa desconhecida sai com código 1" "1" "$(agy_tier_code desconhecida)"
+check CA3 "agy-tier label desconhecida sai com código 1" "1" "$(agy_tier_code implementar modelo:invalido)"
+check CA3 "agy-tier sem argumentos sai com código 1" "1" "$(agy_tier_code)"
+
 echo
 echo "$((total - failures)) de $total passaram."
 [[ $failures -eq 0 ]]
