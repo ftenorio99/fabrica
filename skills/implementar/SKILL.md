@@ -48,6 +48,9 @@ Pare e explique o motivo (no chat e, quando indicado, na issue) se algum destes 
 - **Ação externa:** se a implementação só pode seguir depois de uma ação do usuário fora do GitHub (criar conta ou projeto, cadastrar secret ou variável, gerar chave), pare como diz a seção "Parar" de [../status/acao-externa.md](../status/acao-externa.md), com `etapa=implementar` no marcador: commit e push do que existe, comentário de ação com a checklist e a linha de custo, e a label `acao-externa`. Ela não gera lição nem conta como rodada de correção. Uma ação que a spec não previu e que muda comportamento, CA ou escopo continua sendo desvio relevante.
 - **Pedido de mudança do usuário:** se o próprio usuário pedir, no chat ou na issue, uma mudança desse tipo depois da `spec-aprovada`, não a aplique direto nem edite a spec por conta própria. A spec aprovada é o contrato. Faça commit e push do que já existe, registre o pedido na issue e indique o caminho: o usuário remove `spec-aprovada`, roda `/fabrica:spec <nº> <ajuste>` (que ajusta a spec na mesma branch), aprova de novo e retoma com `/fabrica:implementar <nº>`.
 - Escreva os testes de cada critério marcado como unitário ou e2e junto com o código que ele cobre.
+- **Telas** ([ADR 0020](../../docs/adr/0020-screenshots-das-telas-numa-branch-orfa.md)): a spec "tem telas" quando a seção `## Telas` dela traz ao menos uma subseção `### <id>`. Com `nenhuma (Interface: não)` ou sem a seção, pule este item e o `make screenshots` do passo 4. Com telas:
+  - se o `Makefile` não tem o alvo `screenshots:`, crie o alvo e o teste do Playwright que o alimenta pelo modelo do guia [telas e screenshots](../../docs/guias/telas-e-screenshots.md), com os dispositivos `celular` e `computador` de lá, e ponha `screenshots/` no `.gitignore`;
+  - o teste grava um PNG por tela, estado com `Captura: sim` e dispositivo, com o nome `<tela>--<estado>--<celular|computador>.png`, montando cada estado como diz a coluna "Como chegar" da spec, com datas e dados fixos.
 - Os CAs marcados `depois do merge — <motivo>` não ganham teste nem execução: anote-os, com o que o usuário confere depois do merge, para o PR, junto com as verificações manuais.
 - Commits pequenos, cada um com uma mudança lógica, no padrão das regras do projeto (Conventional Commits, descrição em português). Antes de cada commit, revise o stage (`git diff --staged`) e confira que nada gerado ou secreto entrou.
 - Não faça nada fora do escopo da spec, nem melhorias "de passagem". Se notar algo que merece atenção, anote para o PR.
@@ -61,7 +64,7 @@ Pare e explique o motivo (no chat e, quando indicado, na issue) se algum destes 
   | `sem-sandbox` | Rode a verificação completa | "Confira se o Docker está ligado na máquina" |
   | `ausente` ou `inválido` | Rode a verificação completa, sem parar, e avise no chat, uma vez por execução: "O projeto não tem modo de isolamento gravado. Rode `/fabrica:setup`." O aviso não vai para a issue nem para o PR | As duas orientações acima |
   | O script sai com código diferente de 0 | Trate como `ausente` | Idem |
-- Rode `make lint`, `make test` e, se a spec tem CA de ponta a ponta, `make e2e`. Conte como **uma rodada de verificação** cada vez que a implementação estiver pronta e você rodar os comandos.
+- Rode `make lint`, `make test` e, se a spec tem CA de ponta a ponta, `make e2e`. Numa spec com telas (passo 3), depois do `make e2e`, apague `screenshots/` e rode `make screenshots`, com as mesmas regras do `make e2e`, e confira que a pasta tem o par `celular` e `computador` de cada tela e estado com `Captura: sim`. Conte como **uma rodada de verificação** cada vez que a implementação estiver pronta e você rodar os comandos.
 - **Assinatura de ambiente:** um trecho da saída que mostra que o ambiente não roda a verificação, e não que a implementação falhou. Esta é a lista única, usada também pelo `revisar` e pelo revisor:
   1. `docker.sock` junto com `permission denied`, `EACCES` ou `connect: operation not permitted`;
   2. `ECONNREFUSED` (ou `Connection refused`) para `127.0.0.1`, `::1` ou `localhost`;
@@ -73,6 +76,7 @@ Pare e explique o motivo (no chat e, quando indicado, na issue) se algum destes 
 - **Bordas:**
   - o mesmo comando falha com assinatura e com outro erro: vale o outro erro;
   - o `make test` passa e só o `make e2e` tem assinatura: só o `make e2e` fica pendente para o CI, e os CAs cobertos pelo `make test` têm a evidência da etapa;
+  - o `make screenshots` tem assinatura: ele fica pendente para o CI, e os screenshots saem do artefato `telas` do CI do PR, que o `revisar` publica;
   - numa retomada, depois de o usuário corrigir o ambiente, a assinatura some: rode de novo, e não há verificação pendente.
 - Se falhar, corrija e rode de novo. Depois de **duas rodadas de correção** ainda com falha, pare: comente na issue o comando, o erro resumido e o que já foi tentado, faça push do que existe, aplique `escalonado` (`gh issue edit <nº> --add-label escalonado`) e avise o usuário. Não siga para a revisão.
 - Se precisou de **duas ou mais rodadas de correção**, tenha passado ou escalado, registre uma lição com o gatilho `rodadas`, com os comandos, os erros e o que os resolveu ([../licao/formato.md](../licao/formato.md)). No escalonamento por rodadas, essa é a única lição: não registre também `escalonado`.
