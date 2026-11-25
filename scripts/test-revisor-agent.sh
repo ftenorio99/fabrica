@@ -39,13 +39,9 @@ body() { awk 'count >= 2 { print; next } $0 == "---" { count++ }' "$1"; }
 # field <arquivo> <campo>: a linha `<campo>: ...` do frontmatter.
 field() { frontmatter "$1" | grep -m 1 "^$2: "; }
 
-# --- CA1: agents/revisor.md igual ao da main; agy-agents/revisor.md com o mesmo corpo ---
-if git -C "$root" show origin/main:agents/revisor.md > "$tmp/revisor-main.md" 2>/dev/null; then
-  check CA1 "agents/revisor.md igual ao da origin/main" sim \
-    "$(yesno cmp -s "$tmp/revisor-main.md" "$agent")"
-else
-  skip CA1 "agents/revisor.md igual ao da origin/main" "origin/main ausente"
-fi
+# --- CA1: agy-agents/revisor.md com o frontmatter do agy e o mesmo corpo ---
+# (O caso "agents/revisor.md igual ao da main" valia só no PR da SPEC-177; o
+# revisor muda em outras issues, como a SPEC-129.)
 
 if [[ -f "$agy_agent" ]]; then
   fm="$(frontmatter "$agy_agent")"
