@@ -1,7 +1,7 @@
 # SPEC-216: agy: orquestração no /fabrica:avancar com run_workflow e /swarm
 
 **Issue:** #216 · **PRD:** — · **Fonte do escopo:** — · **Classe:** implementacao-complexa · **Tamanho:** G
-**Status:** rascunho · **Atualizada em:** 2026-11-25
+**Status:** aprovada · **Atualizada em:** 2026-11-25
 
 ## Contexto
 Hoje [`skills/avancar/SKILL.md`](../skills/avancar/SKILL.md) trata a harness `antigravity` dentro do caminho genérico **"Etapa na sessão"**, compartilhado com o `opencode`. Nesse caminho, as etapas rodam sequencialmente na sessão principal, acumulando contexto entre issues e etapas, sem paralelismo entre issues independentes e sem usar as primitivas nativas do Antigravity (`run_workflow` e `/swarm`).
@@ -97,3 +97,4 @@ nenhum
 
 ## Histórico
 - 2026-11-25: criação.
+- 2026-11-25: aprovada.
