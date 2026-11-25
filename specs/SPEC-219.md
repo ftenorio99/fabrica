@@ -1,7 +1,7 @@
 # SPEC-219: agy: uso dos subagentes built-in (research e browser) e Workspace
 
 **Issue:** #219 · **PRD:** — · **Fonte do escopo:** — · **Classe:** implementacao-complexa · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-11-25
+**Status:** aprovada · **Atualizada em:** 2026-11-25
 
 ## Contexto
 O Antigravity (`agy`) disponibiliza os subagentes built-in `research` (somente leitura, sem acesso à rede) e `browser` (interação com navegador), além do parâmetro `Workspace` (`"inherit"`, `"branch"`, `"share"`) no `invoke_subagent` e `run_workflow`.
@@ -78,3 +78,4 @@ nenhum
 
 ## Histórico
 - 2026-11-25: criação.
+- 2026-11-25: aprovada.
