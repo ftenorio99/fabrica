@@ -53,7 +53,7 @@ No Claude Code e no dispatcher, o `/fabrica:avancar` roda cada etapa no modelo q
 
 A triagem sugere a label pela complexidade da issue, e você pode trocá-la até aplicar `spec-aprovada`. A triagem fica fora do Opus porque é a primeira etapa a ler texto de issue, e o Opus segue instrução plantada em texto bem mais que o Sonnet. Se a implementação falha por qualidade, o `avancar` sobe o modelo da issue: Haiku passa para Sonnet na primeira falha e Sonnet passa para Opus na segunda. A decisão e as alternativas estão no [ADR 0013](adr/0013-modelo-por-etapa-e-por-issue.md).
 
-No OpenCode e no Antigravity, a etapa roda no modelo da sessão: a tabela não é usada, a triagem não aplica `modelo:*` e não há escalonamento. A escolha é pela harness, não pela presença do binário `claude`, porque as duas ferramentas podem estar instaladas na mesma máquina.
+No OpenCode, a etapa roda no modelo da sessão: a tabela não é usada, a triagem não aplica `modelo:*` e não há escalonamento. No Antigravity (`FABRICA_HARNESS=antigravity`), o `run_workflow` do `/fabrica:avancar` e a chamada ao `revisor` no `/fabrica:revisar` traduzem a tabela e as labels `modelo:*` para os tiers `flash_lite`, `flash` e `pro` via `scripts/stage-model.sh agy-tier`, mantendo a triagem sem aplicar `modelo:*` e sem escalonamento automático. A escolha é pela harness, não pela presença do binário `claude`, porque as ferramentas podem estar instaladas na mesma máquina.
 
 Quando algo dá errado, o agente para, comenta na issue e aplica `escalonado`. Veja o guia [Issue escalonada](guias/issue-escalonada.md).
 
