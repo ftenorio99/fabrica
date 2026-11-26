@@ -1,7 +1,7 @@
 # SPEC-229: ci: adiciona workflow de CI rodando os testes unitários do fabrica
 
 **Issue:** #229 · **PRD:** — · **Fonte do escopo:** — · **Classe:** implementacao-complexa · **Tamanho:** P
-**Status:** rascunho · **Atualizada em:** 2026-11-26
+**Status:** aprovada · **Atualizada em:** 2026-11-26
 
 ## Contexto
 O repositório `fabrica` exige CI verde em `pull_request` nos projetos que usam a fábrica ([ADR 0011](../docs/adr/0011-verificacao-de-integracao-na-etapa.md) e [ADR 0019](../docs/adr/0019-ci-do-pr-pelo-modelo-da-fabrica.md)), mas não possui `.github/workflows/` próprio. Hoje o repositório conta com 24 arquivos `scripts/test-*.sh` (22 suítes unitárias e 2 suítes de aceite), e alterações em scripts, hooks ou agentes só são validadas quando alguém executa os testes localmente.
@@ -75,3 +75,4 @@ nenhum.
 
 ## Histórico
 - 2026-11-26: criação.
+- 2026-11-26: aprovada para implementação.
