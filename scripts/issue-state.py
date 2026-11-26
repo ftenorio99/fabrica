@@ -28,8 +28,11 @@ import sys
 from datetime import datetime, timezone
 
 AGENT_STAGES = ("triagem", "spec", "implementar", "revisar", "backlog", "lancamento")
-AGENT = re.compile(r"^<!-- fabrica:(?:(" + "|".join(AGENT_STAGES) + r")(?:\s|-->)|(acao))")
-IGNORED = re.compile(r"^<!-- fabrica:(?:licao|dispatcher|backlog par-recusado)")
+# Sem diferenciar maiúsculas, como o startsWith do filtro do GitHub (#205). O re.ASCII
+# evita que letras como "ſ" casem com "s".
+MARKER_FLAGS = re.I | re.ASCII
+AGENT = re.compile(r"^<!-- fabrica:(?:(" + "|".join(AGENT_STAGES) + r")(?:\s|-->)|(acao))", MARKER_FLAGS)
+IGNORED = re.compile(r"^<!-- fabrica:(?:licao|dispatcher|backlog par-recusado)", MARKER_FLAGS)
 BRANCH = re.compile(r"^\*\*Branch:\*\*\s*`?([A-Za-z0-9._/-]+)`?\s*$", re.M)
 SHORTCUT = re.compile(r"^\*\*Atalho:\*\*\s*sim\b", re.M)
 READ_UNTIL = re.compile(r"^\*\*Pedidos lidos até:\*\*\s*`?([0-9T:+.Z-]+)`?", re.M)
@@ -65,7 +68,7 @@ def kind(body):
         return "ignorado", None
     match = AGENT.match(first)
     if match:
-        return "agente", match.group(1) or match.group(2)
+        return "agente", (match.group(1) or match.group(2)).lower()
     return "usuario", None
 
 
