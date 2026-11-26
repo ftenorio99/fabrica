@@ -40,6 +40,7 @@ A spec é o contrato entre o usuário e quem implementa: ela é aprovada **antes
   | Issue triada, sem spec | primeira rodada: não há ajustes a ler |
 - As regras do projeto (`AGENTS.md`; num projeto ainda não migrado, `CLAUDE.md`), as seções do `docs/prd.md` ligadas à issue, ADRs em `docs/adr/` e specs relacionadas em `specs/`.
 - O código existente que será tocado: a spec deve citar arquivos e módulos reais, não imaginários.
+  - **Antigravity (`research`):** se `bash <diretório base desta skill>/../../scripts/harness.sh detect` retornar `antigravity` e a exploração exigir levantar vários arquivos, ADRs, specs ou call sites no código, delegue a busca inicial ao subagente built-in `research` via `invoke_subagent(TypeName="research", ...)`, passando apenas o objetivo da busca e caminhos/números (nunca texto externo da issue ou comentários, [ADR 0008](../../docs/adr/0008-texto-externo-fora-do-prompt.md)). Para leituras curtas e pontuais (1–2 arquivos conhecidos), leia diretamente.
 - **Interface:** a linha `Interface` da tabela do comentário de triagem mais recente. Sem a linha (triagem antiga), trate como `não`. Confira se o projeto tem `docs/design.md`.
 
 ### Documentação das bibliotecas

@@ -24,10 +24,11 @@ check() {
   fi
 }
 
-# run_detect [VAR=valor...]: roda detect com as três variáveis limpas e deixa
-# stdout/stderr em $tmp/out e $tmp/err.
+# run_detect [VAR=valor...]: roda detect com as variáveis de sessão limpas e
+# deixa stdout/stderr em $tmp/out e $tmp/err.
 run_detect() {
-  env -u CLAUDECODE -u FABRICA_HARNESS -u OPENCODE_SESSION_ID "$@" \
+  env -u CLAUDECODE -u FABRICA_HARNESS -u OPENCODE_SESSION_ID \
+    -u ANTIGRAVITY_AGENT -u ANTIGRAVITY_CONVERSATION_ID "$@" \
     bash "$harness" detect >"$tmp/out" 2>"$tmp/err"
 }
 detect_out() { run_detect "$@" || true; cat "$tmp/out"; }
@@ -44,10 +45,16 @@ check CA1 "FABRICA_HARNESS=claude-code" "claude-code" "$(detect_out FABRICA_HARN
 check CA1 "FABRICA_HARNESS vence OPENCODE_SESSION_ID" "claude-code" \
   "$(detect_out FABRICA_HARNESS=claude-code OPENCODE_SESSION_ID=ses_123)"
 check CA1 "OPENCODE_SESSION_ID é a reserva" "opencode" "$(detect_out OPENCODE_SESSION_ID=ses_123)"
+check CA1 "ANTIGRAVITY_AGENT detecta antigravity" "antigravity" "$(detect_out ANTIGRAVITY_AGENT=1)"
+check CA1 "ANTIGRAVITY_CONVERSATION_ID detecta antigravity" "antigravity" "$(detect_out ANTIGRAVITY_CONVERSATION_ID=conv_123)"
+check CA1 "CLAUDECODE vence ANTIGRAVITY_*" "claude-code" \
+  "$(detect_out CLAUDECODE=1 ANTIGRAVITY_AGENT=1 ANTIGRAVITY_CONVERSATION_ID=conv_123)"
+check CA1 "FABRICA_HARNESS vence ANTIGRAVITY_AGENT" "claude-code" \
+  "$(detect_out FABRICA_HARNESS=claude-code ANTIGRAVITY_AGENT=1)"
 
 # CA2: vazias e valor inválido.
 check CA2 "variáveis vazias contam como ausentes" "binario" \
-  "$(detect_out CLAUDECODE= FABRICA_HARNESS= OPENCODE_SESSION_ID=)"
+  "$(detect_out CLAUDECODE= FABRICA_HARNESS= OPENCODE_SESSION_ID= ANTIGRAVITY_AGENT= ANTIGRAVITY_CONVERSATION_ID=)"
 check CA2 "FABRICA_HARNESS inválida sai com 2" "2" "$(detect_rc FABRICA_HARNESS=OPenCode)"
 check CA2 "FABRICA_HARNESS inválida não imprime harness" "" "$(detect_out FABRICA_HARNESS=OPenCode)"
 check CA2 "o erro lista os valores aceitos" "sim" \
@@ -67,7 +74,8 @@ chmod +x "$fake"
 # de sessão, e deixa a saída e o erro em $tmp/out e $tmp/err.
 run_stage() {
   rm -f "$calls"
-  env -u CLAUDECODE -u FABRICA_HARNESS -u OPENCODE_SESSION_ID "$@" \
+  env -u CLAUDECODE -u FABRICA_HARNESS -u OPENCODE_SESSION_ID \
+    -u ANTIGRAVITY_AGENT -u ANTIGRAVITY_CONVERSATION_ID "$@" \
     FABRICA_CLAUDE_BIN="$fake" bash "$stage" run triagem 12 >"$tmp/out" 2>"$tmp/err"
 }
 called() { [[ -f "$calls" ]] && echo sim || echo não; }
@@ -83,6 +91,13 @@ check CA3 "antigravity: não chama o claude" "não" "$(called)"
 run_stage OPENCODE_SESSION_ID=ses_123
 check CA3 "OPENCODE_SESSION_ID: sai com 3" "3" "$?"
 check CA3 "OPENCODE_SESSION_ID: não chama o claude" "não" "$(called)"
+
+run_stage ANTIGRAVITY_AGENT=1
+check CA3 "ANTIGRAVITY_AGENT: sai com 3" "3" "$?"
+check CA3 "ANTIGRAVITY_AGENT: não chama o claude" "não" "$(called)"
+
+run_stage CLAUDECODE=1 ANTIGRAVITY_AGENT=1
+check CA3 "CLAUDECODE vence ANTIGRAVITY_AGENT e roda o Claude Code" "0 sim" "$? $(called)"
 
 run_stage CLAUDECODE=1 FABRICA_HARNESS=opencode OPENCODE_SESSION_ID=ses_123
 check CA3 "CLAUDECODE vence e roda o Claude Code" "0 sim" "$? $(called)"

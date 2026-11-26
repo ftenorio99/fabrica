@@ -4,10 +4,11 @@
 # Uso:
 #   harness.sh detect -> claude-code | opencode | antigravity | binario
 #
-# Precedência: CLAUDECODE (um claude -p aberto de dentro do OpenCode herda as
-# variáveis do OpenCode e precisa continuar sendo Claude Code), FABRICA_HARNESS
-# (injetada pelo adaptador), OPENCODE_SESSION_ID e, sem sinal, binario (regra
-# antiga do /fabrica:avancar, pelo binário claude).
+# Precedência: CLAUDECODE (um claude -p aberto de dentro do OpenCode ou do
+# Antigravity herda as variáveis da sessão e precisa continuar sendo Claude
+# Code), FABRICA_HARNESS (injetada pelo adaptador ou override manual),
+# OPENCODE_SESSION_ID, ANTIGRAVITY_AGENT / ANTIGRAVITY_CONVERSATION_ID e, sem
+# sinal, binario (regra antiga do /fabrica:avancar, pelo binário claude).
 #
 # Saídas: 0 detectou; 1 uso inválido; 2 FABRICA_HARNESS com valor desconhecido.
 set -uo pipefail
@@ -41,6 +42,11 @@ cmd_detect() {
 
   if [[ -n "${OPENCODE_SESSION_ID:-}" ]]; then
     echo opencode
+    return 0
+  fi
+
+  if [[ -n "${ANTIGRAVITY_AGENT:-}" || -n "${ANTIGRAVITY_CONVERSATION_ID:-}" ]]; then
+    echo antigravity
     return 0
   fi
 

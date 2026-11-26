@@ -39,9 +39,13 @@ body() { awk 'count >= 2 { print; next } $0 == "---" { count++ }' "$1"; }
 # field <arquivo> <campo>: a linha `<campo>: ...` do frontmatter.
 field() { frontmatter "$1" | grep -m 1 "^$2: "; }
 
-# --- CA1: agy-agents/revisor.md com o frontmatter do agy e o mesmo corpo ---
-# (O caso "agents/revisor.md igual ao da main" valia só no PR da SPEC-177; o
-# revisor muda em outras issues, como a SPEC-129.)
+# --- CA1: frontmatter de agents/revisor.md igual ao da main; agy-agents/revisor.md com o mesmo corpo ---
+if git -C "$root" show origin/main:agents/revisor.md > "$tmp/revisor-main.md" 2>/dev/null; then
+  check CA1 "frontmatter de agents/revisor.md igual ao da origin/main" sim \
+    "$(yesno diff -q <(frontmatter "$tmp/revisor-main.md") <(frontmatter "$agent"))"
+else
+  skip CA1 "frontmatter de agents/revisor.md igual ao da origin/main" "origin/main ausente"
+fi
 
 if [[ -f "$agy_agent" ]]; then
   fm="$(frontmatter "$agy_agent")"
@@ -58,9 +62,27 @@ else
   check CA1 "agy-agents/revisor.md existe" sim não
 fi
 
-# --- CA2: agents.json declara o agente do agy, e o carregador do agy o aceita ---
-check CA2 "agents.json declara agy-agents/revisor.md" '{"entries":[{"path":"agy-agents/revisor.md"}]}' \
+# --- CA2: agents.json declara os 4 agentes do agy, e o carregador do agy os aceita ---
+check CA2 "agents.json declara os 4 agentes do agy" \
+  '{"entries":[{"path":"agy-agents/revisor.md"},{"path":"agy-agents/triador.md"},{"path":"agy-agents/especificador.md"},{"path":"agy-agents/implementador.md"}]}' \
   "$(tr -d ' \n' < "$agents_json" 2>/dev/null)"
+
+for stage_agent in triador especificador implementador; do
+  f="$root/agy-agents/$stage_agent.md"
+  if [[ -f "$f" ]]; then
+    fm_stage="$(frontmatter "$f")"
+    has_stage() { grep -qxF "$1" <<<"$fm_stage"; }
+    check CA1 "agy $stage_agent: subagent: true" sim "$(yesno has_stage 'subagent: true')"
+    check CA1 "agy $stage_agent: mainAgent: false" sim "$(yesno has_stage 'mainAgent: false')"
+    check CA1 "agy $stage_agent: model: inherit" sim "$(yesno has_stage 'model: inherit')"
+    check CA1 "agy $stage_agent: commandExecutionPolicy: auto" sim "$(yesno has_stage 'commandExecutionPolicy: auto')"
+    check CA1 "agy $stage_agent: name correto" "name: $stage_agent" "$(field "$f" name)"
+    check CA1 "agy $stage_agent: skills em lista" sim "$(yesno grep -q '^skills: \[' <<<"$fm_stage")"
+    check CA1 "agy $stage_agent: tools em lista" sim "$(yesno grep -q '^tools: \[' <<<"$fm_stage")"
+  else
+    check CA1 "agy-agents/$stage_agent.md existe" sim não
+  fi
+done
 
 # validate_agy [--agents-json] [--agents] [--agy-agents]: monta um plugin mínimo
 # do agy com as peças pedidas e imprime a saída de `agy plugin validate --strict`
@@ -74,7 +96,7 @@ validate_agy() {
     case "$part" in
       --agents-json) cp "$agents_json" "$dir/agents.json" ;;
       --agents) mkdir -p "$dir/agents" && cp "$agent" "$dir/agents/revisor.md" ;;
-      --agy-agents) mkdir -p "$dir/agy-agents" && cp "$agy_agent" "$dir/agy-agents/revisor.md" ;;
+      --agy-agents) mkdir -p "$dir/agy-agents" && cp "$root"/agy-agents/*.md "$dir/agy-agents/" ;;
     esac
   done
   agy plugin validate "$dir" --strict 2>&1
@@ -88,15 +110,15 @@ if ! command -v agy >/dev/null 2>&1; then
 elif [[ ! -f "$agy_agent" || ! -f "$agents_json" ]]; then
   check CA2 "agy-agents/revisor.md e agents.json existem" sim não
 else
-  # Só o agente do agy: o validate estrito passa.
+  # Só os agentes do agy: o validate estrito passa com agents 4.
   out="$(validate_agy --agents-json --agy-agents)"
-  check CA2 "agy: agents.json com agy-agents/revisor.md passa no --strict" exit=0 "$(tail -n 1 <<<"$out")"
-  check CA2 "agy: agents.json com agy-agents/revisor.md conta agents 1" "agents 1" "$(count_agents "$out")"
+  check CA2 "agy: agents.json com os 4 agentes passa no --strict" exit=0 "$(tail -n 1 <<<"$out")"
+  check CA2 "agy: agents.json com os 4 agentes conta agents 4" "agents 4" "$(count_agents "$out")"
 
-  # O plugin como a fábrica o entrega: o agy carrega o agente do agents.json e
+  # O plugin como a fábrica o entrega: o agy carrega os 4 agentes do agents.json e
   # só reclama do agents/revisor.md, que ele pula por causa do tools em string.
   out="$(validate_agy --agents-json --agents --agy-agents)"
-  check CA2 "agy: plugin completo conta agents 1" "agents 1" "$(count_agents "$out")"
+  check CA2 "agy: plugin completo conta agents 4" "agents 4" "$(count_agents "$out")"
   check CA2 "agy: plugin completo sai com 1" "exit=1" "$(tail -n 1 <<<"$out")"
   check CA2 "agy: o único erro é o agents/revisor.md pulado" 1 "$(errors "$out")"
   check CA2 "agy: o erro é sobre o agents/revisor.md" sim "$(yesno grep -q '✗ agents/revisor.md' <<<"$out")"

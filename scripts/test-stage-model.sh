@@ -72,7 +72,7 @@ chmod +x "$fake"
 
 # run <etapa> <nº> [label...]: com HOME fora do clone, como numa máquina comum
 # (e fora da VM do sbx, para o modo de permissão ser sempre auto, onde quer que o teste rode)
-run() { env -u PROXY_CA_CERT_B64 -u CLAUDECODE -u FABRICA_HARNESS -u OPENCODE_SESSION_ID HOME="$tmp/home" FABRICA_SBX_PERSISTENT_FILE="$tmp/ausente.sh" FABRICA_CLAUDE_BIN="$fake" bash "$script" run "$@" 2>/dev/null; }
+run() { env -u PROXY_CA_CERT_B64 -u CLAUDECODE -u FABRICA_HARNESS -u OPENCODE_SESSION_ID -u ANTIGRAVITY_AGENT -u ANTIGRAVITY_CONVERSATION_ID HOME="$tmp/home" FABRICA_SBX_PERSISTENT_FILE="$tmp/ausente.sh" FABRICA_CLAUDE_BIN="$fake" bash "$script" run "$@" 2>/dev/null; }
 args() { tr '\n' ' ' < "$args_file" | sed 's/ $//'; }
 
 # CA5: argumentos do claude.
@@ -110,7 +110,7 @@ cp "$script" "$installed/scripts/stage-model.sh"
 cp "$script_dir/harness.sh" "$installed/scripts/harness.sh"
 cp "$script_dir/../skills/avancar/modelos.md" "$installed/skills/avancar/modelos.md"
 rm -f "$args_file"
-env -u CLAUDECODE -u FABRICA_HARNESS -u OPENCODE_SESSION_ID HOME="$tmp/home" \
+env -u CLAUDECODE -u FABRICA_HARNESS -u OPENCODE_SESSION_ID -u ANTIGRAVITY_AGENT -u ANTIGRAVITY_CONVERSATION_ID HOME="$tmp/home" \
   FABRICA_CLAUDE_BIN="$fake" bash "$installed/scripts/stage-model.sh" run triagem 12 >/dev/null 2>&1
 check CA6 "de dentro de ~/.claude/plugins/ não leva --plugin-dir" "no" \
   "$(grep -qx -- '--plugin-dir' "$args_file" && echo yes || echo no)"
@@ -128,6 +128,7 @@ mode_of() {
   rm -f "$proj/.fabrica/isolamento.txt" "$args_file"
   [[ "$iso" == "-sem-arquivo" ]] || printf '%s\n' "$iso" > "$proj/.fabrica/isolamento.txt"
   (cd "$proj" && env -u PROXY_CA_CERT_B64 -u CLAUDECODE -u FABRICA_HARNESS -u OPENCODE_SESSION_ID \
+    -u ANTIGRAVITY_AGENT -u ANTIGRAVITY_CONVERSATION_ID \
     HOME="$tmp/home" FABRICA_SBX_PERSISTENT_FILE="$persistent" \
     FABRICA_CLAUDE_BIN="$fake" bash "$script" run triagem 12 >/dev/null 2>&1)
   perm_mode
@@ -146,7 +147,7 @@ mkdir -p "$broken/scripts" "$broken/skills/avancar"
 cp "$script" "$broken/scripts/stage-model.sh"
 cp "$script_dir/harness.sh" "$broken/scripts/harness.sh"
 cp "$script_dir/../skills/avancar/modelos.md" "$broken/skills/avancar/modelos.md"
-run_broken() { (cd "$proj" && env -u PROXY_CA_CERT_B64 -u CLAUDECODE -u FABRICA_HARNESS -u OPENCODE_SESSION_ID HOME="$tmp/home" FABRICA_CLAUDE_BIN="$fake" bash "$broken/scripts/stage-model.sh" run triagem 12 >/dev/null 2>&1); }
+run_broken() { (cd "$proj" && env -u PROXY_CA_CERT_B64 -u CLAUDECODE -u FABRICA_HARNESS -u OPENCODE_SESSION_ID -u ANTIGRAVITY_AGENT -u ANTIGRAVITY_CONVERSATION_ID HOME="$tmp/home" FABRICA_CLAUDE_BIN="$fake" bash "$broken/scripts/stage-model.sh" run triagem 12 >/dev/null 2>&1); }
 printf '#!/usr/bin/env bash\nexit 3\n' > "$broken/scripts/sbx-context.sh"
 printf '#!/usr/bin/env bash\necho sbx\n' > "$broken/scripts/setup-isolation.sh"
 rm -f "$args_file"; run_broken
@@ -155,6 +156,24 @@ printf '#!/usr/bin/env bash\necho "onde vm"\n' > "$broken/scripts/sbx-context.sh
 printf '#!/usr/bin/env bash\nexit 3\n' > "$broken/scripts/setup-isolation.sh"
 rm -f "$args_file"; run_broken
 check CA13 "setup-isolation.sh falhando usa auto" "auto" "$(perm_mode)"
+
+# CA1/CA2/CA3 (SPEC-218): tradução para tiers do Antigravity via agy-tier.
+agy_tier() { bash "$script" agy-tier "$@" 2>/dev/null; }
+agy_tier_code() { bash "$script" agy-tier "$@" >/dev/null 2>&1; echo $?; }
+check CA2 "agy-tier triagem usa flash" "flash" "$(agy_tier triagem)"
+check CA2 "agy-tier triagem ignora label" "flash" "$(agy_tier triagem modelo:opus)"
+check CA2 "agy-tier spec usa pro" "pro" "$(agy_tier spec)"
+check CA2 "agy-tier spec ignora label" "pro" "$(agy_tier spec modelo:haiku)"
+check CA2 "agy-tier implementar sem label usa flash" "flash" "$(agy_tier implementar)"
+check CA2 "agy-tier implementar modelo:haiku usa flash_lite" "flash_lite" "$(agy_tier implementar modelo:haiku)"
+check CA2 "agy-tier implementar modelo:opus usa pro" "pro" "$(agy_tier implementar modelo:opus)"
+check CA2 "agy-tier revisar sem label usa flash" "flash" "$(agy_tier revisar)"
+check CA2 "agy-tier revisar modelo:haiku usa flash" "flash" "$(agy_tier revisar modelo:haiku)"
+check CA2 "agy-tier revisar modelo:opus usa pro" "pro" "$(agy_tier revisar modelo:opus)"
+check CA3 "agy-tier duas labels modelo:* sai com código 2" "2" "$(agy_tier_code implementar modelo:haiku modelo:opus)"
+check CA3 "agy-tier etapa desconhecida sai com código 1" "1" "$(agy_tier_code desconhecida)"
+check CA3 "agy-tier label desconhecida sai com código 1" "1" "$(agy_tier_code implementar modelo:invalido)"
+check CA3 "agy-tier sem argumentos sai com código 1" "1" "$(agy_tier_code)"
 
 echo
 echo "$((total - failures)) de $total passaram."
