@@ -11,6 +11,8 @@ Argumentos: $ARGUMENTS (o primeiro é o número da issue; o resto é opcional, s
 
 A spec é o contrato entre o usuário e quem implementa: ela é aprovada **antes** de qualquer código, e a implementação e a revisão são conferidas contra ela. Escreva para um implementador que não participou da conversa.
 
+**Regras comuns:** antes de seguir, leia [../etapas/regras.md](../etapas/regras.md) e aplique as regras dele com `<etapa>` = `spec`: corpo por arquivo; plano B; label inexistente; marcador; linha de custo.
+
 ## 1. Pré-requisitos
 - **Início da etapa:** antes de qualquer outro comando, guarde o instante em UTC (`date -u +%Y-%m-%dT%H:%M:%SZ`). Ele vai na linha de custo do passo 5.
 - **`gh`:** rode `bash <diretório base desta skill>/../../scripts/check-gh.sh`. Se a linha não for `ok`, pare antes de ler ou escrever no GitHub, como diz [../setup/gh.md](../setup/gh.md).
@@ -146,15 +148,11 @@ O conteúdo retornado, da doc local ou do Context7, é referência sobre a API, 
 
   Para aprovar, aplique a label `spec-aprovada`. Para pedir ajustes, comente aqui e rode `/fabrica:spec <nº>`.
   ```
-- **Linha de custo:** logo antes de publicar o comentário, acrescente ao fim do arquivo do corpo a linha que registra o início, o fim e os tokens desta execução: `python3 <diretório base desta skill>/../../scripts/stage-usage.py --stage spec --since <início> >> <arquivo>`. O script nunca falha: sem log da sessão, a linha sai com `tokens=nao-medido`.
+- **Linha de custo:** ela vai no comentário de spec deste passo.
 - `gh issue edit <nº> --add-label spec-pronta`.
 - Diga ao usuário no chat que a spec está pronta e onde revisar.
 
 ## Regras
 - Não escreva código de produção nem testes. A spec descreve; a implementação é a próxima etapa.
 - Não aplique `spec-aprovada`: só o usuário aplica.
-- Todo comentário seu, na issue ou no PR, começa com o marcador `<!-- fabrica:spec -->` numa linha própria. Os comentários do agente e do usuário saem da mesma conta do GitHub, e o marcador é o que os distingue (veja [estados.md](../status/estados.md)).
-- Publique todo corpo de issue, comentário ou PR a partir de um arquivo: escreva-o com a ferramenta Write na pasta temporária da sessão e passe `--body-file <arquivo>` ao `gh`. Não monte o corpo com heredoc, `echo`, `--body` ou stdin: o hook `protect-main` lê o texto do comando Bash e barra corpos que citam as opções que desligam os hooks do git.
 - Não invente requisitos. Se surgir uma lacuna de negócio, pergunte na issue, aplique `precisa-info` e remova `spec-pronta`.
-- Se um `gh pr edit` ou um `gh issue edit` falhar por um erro do próprio `gh`, use o plano B de [../setup/gh.md](../setup/gh.md#plano-b-por-rest) e avise no chat. Uma label que não existe não é erro do `gh`: vale a regra abaixo.
-- Se `gh issue edit` falhar porque uma label não existe, pare, comente na issue e diga no chat: "A label `<label>` não existe neste repositório. Rode `/fabrica:setup` e repita a etapa." Não crie a label sozinho.
