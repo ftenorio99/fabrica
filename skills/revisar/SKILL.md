@@ -60,6 +60,12 @@ Guarde, para cada pedido, um trecho dele e o que foi feito: o commit da correç�
 
 Sem verificação pendente, o PR só é aberto no passo 5 e não nasce em rascunho por causa da verificação de integração: o revisor roda a verificação, e a evidência dos CAs de integração é a dele. O CI do passo 6 continua sendo esperado, como em todo PR.
 
+**Telas** ([ADR 0020](../../docs/adr/0020-screenshots-das-telas-numa-branch-orfa.md)): a spec "tem telas" quando a seção `## Telas` dela traz ao menos uma subseção `### <id>`; com `nenhuma (Interface: não)`, sem a seção ou no atalho, nada deste item nem da seção `## Telas` do passo 5 se aplica. Numa spec com telas e o `make screenshots` na verificação pendente para o CI, depois de esperar o CI do head, procure o artefato `telas` dele:
+```
+gh api "repos/<dono>/<repo>/actions/artifacts?name=telas" -q '.artifacts[] | select(.workflow_run.head_sha == "<sha do head>") | .workflow_run.id'
+```
+Com um `<run-id>`, baixe-o com `gh run download <run-id> -n telas -D <pasta temporária>` e passe a pasta ao revisor; o link do run é `https://github.com/<dono>/<repo>/actions/runs/<run-id>`. Sem nenhum, as telas ficam pendentes (passo 5).
+
 Chame o subagente `revisor` deste plugin: no Claude Code, pelo Agent tool, como `fabrica:revisor`; no Antigravity (`agy`), pelo `invoke_subagent`, com o nome `revisor`. Se ele não estiver disponível, use um subagente de propósito geral e passe a ele, como instruções, o conteúdo de [../../agents/revisor.md](../../agents/revisor.md).
 
 **Modelo do revisor** ([ADR 0013](../../docs/adr/0013-modelo-por-etapa-e-por-issue.md)): rode `bash <diretório base desta skill>/../../scripts/harness.sh detect`.
@@ -74,7 +80,8 @@ Passe ao revisor:
 - as anotações da implementação (verificações manuais feitas e desvios da spec), rotuladas como "afirmações do `implementar`, a conferir": o revisor só aceita como evidência o que ele mesmo encontra ou roda;
 - na retomada de uma verificação pedida ao usuário, o comando e a saída da resposta dele, com os CAs a que ela se refere;
 - a saída do `setup-isolation.sh --check`;
-- com verificação pendente para o CI, os comandos que o ambiente não roda e o resultado do CI do head.
+- com verificação pendente para o CI, os comandos que o ambiente não roda e o resultado do CI do head;
+- numa spec com telas e o `make screenshots` pendente para o CI, a pasta com o artefato `telas` baixado, ou "o CI do head não tem o artefato `telas`".
 
 O revisor devolve, para cada critério de aceite, se está atendido e com qual evidência, e uma lista de achados com severidade `bloqueante`, `importante` ou `sugestão`.
 
@@ -92,6 +99,20 @@ O revisor devolve, para cada critério de aceite, se está atendido e com qual e
 - Sugestões não são aplicadas nem geram lição: elas vão listadas no PR para o usuário decidir.
 
 ## 5. Abrir o PR
+**Telas** (só numa spec com telas, passo 3): antes de abrir ou atualizar o PR, publique as imagens do head atual com `bash <diretório base desta skill>/../../scripts/publish-screenshots.sh <dono>/<repo> <nº> $(git rev-parse HEAD) <pasta>`, rodado em `<wt>`. A saída do script, quando sai com 0, é a seção `## Telas` do corpo, logo abaixo do título da seção:
+
+| Situação | Pasta | O que fazer |
+|---|---|---|
+| O `make screenshots` do revisor passou no head atual | `<wt>/screenshots` | Publique e ponha a tabela na seção `## Telas`. |
+| O `make screenshots` falhou com assinatura e o CI do head tem o artefato `telas` | a pasta do download (passo 3) | Publique; a seção ganha, abaixo da tabela, a linha "Geradas pelo CI: [<nome do run>](<link do run>)". |
+| Assinatura, e o CI do head terminou sem o artefato `telas` (cópia antiga do `ci.yml`), ou o projeto não tem CI | nenhuma | Abra ou atualize o PR como rascunho, com a seção `## Telas` dizendo "pendente: <motivo>", sem `pronto-revisao`. Comente na issue, com o marcador `<!-- fabrica:revisar -->`, as duas saídas: acrescentar ao CI os passos do [guia de telas](../../docs/guias/telas-e-screenshots.md#cópia-antiga-do-ciyml), ou rodar `! make screenshots` na máquina e depois `/fabrica:revisar <nº>`. Aplique `escalonado`. |
+| O `make screenshots` falhou sem assinatura | nenhuma | É achado `bloqueante` do revisor: siga as rodadas de correção do passo 4. |
+| O script saiu com 3 (nome fora do padrão) | — | Achado `bloqueante` da implementação: corrija os nomes no teste do Playwright e siga as rodadas de correção do passo 4. |
+| O script saiu com 5 (push recusado 3 vezes) | — | Abra ou atualize o PR como rascunho, com a mensagem do script na seção `## Telas`, e aplique `escalonado`. |
+| O script saiu com 1, 2 ou 4 | — | Trate como o caso anterior, com a mensagem do script. |
+
+A cada head novo (correções do passo 2 ou do passo 4), publique de novo e substitua a seção `## Telas` do corpo pela do head novo. Numa retomada depois de o usuário rodar `! make screenshots` na máquina, a pasta é `<wt>/screenshots`.
+
 Se já existir PR da branch (`gh pr view`), inclusive o rascunho do passo 3, atualize a descrição em vez de abrir outro. Senão, `gh pr create --body-file <arquivo>`:
 
 - **Título:** `<tipo da triagem>: <descrição curta em português>`, no padrão de commits das regras do projeto (`AGENTS.md`; num projeto ainda não migrado, `CLAUDE.md`), porque vira a mensagem do squash.
@@ -110,6 +131,9 @@ Se já existir PR da branch (`gh pr view`), inclusive o rascunho do passo 3, atu
   | CA2 | ✅ | <...> |
   | CA3 | ⏳ | confere depois do merge: <o quê> |
   | CA4 | ✅ | verificado pelo CI: [<nome do run>](<link>) |
+
+  ## Telas
+  <Só numa spec com telas: a saída do publish-screenshots.sh, ou "pendente: <motivo>". Sem telas, apague a seção.>
 
   ## Verificações manuais
   <Cada verificação da spec: comando executado e resultado observado.>
@@ -135,7 +159,7 @@ Se já existir PR da branch (`gh pr view`), inclusive o rascunho do passo 3, atu
   - **Verde:** todo run tem `conclusion` `success`, `skipped` ou `neutral`.
   - **Sem CI:** nenhum run do head depois de 10 minutos. Registre no PR e siga, como com um PR sem CI. Com verificação pendente para o CI, isso equivale a não ter CI: siga o item 1 da "Verificação pendente para o CI" do passo 3. Depois da "Retomada" desse item, a verificação já está atendida pela resposta do usuário: trate o PR como sem CI, sem esperar os 10 minutos.
 - Espere o CI. Se falhar por causa da mudança, corrija como no passo 4 (conta como rodada). Se precisou de duas ou mais correções por CI vermelho, registre uma lição com o gatilho `rodadas`, com os checks que falharam e o que os resolveu ([../licao/formato.md](../licao/formato.md)). Se falhar por motivo externo (instabilidade, credencial), registre no PR e siga.
-- Com CI verde e sem achados bloqueantes, mesmo com CAs ⏳ "depois do merge": se o PR está em rascunho só por causa do passo 3 ou de um "CA manual fora do alcance" do passo 4, já atendido na retomada, tire o rascunho (`gh pr ready`). Depois, `gh issue edit <nº> --add-label pronto-revisao --remove-label escalonado`. Nos CAs verificados pelo CI, a evidência no corpo é o nome e o link do run, e o resumo ganha a linha "Verificação de integração pelo CI (ADR 0011)". Se o passo 2 escalou uma mudança de escopo, remova `pronto-revisao` se estiver aplicada (`gh issue edit <nº> --remove-label pronto-revisao`) e mantenha `escalonado`: o PR espera a mudança da spec, não a revisão do usuário.
+- Com CI verde, sem achados bloqueantes e sem telas pendentes ou recusadas no passo 5, mesmo com CAs ⏳ "depois do merge": se o PR está em rascunho só por causa do passo 3, de um "CA manual fora do alcance" do passo 4 ou das telas do passo 5, já atendidos na retomada, tire o rascunho (`gh pr ready`). Depois, `gh issue edit <nº> --add-label pronto-revisao --remove-label escalonado`. Nos CAs verificados pelo CI, a evidência no corpo é o nome e o link do run, e o resumo ganha a linha "Verificação de integração pelo CI (ADR 0011)". Se o passo 2 escalou uma mudança de escopo, remova `pronto-revisao` se estiver aplicada (`gh issue edit <nº> --remove-label pronto-revisao`) e mantenha `escalonado`: o PR espera a mudança da spec, não a revisão do usuário.
 - **Resposta no PR:** comente no PR (`gh pr comment <nº do PR> --body-file <arquivo>`) com o marcador `<!-- fabrica:revisar -->`. Esse comentário vira a nova âncora do passo 2, então publique-o sempre que aplicar `pronto-revisao` e sempre que tratar pedidos, mesmo com rascunho ou escalado:
   - **instante da coleta:** logo abaixo do marcador, a linha `**Pedidos lidos até:** <instante da coleta do passo 2>`;
   - **sem pedidos:** uma linha, "PR pronto para a sua revisão", com o resumo da revisão automática;

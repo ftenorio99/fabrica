@@ -33,3 +33,4 @@ O Impeccable (Apache-2.0) tem um detector determinístico de vícios de interfac
 - Todo projeto com interface passa a ter `docs/design.md`, criado pela primeira spec com interface.
 - A triagem marca se a issue tem interface, e a spec usa essa marca.
 - A verificação visual automática depende do item 11 e do CI com Playwright (item 9).
+- O item 11 entregou a descrição das telas na spec e os screenshots no PR, no celular e no computador ([ADR 0020](0020-screenshots-das-telas-numa-branch-orfa.md)). O `make design-lint` (Impeccable) ficou fora dele, para uma issue própria.
