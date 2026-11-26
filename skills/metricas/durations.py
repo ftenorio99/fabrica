@@ -7,8 +7,9 @@ O timeline.json é a saída de
 `gh api repos/<repo>/issues/<nº>/timeline --paginate --slurp`
 (uma lista de páginas) ou uma lista simples de eventos.
 
-Imprime um JSON com os minutos de cada métrica (arredondados) e o número
-de escalonamentos. Campos sem dado, como uma issue que nunca recebeu
+Imprime um JSON com os minutos de cada métrica (arredondados), o número
+de escalonamentos e `reaberta` (`true` se houve fechamento e reabertura antes
+do `<closed_at>` final). Campos sem dado, como uma issue que nunca recebeu
 `agente`, saem como null.
 
 Numa issue reaberta, cada par de eventos `closed` → `reopened` anterior ao
@@ -92,6 +93,7 @@ def main():
             and e["label"]["name"] == "escalonado"
             and parse(e["created_at"]) <= closed
         ),
+        "reaberta": bool(paused),
     }
     if not agent_marks:
         print(json.dumps(result))
