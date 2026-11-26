@@ -1,7 +1,7 @@
 # SPEC-231: adiciona taxa de reversão e reabertura pós-merge no /fabrica:metricas
 
 **Issue:** #231 · **PRD:** — (suporte ao objetivo de qualidade do `/fabrica:metricas` em `docs/prd.md`) · **Fonte do escopo:** — · **Classe:** implementacao-simples · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-11-26
+**Status:** aprovada · **Atualizada em:** 2026-11-26
 
 ## Contexto
 O `/fabrica:metricas` já mede tempo da abertura ao merge, espera do usuário, trabalho do agente, rodadas de revisão, escalonamentos e lições (citado em `docs/prd.md` nos objetivos de fila e qualidade). Porém, ele não mede o que acontece depois do merge, o que impede saber se mudanças no fluxo mantêm a qualidade ou geram retrabalho. Esta issue adiciona ao relatório os indicadores pós-merge do período analisado.
@@ -82,3 +82,4 @@ nenhum
 
 ## Histórico
 - 2026-11-26: criação.
+- 2026-11-26: aprovada para implementação.
