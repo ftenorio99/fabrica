@@ -29,8 +29,8 @@ jobs:
           falhas=0
           for f in scripts/test-*.sh; do
             case "$f" in
-              scripts/test-job-acceptance.sh|scripts/test-sandbox-acceptance.sh)
-                echo "==> Pulando $f (teste de aceite)"
+              scripts/test-job-acceptance.sh|scripts/test-sandbox-acceptance.sh|scripts/test-revisor-quality.sh)
+                echo "==> Pulando $f (teste de aceite / eval sob demanda)"
                 continue
                 ;;
             esac
