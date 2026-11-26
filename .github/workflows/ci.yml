@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# Cancela execuções antigas do mesmo PR (ou branch) quando chega um push novo.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    steps:
+      # Ações fixadas pelo SHA do commit; o comentário indica a versão.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Instala dependências dos testes
+        run: sudo apt-get update && sudo apt-get install -y python3-yaml jq
+
+      - name: Roda suítes unitárias
+        shell: bash
+        run: |
+          falhas=0
+          for f in scripts/test-*.sh; do
+            case "$f" in
+              scripts/test-job-acceptance.sh|scripts/test-sandbox-acceptance.sh)
+                echo "==> Pulando $f (teste de aceite)"
+                continue
+                ;;
+            esac
+            echo "==> Rodando $f"
+            if ! bash "$f"; then
+              echo "FALHA: $f"
+              falhas=$((falhas + 1))
+            fi
+          done
+          if [ "$falhas" -gt 0 ]; then
+            echo "Total de suítes com falha: $falhas"
+            exit 1
+          fi
