@@ -51,6 +51,7 @@ Antes de a etapa rodar, o job fecha o agente numa caixa ([ADR 0016](../adr/0016-
 - **Dois usuários.** O `claude -p` e tudo o que ele executa rodam como `fabrica-agent`, sem `sudo` e sem rede direta. Um proxy local (`mitmproxy`) roda como `fabrica-proxy` e guarda os segredos.
 - **Rede.** As regras do `iptables` só deixam o `fabrica-agent` falar com a porta do proxy. O proxy libera só os hosts de `templates/workflows/dominios-liberados.txt` (a API da Anthropic e o GitHub), acrescidos dos [hosts do projeto](#hosts-do-projeto), e responde 403 ao resto. A lista do plugin vem do plugin instalado no job: ela não é copiada para o projeto.
 - **Segredos.** O agente recebe **marcadores** no lugar do `CLAUDE_CODE_OAUTH_TOKEN` e do `FABRICA_GH_TOKEN`. O proxy troca o marcador pelo valor real só no cabeçalho `Authorization` e só nos hosts daquele segredo. O valor real nunca chega ao ambiente nem aos arquivos que o agente lê.
+- **Push na `main` barrado.** O proxy lê a lista de comandos de todo push do git para o `github.com` e responde 403 quando algum deles cria, atualiza ou apaga a `main` ou a `master`, ou quando o corpo do push não pode ser lido ([ADR 0021](../adr/0021-push-na-main-barrado-pelo-proxy-do-job.md)). Vale qualquer que seja a configuração do git do agente, mesmo com os hooks do git desligados no `.git/config` do checkout. O log do proxy ganha uma linha `bloqueado github.com: <motivo>`, sem o corpo nem os cabeçalhos. O job nunca cria repositório, então o proxy não tem a exceção do commit inicial dos hooks do git.
 - **Falha fechada.** Sem lista de domínios válida, com uma linha inválida no `.fabrica/dominios.txt` ou sem um dos dois tokens, o job falha antes de o agente rodar.
 - **Sem Docker.** O `fabrica-agent` não tem acesso ao `docker.sock`, que equivale a root e desfaria o isolamento. A parte da verificação do `implementar` que precisa de Docker (banco, Compose) fica pendente para o CI do PR ([ADR 0011](../adr/0011-verificacao-de-integracao-na-etapa.md)).
 
@@ -89,6 +90,8 @@ registry.npmjs.org
 | `sem-sudo` | O agente não roda `sudo`. |
 | `home-sem-token` | O home do agente não guarda o `FABRICA_PLUGIN_TOKEN`. |
 | `proxy-so-lista` | O log do proxy mostra o bloqueio e só hosts da lista. |
+| `push-main-barrado` | Com os hooks do git desligados no `.git/config` de um clone, o commit na branch padrão passa, mas o push dela é recusado pelo proxy, com a linha do bloqueio no log, e o sha remoto não muda. Um push para `fabrica-aceite-<run id>` passa, e o teste apaga essa branch no fim. |
+| `push-corpo-ilegivel` | Um `POST` ao `git-receive-pack` com um corpo que não é push recebe 403 do proxy. |
 
 Rode o aceite depois de mudar a lista de domínios, o proxy ou a versão do `mitmproxy`.
 
@@ -110,6 +113,7 @@ Uma falha na instalação do Claude Code ou do plugin (secret errado ou ausente,
 
 ## Limites do piloto
 - **O agente ainda age com o token do GitHub:** o marcador esconde o valor, mas um agente enganado pode pedir ao proxy qualquer operação que o `FABRICA_GH_TOKEN` permita no repositório do projeto. O limite é o escopo do token: só o repositório, sem Workflows e com expiração curta. Use o dispatcher só com issues escritas por você.
+- **Escrita na `main` pela API:** o proxy barra o push do git para a `main`, mas não as escritas pela API do GitHub com o mesmo token: gravar um arquivo (`PUT .../contents/...`), mover o ref (`PATCH .../git/refs/heads/main`), fazer o merge de um PR ou rodar uma mutation do GraphQL. Os hooks do git também nunca cobriram isso; o limite é o escopo do token.
 - **O token novo dispara workflows:** ao contrário do `GITHUB_TOKEN`, os eventos criados com o `FABRICA_GH_TOKEN` disparam outros workflows, inclusive este. Por isso a trava contra cascata é o filtro do job (marcador `<!-- fabrica:` e nome da label), seguida da releitura do estado, do teto e do [freio](#freio). As labels e os comentários das etapas geram runs que terminam `skipped`.
 - **Gesto com outra execução em curso:** um gesto feito enquanto um run trabalha na mesma issue (por exemplo, um comentário no PR durante o `implementar`) vira pulo pela `em-andamento` recente. O laço em curso relê o estado depois de cada etapa e costuma pegá-lo; se ele já tinha passado desse ponto, o gesto fica sem execução até o próximo gesto ou o `/fabrica:avancar`.
 - **Comentário em linha gasta dois runs:** ele gera um evento de review e um de comentário de review. Um deles roda a etapa; o outro termina em pulo depois da instalação (2 a 3 min de runner).

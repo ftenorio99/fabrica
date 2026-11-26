@@ -63,7 +63,7 @@ jobs:
           FABRICA_GH_TOKEN: ${{ secrets.FABRICA_GH_TOKEN }}
           FABRICA_PLUGIN_TOKEN: ${{ secrets.FABRICA_PLUGIN_TOKEN }}
           FABRICA_PLUGIN_DIR: ${{ steps.plugin.outputs.path }}
-        run: sudo --preserve-env=CLAUDE_CODE_OAUTH_TOKEN,FABRICA_GH_TOKEN,FABRICA_PLUGIN_TOKEN,GITHUB_REPOSITORY,GITHUB_REPOSITORY_OWNER bash "$FABRICA_PLUGIN_DIR/scripts/test-job-acceptance.sh"
+        run: sudo --preserve-env=CLAUDE_CODE_OAUTH_TOKEN,FABRICA_GH_TOKEN,FABRICA_PLUGIN_TOKEN,GITHUB_REPOSITORY,GITHUB_REPOSITORY_OWNER,GITHUB_RUN_ID bash "$FABRICA_PLUGIN_DIR/scripts/test-job-acceptance.sh"
 
       - name: Mostra o log do proxy
         if: always()

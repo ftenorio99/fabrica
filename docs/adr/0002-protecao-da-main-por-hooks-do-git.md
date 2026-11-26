@@ -40,3 +40,4 @@ Ele também bloqueia `commit`/`push` enquanto os hooks não estiverem instalados
 - As checagens são de texto e também pegam o que só cita as opções, como o corpo de um PR. Por isso as skills da fábrica escrevem os corpos de issue, comentário e PR num arquivo e os publicam com `--body-file`.
 - Cada máquina precisa rodar `/fabrica:setup` uma vez. Até lá, o PreToolUse bloqueia `commit`/`push`.
 - Na Fase 1 (GitHub Actions), o runner também precisará instalar os hooks antes de rodar os agentes.
+- No job do dispatcher, o push para a `main` passou a ser barrado também pelo proxy, qualquer que seja a configuração do git do agente, e o PreToolUse passou a recusar Edit e Write nos arquivos de configuração do git: veja a [ADR 0021](0021-push-na-main-barrado-pelo-proxy-do-job.md).
