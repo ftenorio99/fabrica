@@ -59,7 +59,7 @@ A branch da issue vive na **worktree da issue**, `<clone>/.worktrees/<nº>`, cri
 
 No dispatcher (job do GitHub Actions), a linha 10 não vale: o token do job não lê o CI do PR ([SPEC-107](../../specs/SPEC-107.md), CA28 e CA29). Um PR com CI vermelho cai na linha 12 ou 13 para o dispatcher. O `/fabrica:status` local continua aplicando a linha 10.
 
-Uma issue com `agente` que não cai em nenhuma linha (por exemplo, o PR da branch já mergeado com a issue aberta, ou PR fechado sem merge) é estado do usuário: linha `-`. O dispatcher não age nela, e o `/fabrica:status` mostra o alerta.
+Uma issue com `agente` que não cai em nenhuma linha (por exemplo, o PR da branch já mergeado com a issue aberta, ou PR fechado sem merge) é estado do usuário: linha `-`. O dispatcher não age nela, e o `/fabrica:status` mostra o alerta. O PR fechado sem merge com a issue ainda aberta também gera a [inconsistência](#inconsistências) `pr-fechado-sem-merge`.
 
 ## Ação externa
 Quando o `implementar` ou o `revisar` depende de uma ação do usuário fora do GitHub (criar conta ou projeto, cadastrar secret, gerar chave), a etapa publica na issue um **comentário de ação**, com o marcador `<!-- fabrica:acao etapa=<implementar|revisar> -->` e uma checklist, aplica `acao-externa` e para ([ADR 0012](../../docs/adr/0012-acao-externa-com-checklist.md)). O formato do comentário e a retomada estão em [acao-externa.md](acao-externa.md).
