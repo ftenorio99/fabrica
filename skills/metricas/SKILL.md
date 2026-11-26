@@ -8,7 +8,7 @@ argument-hint: "[repositório] [AAAA-MM-DD..AAAA-MM-DD] [AAAA-MM-DD..AAAA-MM-DD]
 
 Argumentos: $ARGUMENTS
 
-Esta skill só lê. Ela não aplica labels, não comenta e não cria arquivo no repositório. Os tempos saem da timeline de cada issue e são calculados pelo script [durations.py](durations.py). Os tokens e o trabalho do agente saem das linhas de custo dos comentários e são somados pelo script [costs.py](costs.py). Nada disso é calculado de cabeça.
+Esta skill só lê. Ela não aplica labels, não comenta e não cria arquivo no repositório. Os tempos saem da timeline de cada issue e são calculados pelo script [durations.py](durations.py). Os tokens e o trabalho do agente saem das linhas de custo dos comentários e são somados pelo script [costs.py](costs.py). Os indicadores pós-merge (PRs revertidos e bugs pós-merge) são calculados pelo script [quality.py](quality.py). Nada disso é calculado de cabeça.
 
 ## 1. Argumentos
 - Um argumento com `..` é período (`AAAA-MM-DD..AAAA-MM-DD`, com as datas inclusivas). Qualquer outro é o repositório.
@@ -31,6 +31,11 @@ Esta skill só lê. Ela não aplica labels, não comenta e não cria arquivo no 
   - **Timeline:** `gh api repos/<repo>/issues/<nº>/timeline --paginate --slurp > <pasta>/tl-<nº>.json`. Confira que há um evento `labeled` com a label `agente`; sem ele, a issue não entra.
   - **Comentários:** `gh api repos/<repo>/issues/<nº>/comments --paginate --slurp > <pasta>/ci-<nº>.json`.
   - **PR:** a branch sai da regra da spec da issue de [estados.md](../status/estados.md): o `**Branch:**` do comentário `<!-- fabrica:spec -->` mais recente ou, no atalho, o da spec curta do comentário de triagem. Com ela, `gh pr list -R <repo> --head <branch> --state merged --json number` e os comentários do PR com `gh api repos/<repo>/issues/<nº do PR>/comments --paginate --slurp > <pasta>/cp-<nº>.json`.
+- **Indicadores pós-merge por repositório com entrega:** apenas para cada repositório que teve ao menos uma issue entregue no período, rode em sequência (respeitando a mesma regra de limite de taxa de 30 req/min da API de busca):
+  - **PRs merged no período:** `gh search prs --repo <repo> --merged --merged-at <desde>..<até> --limit 100 --json number,title,body,url > <pasta>/prs-merged-<repo>.json`.
+  - **Issues com label `bug` abertas no período:** `gh search issues --repo <repo> --label bug --created <desde>..<até> --limit 100 --json number,title,body,createdAt,url > <pasta>/bugs-<repo>.json`.
+
+  Repositórios sem nenhuma issue entregue no período continuam fora do relatório. Se uma busca falhar duas vezes por limite de taxa, o repositório segue sem os campos dessa busca (`—`) e entra na nota de limite de taxa.
 
 Rode as consultas independentes em paralelo, menos as buscas repetidas por repositório, que vão em sequência.
 
@@ -40,7 +45,8 @@ Rode as consultas independentes em paralelo, menos as buscas repetidas por repos
   - `antes_do_fluxo`, da criação até o primeiro `labeled agente`;
   - `esperando_voce`, o tempo em que valia um portão do usuário: `precisa-info`, `escalonado`, `acao-externa` ou `pronto-revisao` na issue, ou `spec-pronta` sem `spec-aprovada`. Os intervalos são unidos, então o mesmo minuto não conta duas vezes;
   - `com_o_agente`, do primeiro `agente` ao fechamento, menos `esperando_voce`;
-  - `escalonamentos`, os eventos `labeled escalonado` até o `closed_at`. Os posteriores ao fechamento não contam.
+  - `escalonamentos`, os eventos `labeled escalonado` até o `closed_at`. Os posteriores ao fechamento não contam;
+  - `reaberta`, `true` se houve ao menos um par `closed` → `reopened` anterior ao `closed_at` final, `false` caso contrário.
 
   **Issue reaberta:** cada par de eventos `closed` → `reopened` anterior ao `closed_at` é um intervalo fechado. O script o desconta de todos os tempos, e um portão do usuário aplicado durante o intervalo também não conta. Assim, `antes_do_fluxo + esperando_voce + com_o_agente` continua somando `abertura_ao_merge`, a menos do arredondamento.
 - **Tokens e trabalho:** `python3 <diretório base desta skill>/costs.py <pasta>/ci-<nº>.json <pasta>/cp-<nº>.json` (sem PR, `-` no lugar do segundo arquivo). O script lê as linhas `<!-- fabrica:custo ... -->` que as etapas deixam no fim dos seus comentários e devolve:
@@ -63,13 +69,17 @@ Rode as consultas independentes em paralelo, menos as buscas repetidas por repos
 ## 4. Agregar
 Para cada repositório e cada marco (a milestone da issue; sem milestone, "sem marco"):
 - **Entregues:** quantas issues.
+- **Indicadores pós-merge (por repositório):**
+  - **Reabertas:** soma das issues entregues no período com `"reaberta": true`.
+  - **Revertidos** e **Bugs pós-merge:** rode `python3 <diretório base desta skill>/quality.py <pasta>/prs-merged-<repo>.json <pasta>/bugs-<repo>.json --prs-entregues <n1> <n2> ...`, com os números dos PRs das issues entregues no período (use `-` no lugar do arquivo se a busca respectiva falhou por limite de taxa; nesse caso, o campo da busca falha sai como `—`).
+  - Quando não houver ocorrência, os três campos mostram `0`, nunca `—`.
 - **Medianas:** de "Abertura ao merge", "Esperando você" e "Com o agente", com `python3 -c 'import statistics,sys; print(statistics.median(map(float, sys.argv[1:])))' <valores>`. Ignore os `—`.
 - **Lições por issue:** total de lições dividido pelas entregues, com uma casa decimal.
 - **Medidas:** quantas issues entregues são medidas. Só elas entram nas três colunas seguintes.
 - **Tokens:** a soma das issues medidas.
 - **Trabalho e Fila:** as medianas das issues medidas, com o mesmo comando de mediana. Sem nenhuma issue medida, as três colunas mostram "não medido".
 
-Com dois períodos, calcule tudo para cada um. A diferença é a mediana do segundo menos a do primeiro (ex.: `−12min`), e a dos tokens é a soma do segundo menos a do primeiro. Um período sem issue entregue mostra `—`.
+Com dois períodos, calcule tudo para cada um. A diferença é a mediana do segundo menos a do primeiro (ex.: `−12min`); a dos tokens e a dos indicadores pós-merge (`Revertidos`, `Reabertas` e `Bugs pós-merge`) é o valor do segundo menos o do primeiro (ex.: `+1`, `−1`, `0`). Um período sem issue entregue mostra `—`.
 
 ## 5. Responder
 No chat, neste formato, omitindo as seções vazias:
@@ -78,13 +88,16 @@ No chat, neste formato, omitindo as seções vazias:
 **Período:** 2026-11-01..2026-11-04 · **Repositórios:** fabrica
 
 ## Por repositório
-| Repositório | Entregues | Abertura ao merge | Esperando você | Com o agente | Lições/issue | Medidas | Tokens | Trabalho | Fila |
-|---|---|---|---|---|---|---|---|---|---|
-| fabrica | 3 | 37min | 6min | 6min | 0,0 | 1 | 2,4M | 18min | 9min |
+| Repositório | Entregues | Revertidos | Reabertas | Bugs pós-merge | Abertura ao merge | Esperando você | Com o agente | Lições/issue | Medidas | Tokens | Trabalho | Fila |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| fabrica | 3 | 0 | 0 | 0 | 37min | 6min | 6min | 0,0 | 1 | 2,4M | 18min | 9min |
 
 ## Comparação
 | Repositório | Métrica | 2026-10-01..2026-10-31 | 2026-11-01..2026-11-30 | Diferença |
 |---|---|---|---|---|
+| fabrica | Revertidos | 1 | 0 | −1 |
+| fabrica | Reabertas | 0 | 1 | +1 |
+| fabrica | Bugs pós-merge | 0 | 0 | 0 |
 | fabrica | Esperando você | 18min | 6min | −12min |
 | fabrica | Trabalho | não medido | 18min | — |
 | fabrica | Tokens | não medido | 2,4M | — |
