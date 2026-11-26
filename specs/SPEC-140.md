@@ -1,7 +1,7 @@
 # SPEC-140: Regras comuns às etapas ficam num arquivo só, e as skills remetem a ele
 
 **Issue:** #140 · **PRD:** — (mudança interna da fábrica) · **Fonte do escopo:** — · **Classe:** implementacao-simples · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-11-26
+**Status:** aprovada · **Atualizada em:** 2026-11-26
 
 ## Contexto
 As skills de etapa repetem, quase palavra por palavra, cinco regras: publicar o corpo a partir de arquivo com `--body-file`, o plano B por REST quando o `gh` falha, o que fazer quando uma label não existe, o marcador que todo comentário do agente leva e a linha de custo. Mudar uma delas exige editar até sete arquivos, e as cópias podem divergir. Esta spec tira as cópias das skills e as põe num arquivo comum, que cada skill lê no início. O texto das regras não muda de sentido. A origem é a triagem da issue #140.
@@ -100,3 +100,4 @@ nenhum
 
 ## Histórico
 - 2026-11-26: criação.
+- 2026-11-26: aprovada.
