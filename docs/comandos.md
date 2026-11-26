@@ -4,7 +4,7 @@ Cada etapa é uma skill, chamada como `/fabrica:<nome>`. Aqui está o resumo de 
 
 ## `/fabrica:prd [ideia do produto em uma frase]`
 - **Quando:** no início de um projeto, ou quando o escopo do produto mudar.
-- **O que faz:** conduz uma entrevista em rodadas (problema, objetivo, escopo, restrições, riscos) e escreve o PRD, com funcionalidades numeradas (F1, F2…) e um fatiamento em marcos `M<n>`.
+- **O que faz:** conduz uma entrevista em rodadas (problema, objetivo, escopo, restrições, riscos) e escreve o PRD, com funcionalidades numeradas (F1, F2…), regras de borda de horário e infraestrutura quando aplicáveis, e um fatiamento em marcos `M<n>`.
 - **PRD que já existe:** é a baseline do produto. Antes de escrever, o `/fabrica:prd` classifica cada mudança (incluir, excluir ou alterar) e mostra o impacto nas issues do GitHub, com a ação indicada para cada uma. Para um item cuja issue foi fechada como "not planned", a ação indicada é reabri-la, se o item continua no PRD; a reabertura é sua. Você aceita, rejeita ou adia cada mudança, e só as aceitas entram no PRD. Todas, com o motivo, ficam registradas na tabela "Mudanças" do histórico.
 - **Lê:** as regras do projeto (`AGENTS.md`; num projeto não migrado, `CLAUDE.md`), `README.md` e o que existir em `docs/`. Ao atualizar, lê também as issues e os PRs do repositório.
 - **Cria:** `docs/prd.md`, sem commit; oferece um PR na branch `docs/prd`. Ao criar o PRD, cria também as labels do repositório. Ao atualizar, não mexe em labels nem em issues.
