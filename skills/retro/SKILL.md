@@ -11,6 +11,8 @@ Filtro: $ARGUMENTS (vazio = todos os repositórios do usuário)
 
 Esta skill é o observador da fábrica: ela vê onde as etapas falharam e propõe mudanças nas skills, mas não as aplica. Quem decide o que vira issue é o usuário, e as issues criadas entram no fluxo só quando ele aplicar `agente`.
 
+**Regras comuns:** antes de seguir, leia [../etapas/regras.md](../etapas/regras.md) e aplique as regras dele com `<etapa>` = `retro`: corpo por arquivo.
+
 ## 1. Coletar
 - **Dono:** `gh api user -q .login`. As propostas vão sempre para `<dono>/fabrica`, qualquer que seja o repositório analisado.
 - **Repositórios:** com filtro, só `<dono>/<filtro>`. Sem filtro, os que têm issue com `agente`: `gh search issues --owner <dono> --label agente --json repository --limit 100`, sem repetir. O limite de 100 vale para todos os repositórios somados: se a busca trouxer 100 issues, liste os repositórios do dono (`gh repo list <dono> --no-archived --limit 1000 --json nameWithOwner`) e use todos, como no [`/fabrica:metricas`](../metricas/SKILL.md). Os que não tiverem issue com `agente` na janela ficam de fora no passo seguinte.
@@ -115,5 +117,5 @@ No chat: as issues criadas, com o link de cada uma, as lições marcadas (quanta
 - Não aplique nem remova labels nas issues analisadas e não comente nelas. A única escrita fora das issues novas do fabrica é a linha `**Retro:**` nos comentários de lição.
 - Nada é publicado antes da confirmação do passo 5. Sem escolha nenhuma e com **Deixar para a próxima retro**, a skill termina sem escrever no GitHub.
 - Não invente evidência: todo item da saída tem link. A proposta pode ser sua, mas a causa sai das evidências.
-- Publique todo corpo de issue ou comentário a partir de um arquivo, com `--body-file` ou `-F body=@<arquivo>`. Não monte o corpo com heredoc, `echo`, `--body` ou stdin: o hook `protect-main` lê o texto do comando Bash e barra corpos que citam as opções que desligam os hooks do git.
+- No passo 6, a edição de comentário publica o arquivo com `-F body=@<arquivo>` (`gh api`), no lugar de `--body-file`.
 - Se `gh issue create` falhar porque a label `enhancement` ou `bug` não existe no fabrica, crie a issue sem label e avise no chat. Não crie a label.

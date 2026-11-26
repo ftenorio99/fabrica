@@ -21,6 +21,8 @@ Nunca rode nada contra produção, mesmo que o comando pareça só de leitura ([
 
 Os passos de produção são do usuário e vão para a checklist da issue de runbook.
 
+**Regras comuns:** antes de seguir, leia [../etapas/regras.md](../etapas/regras.md) e aplique as regras dele com `<etapa>` = `lancamento`: corpo por arquivo; plano B; marcador; linha de custo.
+
 ## 1. Pré-requisitos
 - **Início da etapa:** antes de qualquer outro comando, guarde o instante em UTC (`date -u +%Y-%m-%dT%H:%M:%SZ`). Ele vai na linha de custo (veja "Regras").
 - **`gh`:** rode `bash <diretório base desta skill>/../../scripts/check-gh.sh`. Se a linha não for `ok`, pare antes de ler ou escrever no GitHub, como diz [../setup/gh.md](../setup/gh.md).
@@ -97,9 +99,7 @@ Nenhum item traz o valor de um segredo: só nomes e onde cadastrar ([../status/a
 "Comentário do usuário" segue a definição de [estados.md](../status/estados.md): qualquer comentário que não comece com um marcador `<!-- fabrica:`; os comentários de lição não contam.
 
 ## Regras
-- Todo comentário seu na issue de runbook começa com `<!-- fabrica:lancamento -->` numa linha própria, exceto o comentário de ação, que começa com `<!-- fabrica:acao etapa=lancamento -->`.
-- **Linha de custo:** no fim de cada comentário que a etapa publica, acrescente ao arquivo do corpo, logo antes de publicar, a linha `python3 <diretório base desta skill>/../../scripts/stage-usage.py --stage lancamento --since <início> >> <arquivo>`. O script nunca falha: sem log da sessão, a linha sai com `tokens=nao-medido`. O corpo da issue não leva linha.
-- Publique todo corpo de issue ou comentário a partir de um arquivo: escreva-o com a ferramenta Write na pasta temporária da sessão e passe `--body-file <arquivo>` ao `gh`. Não monte o corpo com heredoc, `echo`, `--body` ou stdin: o hook `protect-main` lê o texto do comando Bash e barra corpos que citam as opções que desligam os hooks do git.
+- Exceção ao marcador: o comentário de ação começa com `<!-- fabrica:acao etapa=lancamento -->`.
+- **Linha de custo:** ela vai no fim de cada comentário que a etapa publica. O corpo da issue não leva linha.
 - Não aplique `agente` na issue de runbook: ela fica fora do fluxo das issues de trabalho, identificada pelo marcador no corpo.
 - Não edite arquivo do projeto, não crie branch nem PR. Se uma conferência apontar algo a corrigir no código, a correção é uma issue normal do fluxo, aberta pelo usuário.
-- Se um `gh issue edit` falhar por um erro do próprio `gh`, use o plano B de [../setup/gh.md](../setup/gh.md#plano-b-por-rest) e avise no chat.

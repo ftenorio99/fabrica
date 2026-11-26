@@ -11,6 +11,8 @@ Issue: #$ARGUMENTS
 
 A triagem decide se a issue está pronta para virar spec. Ela não escreve código e só escreve spec no atalho, a spec curta do passo 4. Toda comunicação com o usuário acontece **na issue** (comentários e labels), para que esta skill funcione igual rodando no terminal ou no GitHub Actions.
 
+**Regras comuns:** antes de seguir, leia [../etapas/regras.md](../etapas/regras.md) e aplique as regras dele com `<etapa>` = `triagem`: corpo por arquivo; plano B; label inexistente; marcador; linha de custo.
+
 ## 1. Ler
 - **Início da etapa:** antes de qualquer outro comando, guarde o instante em UTC (`date -u +%Y-%m-%dT%H:%M:%SZ`). Ele vai na linha de custo do passo 4.
 - **`gh`:** rode `bash <diretório base desta skill>/../../scripts/check-gh.sh`. Se a linha não for `ok`, pare antes de ler ou escrever no GitHub, como diz [../setup/gh.md](../setup/gh.md).
@@ -127,7 +129,7 @@ A seção `**Recomendações levadas para a spec:**` só aparece quando há reco
 
 Os CAs seguem as mesmas regras da [spec](../spec/SKILL.md#4-escrever): numerados, observáveis e cada um com a forma de verificação. A linha `**Fora do escopo:**` traz os limites da issue por escrito: vem da seção "Fora do escopo" do corpo da issue quando ela existe e, quando não existe, dos limites que a triagem leu na issue. Se a triagem não consegue escrever nenhum limite a partir da issue, falta responder "quais limites ela tem" (passo 3): é uma lacuna, e então não há atalho. A branch usa o tipo da triagem e um resumo curto do título, mas não a crie: ela nasce no `/fabrica:implementar`.
 
-**Linha de custo:** logo antes de publicar, acrescente ao fim do arquivo do corpo a linha que registra o início, o fim e os tokens desta execução: `python3 <diretório base desta skill>/../../scripts/stage-usage.py --stage triagem --since <início> >> <arquivo>`. O script nunca falha: sem log da sessão, a linha sai com `tokens=nao-medido`. Ela vai no comentário de triagem com ou sem perguntas, e não no de lição.
+**Linha de custo:** ela vai no comentário de triagem com ou sem perguntas, e não no de lição.
 
 Depois, ajuste as labels. Em qualquer dos três casos abaixo, aplique também o modelo escolhido, se a issue ainda não tem uma `modelo:*`, **exceto no caminho de sessão** (`opencode` ou `antigravity`), em que nenhuma label de modelo é aplicada (`gh issue edit <nº> --add-label modelo:<apelido>`):
 - **Com lacunas:** `gh issue edit <nº> --add-label precisa-info` e registre uma lição com o gatilho `precisa-info`, resumindo as lacunas e por que a issue não as respondia, como diz [../licao/formato.md](../licao/formato.md). Pare aqui e diga ao usuário que as perguntas estão na issue. Depois de respondidas, a triagem deve ser rodada de novo. As recomendações do mesmo comentário seguem para a spec na rodada seguinte, se o usuário não as contestar.
@@ -137,9 +139,7 @@ Depois, ajuste as labels. Em qualquer dos três casos abaixo, aplique também o 
 ## Regras
 - Não escreva código nem branch, e não escreva spec fora da spec curta do atalho.
 - Não pergunte no chat o que pode ser perguntado na issue.
-- Todo comentário seu, na issue ou no PR, começa com o marcador `<!-- fabrica:triagem -->` numa linha própria, exceto o comentário de lição, que segue [../licao/formato.md](../licao/formato.md). Os comentários do agente e do usuário saem da mesma conta do GitHub, e o marcador é o que os distingue (veja [estados.md](../status/estados.md)).
+- Exceção ao marcador: o comentário de lição, que segue [../licao/formato.md](../licao/formato.md).
 - Não invente requisitos: se o PRD e a issue não dizem e você não tem uma recomendação defensável (passo 3), é uma pergunta.
-- Publique todo corpo de issue, comentário ou PR a partir de um arquivo: escreva-o com a ferramenta Write na pasta temporária da sessão e passe `--body-file <arquivo>` ao `gh`. Não monte o corpo com heredoc, `echo`, `--body` ou stdin: o hook `protect-main` lê o texto do comando Bash e barra corpos que citam as opções que desligam os hooks do git.
 - Em rodadas seguintes, publique um novo comentário de triagem completo (com o mesmo marcador); não edite os anteriores, para manter o histórico.
-- Se um `gh pr edit` ou um `gh issue edit` falhar por um erro do próprio `gh`, use o plano B de [../setup/gh.md](../setup/gh.md#plano-b-por-rest) e avise no chat. Uma label que não existe não é erro do `gh`: vale a regra abaixo.
-- Se `gh issue edit` falhar porque uma label não existe, pare, comente na issue e diga no chat: "A label `<label>` não existe neste repositório. Rode `/fabrica:setup` e repita a etapa." Não crie a label sozinho. A exceção é a `licao`: sem ela, a etapa avisa e segue, como diz [../licao/formato.md](../licao/formato.md).
+- A exceção à regra da label inexistente é a `licao`: sem ela, a etapa avisa e segue, como diz [../licao/formato.md](../licao/formato.md).
