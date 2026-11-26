@@ -10,9 +10,10 @@
 # preservando as outras. Não toca a branch atual, o índice nem a cópia de
 # trabalho: usa um índice temporário e os comandos de baixo nível do git.
 #
-# Saídas: 0 publicado, com a tabela no stdout; 1 erro do git; 2 argumentos
-# errados; 3 nome de PNG fora do padrão; 4 pasta inexistente ou sem PNG;
-# 5 push recusado nas 3 tentativas.
+# Saídas: 0 publicado, com a tabela no stdout; 1 erro do git, inclusive push
+# recusado sem o origin ter avançado (não repete); 2 argumentos errados;
+# 3 nome de PNG fora do padrão; 4 pasta inexistente ou sem PNG; 5 push
+# recusado nas 3 tentativas, com o origin avançando em cada uma.
 set -uo pipefail
 export LC_ALL=C.UTF-8
 
@@ -108,7 +109,16 @@ while (( attempt < max_attempts )); do
     break
   fi
   commit=""
-  say "push recusado (tentativa $attempt de $max_attempts)"
+  # Só repete quando o origin avançou desde a leitura (SPEC-129, CA12). Recusa
+  # sem avanço (autenticação, rede, hook) não é corrida: sai com 1 na hora.
+  now_line=$(git ls-remote origin "refs/heads/$branch") || { say "falha ao reler o remoto origin"; printf '%s\n' "$push_err" >&2; exit 1; }
+  now=${now_line%%$'\t'*}
+  if [[ $now == "$parent" ]]; then
+    say "push recusado sem avanço do origin (não é corrida)"
+    printf '%s\n' "$push_err" >&2
+    exit 1
+  fi
+  say "push recusado, origin avançou (tentativa $attempt de $max_attempts)"
 done
 
 if [[ -z $commit ]]; then

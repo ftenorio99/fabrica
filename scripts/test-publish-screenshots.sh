@@ -220,6 +220,11 @@ if (( n == 1 )) && [[ -f "$tmp/race-flag" ]]; then
   env -u GIT_QUARANTINE_PATH -u GIT_OBJECT_DIRECTORY -u GIT_ALTERNATE_OBJECT_DIRECTORIES \
     git update-ref refs/heads/fabrica-telas "$other" "$first"
 fi
+next=\$(sed -n "\${n}p" "$tmp/chain" 2>/dev/null)
+if [[ -n \$next ]]; then
+  env -u GIT_QUARANTINE_PATH -u GIT_OBJECT_DIRECTORY -u GIT_ALTERNATE_OBJECT_DIRECTORIES \
+    git update-ref refs/heads/fabrica-telas "\$next"
+fi
 if (( n <= \$(cat "$tmp/refuse") )); then
   echo "recusado pelo teste (\$n)" >&2
   exit 1
@@ -241,16 +246,37 @@ check CA12 "preserva a pasta da outra publicação" \
   test "$(git --git-dir="$tmp/race.git" ls-tree --name-only "$tip" | tr '\n' ' ')" == "issue-1 issue-2 issue-3 "
 check CA12 "a tabela usa o SHA do commit enviado" grep -q "raw/$tip/issue-3/" <<<"$out"
 
+# Esgotamento: cada chamada do hook avança a fabrica-telas para o próximo commit
+# da cadeia, então o origin avança em todas as tentativas e o script sai com 5.
 rm -f "$tmp/race-flag" "$tmp/count"
 echo 99 >"$tmp/refuse"
-before_tip=$(remote_tip "$tmp/race.git")
+tree=$(git --git-dir="$tmp/race.git" rev-parse "$other^{tree}")
+prev=$other
+: >"$tmp/chain"
+for i in 1 2 3; do
+  prev=$(echo "corrida $i" | git --git-dir="$tmp/race.git" commit-tree "$tree" -p "$prev")
+  echo "$prev" >>"$tmp/chain"
+done
 pngs "$tmp/shots4" quatro--padrao--celular.png
 run "$tmp/race" dono/race 4 "$head_sha" "$tmp/shots4"
-check CA12 "com o push recusado 3 vezes, sai com 5" test "$rc" -eq 5
+check CA12 "com o origin avançando em cada tentativa, sai com 5" test "$rc" -eq 5
 check CA12 "sem uma 4ª tentativa" test "$(cat "$tmp/count")" -eq 3
 check CA12 "repete a mensagem do git" grep -q "recusado pelo teste" <<<"$err"
-check CA12 "a fabrica-telas do remoto não muda" test "$(remote_tip "$tmp/race.git")" == "$before_tip"
+check CA12 "a fabrica-telas fica no último avanço da corrida" \
+  test "$(remote_tip "$tmp/race.git")" == "$(sed -n 3p "$tmp/chain")"
 check CA12 "nada no stdout quando falha" test -z "$out"
+
+# Recusa sem avanço do origin (hook que recusa sem mexer no remoto): não é
+# corrida, então sai com 1 na primeira tentativa, sem repetir.
+rm -f "$tmp/chain" "$tmp/count"
+echo 99 >"$tmp/refuse"
+before_tip=$(remote_tip "$tmp/race.git")
+pngs "$tmp/shots5" cinco--padrao--celular.png
+run "$tmp/race" dono/race 5 "$head_sha" "$tmp/shots5"
+check CA12 "recusa sem avanço do origin sai com 1" test "$rc" -eq 1
+check CA12 "recusa sem avanço não repete" test "$(cat "$tmp/count")" -eq 1
+check CA12 "recusa sem avanço não muda o remoto" test "$(remote_tip "$tmp/race.git")" == "$before_tip"
+check CA12 "recusa sem avanço repete a mensagem do git" grep -q "recusado pelo teste" <<<"$err"
 
 echo
 echo "$((total - failures)) de $total passaram"
