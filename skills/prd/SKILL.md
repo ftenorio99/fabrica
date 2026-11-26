@@ -27,7 +27,7 @@ Faça as rodadas em ordem e pule o que já estiver respondido.
 
 1. **Problema e público:** que problema resolve, para quem, e como essa pessoa resolve hoje.
 2. **Objetivo e sucesso:** o que precisa ser verdade para o MVP ter dado certo e como medir.
-3. **Escopo do MVP:** proponha a lista de funcionalidades a partir das respostas anteriores. Peça ao usuário para marcar cada uma como obrigatória ou desejável. Puxe o escopo para o menor produto que ainda resolve o problema.
+3. **Escopo do MVP:** proponha a lista de funcionalidades a partir das respostas anteriores. Peça ao usuário para marcar cada uma como obrigatória ou desejável. Puxe o escopo para o menor produto que ainda resolve o problema. Para funcionalidades com horário, calendário ou agendamento, e para itens de infraestrutura, pergunte os casos de borda e detalhes listados no passo 3.
 4. **Fora de escopo e restrições:** o que fica explicitamente de fora; stack, prazo, dados sensíveis, integrações obrigatórias.
 5. **Riscos:** o que pode dar errado (técnico, de produto ou de uso) e como mitigar.
 
@@ -37,6 +37,8 @@ Entre as rodadas, resuma em uma ou duas linhas o que você entendeu, para o usu�
 - Preencha o template em [template.md](template.md) e salve em `docs/prd.md`. Crie a pasta `docs/` se não existir.
 - Escreva para quem vai implementar: frases curtas, sem jargão de marketing e sem prometer o que não foi decidido.
 - Cada funcionalidade do escopo deve ter um identificador estável (F1, F2…), usado depois nas specs e nas issues.
+- Ao descrever uma funcionalidade com horário, calendário ou agendamento, pergunte ao usuário os casos de borda que se aplicarem — itens sem hora, itens atrasados ou perdidos, valor padrão e começo da semana — e registre na descrição uma linha `**Regras:** ...` com as decisões.
+- Ao descrever um item de infraestrutura, pergunte e registre o endereço, quem acessa e o destino dos logs, e sugira fatiar à parte o deploy automático e a observabilidade.
 - Em "Fatiamento", quebre as funcionalidades obrigatórias em itens de 1 a 2 dias de trabalho humano cada e agrupe-os em marcos do produto (ex.: "Base", "Tarefas (F2, F11, F12)", "Agenda (F3, F4)"), sem sprints nem datas:
   - o marco tem título `### M<n> · <nome> (<F>)`, em ordem de entrega;
   - o item tem número fixo (`**<n>.**`), título, F entre parênteses (`base` quando não há F) e `depende de <números>` quando depende de outro item. A ordem da lista não cria dependência;
