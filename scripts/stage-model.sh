@@ -146,7 +146,7 @@ cmd_next() {
 # casos, inclusive quando um dos scripts de isolamento falha.
 permission_mode() {
   local where mode
-  where="$(bash "$script_dir/sbx-context.sh" --project "$PWD" 2>/dev/null | awk '$1 == "onde" { print $2; exit }')" || where=""
+  where="$(bash "$script_dir/sbx-context.sh" --project "$PWD" 2>/dev/null | awk '$1 == "onde" { print $2 }')" || where=""
   mode="$(bash "$script_dir/setup-isolation.sh" --check --project "$PWD" 2>/dev/null)" || mode=""
   if [[ "$where" == "vm" && "$mode" == "sbx" ]]; then
     echo bypassPermissions

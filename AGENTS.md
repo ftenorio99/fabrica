@@ -5,6 +5,7 @@ Este repositório é a fábrica de software pessoal, empacotada como plugin do C
 As regras de git, idioma e segredos do projeto estão em `templates/AGENTS.md` e valem aqui também.
 
 ## Estrutura
+- `.github/workflows/ci.yml`: workflow de CI do próprio repositório; roda as suítes unitárias `scripts/test-*.sh` (exceto os testes de aceite `test-job-acceptance.sh` e `test-sandbox-acceptance.sh`) em `pull_request` e `push` na `main`.
 - `.claude-plugin/plugin.json`: identidade do plugin. Suba a `version` a cada mudança que altere comportamento.
 - `.claude-plugin/marketplace.json`: permite instalar o plugin com `/plugin marketplace add ftenorio99/fabrica`.
 - `skills/<nome>/SKILL.md`: uma skill por etapa do fluxo. No uso, são chamadas como `/fabrica:<nome>`.
