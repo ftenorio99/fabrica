@@ -1,7 +1,7 @@
 # SPEC-230: test: eval enxuto do revisor com bugs plantados e controle limpo
 
 **Issue:** #230 · **PRD:** — (fora do MVP do PRD; apoio às melhorias do revisor #133–#139) · **Fonte do escopo:** — · **Classe:** implementacao-simples · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-11-26
+**Status:** aprovada · **Atualizada em:** 2026-11-26
 
 ## Contexto
 As issues #133 a #139 alteram as instruções do subagente `revisor` (`agents/revisor.md` e `agy-agents/revisor.md`), mas hoje só existe `scripts/test-revisor-agent.sh`, que valida frontmatter, igualdade de corpo e carregamento do plugin. Não há uma linha de base reproduzível para medir se uma mudança em prosa melhora ou piora a detecção de defeitos reais ou introduz falsos positivos.
@@ -78,3 +78,4 @@ nenhum.
 
 ## Histórico
 - 2026-11-26: criação.
+- 2026-11-26: spec aprovada.
