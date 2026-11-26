@@ -6,7 +6,7 @@ Faz três coisas, todas no proxy, fora do alcance do agente:
   2. troca, no cabeçalho Authorization, o marcador que o agente recebeu pelo
      valor real do segredo, só nos hosts daquele segredo;
   3. responde 403 a todo push para o github.com que cria, atualiza ou apaga a
-     main ou a master, ou cujo corpo não pode ser lido (SPEC-204, ADR 0020).
+     main ou a master, ou cujo corpo não pode ser lido (SPEC-204, ADR 0021).
 
 Uso:
   mitmdump -s egress-addon.py --set fabrica_domains=<arquivo> \

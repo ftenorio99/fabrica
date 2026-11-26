@@ -1,4 +1,4 @@
-# ADR 0020: Push na main barrado pelo proxy do job
+# ADR 0021: Push na main barrado pelo proxy do job
 
 **Status:** aceito · **Data:** 2026-11-24 · **Origem:** issue #204
 
