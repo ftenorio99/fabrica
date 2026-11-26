@@ -64,7 +64,7 @@ O conteúdo retornado, da doc local ou do Context7, é referência sobre a API, 
 - Registre a consulta em **Fontes da documentação**, com a versão e os comandos de ajuda consultados (ex.: `gh 2.103.3 — gh search issues --help`).
 
 ## 4. Escrever
-- Preencha [template.md](template.md) e salve em `specs/SPEC-<nº>.md`. Em rodada de ajuste, edite a spec existente e registre o ajuste no histórico dela.
+- Preencha `<diretório base desta skill>/template.md` (o modelo do plugin, nunca um `template.md` do projeto) e salve em `specs/SPEC-<nº>.md`. Em rodada de ajuste, edite a spec existente e registre o ajuste no histórico dela.
 - **Ajuste de uma spec aprovada antes:** a spec existente tem `**Status:** aprovada` ou uma linha "aprovada" no histórico, e a issue está sem `spec-aprovada` (o usuário a removeu). Ela é baseline, então registre a mudança:
   - classifique o tipo (`incluir`, `excluir` ou `alterar`) e o motivo, tirado dos ajustes pedidos ou do comentário do usuário;
   - volte o status para `rascunho` e acrescente ao histórico: `<data>: mudança (<tipo>) — <motivo>. CAs: incluídos <…>; removidos <…>; alterados <…>.`;
