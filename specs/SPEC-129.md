@@ -113,7 +113,7 @@ Numa issue sem telas, o corpo do PR não tem a seção.
 - `templates/workflows/ci.yml`: dois passos novos no fim do job `e2e`, antes do upload do `playwright-report`: `Roda o make screenshots` (com `if` que confere o alvo `screenshots:` e `steps.alvo.outputs.tem == 'sim'`) e o `actions/upload-artifact` do artefato `telas`, com o mesmo SHA fixado do upload existente. O upload do `playwright-report` continua o último passo.
 - `scripts/test-setup-ci.sh`: casos do CA17.
 - `docs/guias/telas-e-screenshots.md` (novo), `docs/guias/ci-do-pr.md`, `docs/fluxo.md`, `docs/comandos.md`, `docs/README.md`, `AGENTS.md` (linha do novo teste e da branch `fabrica-telas`), `docs/adr/0009-aprovacao-visual-sem-ferramenta-de-design.md` (consequência: a verificação visual saiu no item 11, ver ADR 0020).
-- `.claude-plugin/plugin.json`: `version` 0.50.0.
+- `.claude-plugin/plugin.json`: `version` sobe a cada mudança de comportamento (0.55.0 com o merge da `origin/main`; 0.56.0 com a correção do push do `publish-screenshots.sh` e do link do template da spec).
 - `opencode/`: nada a mudar; o `server.ts` lê as skills e o revisor dos arquivos do plugin a cada reload.
 
 **Dados:** nenhum banco. A branch órfã `fabrica-telas` de cada projeto com interface, com `issue-<nº>/<sha curto>/<tela>--<estado>--<dispositivo>.png`.
