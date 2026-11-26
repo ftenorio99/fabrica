@@ -22,6 +22,18 @@ Nenhum dos dois modos cobre o WebFetch, que segue as regras de permissão do Cla
 
 O modo não muda o `/fabrica:status` nem o `/fabrica:metricas`. Ele orienta o setup e, nas etapas, só a mensagem quando o ambiente não roda a verificação de integração (veja [Verificação de integração](#verificação-de-integração)).
 
+## `main` protegida
+Nos dois modos, quem recusa commit e push na `main` são os hooks do git da fábrica ([ADR 0002](../adr/0002-protecao-da-main-por-hooks-do-git.md)). O hook `protect-main` do plugin impede o agente de desligá-los: recusa os comandos Bash que mexeriam neles e, no Claude Code, também as ferramentas Edit, Write e MultiEdit sobre os arquivos de configuração do git (o `.git/config` e o `config.worktree` de um repositório, o `~/.gitconfig`, o `git/config` do XDG, o arquivo do `GIT_CONFIG_GLOBAL`) e sobre a pasta dos hooks. A checagem é pelo caminho resolvido, inclusive por link simbólico, e não pelo conteúdo. Para mudar esses arquivos de propósito, edite você mesmo no terminal.
+
+No job do dispatcher, o push para a `main` também é barrado pelo proxy, que roda como outro usuário (veja [Isolamento do job](dispatcher.md#isolamento-do-job)).
+
+Ficam de fora, fora do job:
+- comandos Bash que montam a configuração do git por variável, escape ou um script gravado pelo agente, além do modelo de texto da ADR 0002;
+- trocar o arquivo `.git` de uma worktree (a linha `gitdir:`) para apontar a outra pasta;
+- a checagem de Edit e Write no OpenCode e no Antigravity (veja [opencode/README.md](../../opencode/README.md#limites-conhecidos) e [Antigravity](antigravity.md)).
+
+No job, o proxy cobre o push nesses casos; as escritas na `main` pela API do GitHub seguem limitadas pelo escopo do token (veja [Limites do piloto](dispatcher.md#limites-do-piloto)).
+
 ## Modo `sbx`
 O `sbx` é o comando do Docker Sandboxes. A fábrica não o instala nem roda: a VM, a política de rede e o secret são seus, no host. O checklist abaixo é o que o `/fabrica:setup` mostra no fim, conferido com o `sbx` 0.51.0.
 
