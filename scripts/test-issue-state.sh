@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Testa scripts/issue-state.py (SPEC-107, CA6 a CA9) com pacotes JSON fixos.
+# Testa scripts/issue-state.py (SPEC-107, CA6 a CA9; #205) com pacotes JSON fixos.
 # Uso: bash scripts/test-issue-state.sh
 set -uo pipefail
 
@@ -64,6 +64,9 @@ pr() {
     "$1" "$2" "${7:-null}" "$3" "${4:-}" "${5:-[]}" "${6:-[]}" "$H"
 }
 OK='[{"conclusion":"SUCCESS","status":"COMPLETED"}]'
+
+issue_only() { python3 -I -c 'import json, sys; print(json.dumps(json.load(open(sys.argv[1]))["issue"]))' "$tmp/p.json" > "$tmp/i.json"; }
+branch() { issue_only; python3 "$script" branch "$tmp/i.json"; }
 
 # --- CA6: um pacote por estado ---
 pkg agente - '[]'
@@ -149,6 +152,36 @@ pkg agente,precisa-info - '[]' "0|$TRI" "60|<!-- fabrica:specx -->
 não é marcador"
 check CA7 "marcador sem espaço nem --> depois da etapa é do usuário" "4" "$(field linha)"
 
+# --- #205: marcadores sem diferenciar maiúsculas ---
+# kind_of <corpo>: tipo e etapa que o leitor dá ao comentário.
+kind_of() {
+  python3 -I -c '
+import runpy, sys
+print(*runpy.run_path(sys.argv[1])["kind"](sys.argv[2]))
+' "$script" "$1" 2>&1
+}
+for stage in triagem spec implementar revisar backlog lancamento acao; do
+  check '#205' "marcador em maiúsculas vale como o em minúsculas: $stage" "agente $stage" \
+    "$(kind_of "<!-- FABRICA:${stage^^} -->")"
+done
+check '#205' "marcador de ação com atributo e caixa mista" "agente acao" "$(kind_of '<!-- Fabrica:Acao etapa=revisar -->')"
+for ignored in 'LICAO gatilho=rodadas' 'Dispatcher' 'BACKLOG PAR-RECUSADO item=3'; do
+  check '#205' "ignorado em qualquer caixa: $ignored" "ignorado None" "$(kind_of "<!-- FABRICA:$ignored -->")"
+  pkg agente,precisa-info - '[]' "0|$TRI" "60|<!-- FABRICA:$ignored -->
+texto"
+  check '#205' "ignorado em qualquer caixa não é resposta nova: $ignored" "3" "$(field linha)"
+  pkg agente,precisa-info - '[]' "0|$TRI" "30|$USER" "60|<!-- FABRICA:$ignored -->"
+  check '#205' "ignorado em qualquer caixa não é comentário do agente: $ignored" "linha=4 etapa=triagem" \
+    "$(state | cut -d' ' -f1,2)"
+done
+pkg agente,spec-pronta - '[]' "0|$TRI" "60|${SPEC/fabrica:spec/FABRICA:SPEC}"
+check '#205' "spec em maiúsculas não é resposta do usuário" "7" "$(field linha)"
+check '#205' "spec em maiúsculas dá a branch da issue" "feat/7-coisa" "$(branch)"
+pkg agente,precisa-info - '[]' "0|$TRI" "60|<!-- fabrica:Spec -->" "120|$USER"
+check '#205' "etapa capturada sai em minúsculas" "linha=4 etapa=spec" "$(state | cut -d' ' -f1,2)"
+check '#205' "espaços antes do marcador em maiúsculas: do usuário" "usuario None" "$(kind_of '  <!-- FABRICA:spec -->')"
+check '#205' "letra fora do ASCII não casa com o marcador" "usuario None" "$(kind_of '<!-- fabrica:ſpec -->')"
+
 # --- CA8: regras do PR ---
 REV="<!-- fabrica:revisar -->\\n**Pedidos lidos até:** $H:40:00Z\\nPR pronto"
 REV_OLD="<!-- fabrica:revisar -->\\nPR pronto"
@@ -207,8 +240,6 @@ check CA9 "pr-fechado-sem-merge, sem etapa" "etapa=- quem=usuario inconsistencia
 pkg agente,spec-aprovada - "$(pr MERGED false "$OK" '' '[]' '[]' "\"$H:50:00Z\"")" "0|$TRI" "60|$SPEC"
 check CA9 "PR mergeado com a issue aberta não é inconsistência nem etapa" "linha=- etapa=- quem=usuario inconsistencia=-" "$(state)"
 
-issue_only() { python3 -I -c 'import json, sys; print(json.dumps(json.load(open(sys.argv[1]))["issue"]))' "$tmp/p.json" > "$tmp/i.json"; }
-branch() { issue_only; python3 "$script" branch "$tmp/i.json"; }
 SPEC2='<!-- fabrica:spec -->
 **Branch:** `feat/7-coisa-v2`'
 pkg agente - '[]' "0|$TRI" "60|$SPEC" "120|$SPEC2"
