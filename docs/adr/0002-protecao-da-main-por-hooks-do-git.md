@@ -42,8 +42,10 @@ Ele também bloqueia `commit`/`push` enquanto os hooks não estiverem instalados
 - Na Fase 1 (GitHub Actions), o runner também precisará instalar os hooks antes de rodar os agentes.
 - No job do dispatcher, o push para a `main` passou a ser barrado também pelo proxy, qualquer que seja a configuração do git do agente, e o PreToolUse passou a recusar Edit e Write nos arquivos de configuração do git: veja a [ADR 0021](0021-push-na-main-barrado-pelo-proxy-do-job.md).
 - **Emenda (#246, [SPEC-246](../../specs/SPEC-246.md)):** a pasta é compartilhada por todas as distribuições da fábrica na máquina (Claude Code, Antigravity, OpenCode e Codex, em versões diferentes). A atualização passa a seguir três regras:
-  - é monotônica: uma execução automática nunca instala uma versão menor que a comprovada, e o rollback só acontece com `--allow-downgrade <versão>`, confirmado pelo usuário;
-  - preserva a proteção: os arquivos são preparados num temporário dentro da pasta e trocados por `rename`, o `fabrica-hook` primeiro, sem remover antes nenhuma entrada de proteção, com um diário que permite retomar uma publicação interrompida;
-  - é coordenada por uma trava com identidade do dono, que nunca é quebrada só por idade.
+  - é monotônica: uma execução automática nunca instala uma versão menor que a comprovada, e o rollback só acontece com `--allow-downgrade <versão>`, confirmado pelo usuário. Um rollback interrompido nunca é retomado sozinho e exige nova confirmação;
+  - preserva as entradas durante a publicação: os arquivos são preparados num temporário dentro da pasta e trocados por `rename`, o `fabrica-hook` primeiro, sem remover antes nenhuma entrada de proteção, com um diário que permite retomar uma atualização interrompida;
+  - é coordenada por uma trava com identidade do dono, que nunca é quebrada só por idade nem em caso de dúvida.
+
+  Depois de cada publicação valem as regras do `fabrica-hook` da versão instalada, e só elas. Por isso, um rollback para uma versão anterior pode reduzir a proteção de propósito, e é esse o motivo da confirmação humana. Uma instalação sem o manifesto de conteúdo, de um script anterior, não conta como comprovadamente íntegra.
 
   O caminho da pasta e o `core.hooksPath` não mudam. Distribuições com o script anterior não respeitam essas regras até serem atualizadas.
