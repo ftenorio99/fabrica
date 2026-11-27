@@ -87,6 +87,16 @@ Passe ao revisor:
 
 O revisor devolve, para cada critério de aceite, se está atendido e com qual evidência, e uma lista de achados com severidade `bloqueante`, `importante` ou `sugestão`.
 
+**Revisão parcial:** o revisor tem um teto de turnos (`maxTurns` em [../../agents/revisor.md](../../agents/revisor.md)). O limite é inclusivo: no último turno ele ainda age, e a saída que o Claude Code devolve depois dele vem marcada como parcial.
+
+| Resultado do revisor | O que fazer |
+|---|---|
+| Completo | Siga para o passo 4. |
+| Marcado como parcial (atingiu o teto), 1ª vez nesta rodada | Não é aprovação nem lista de achados. Chame o revisor de novo, uma vez, numa chamada nova (não retome o mesmo subagente), com as mesmas entradas e a lista dos CAs que a saída parcial já cobriu com evidência. Essa chamada não conta como rodada de correção. |
+| Parcial de novo | Abra ou atualize o PR como rascunho (`gh pr create --draft --body-file <arquivo>` ou, com PR, `gh pr ready --undo`), com o corpo do passo 5 e "revisão incompleta: o revisor atingiu o teto de turnos" nos achados pendentes, sem `pronto-revisao`. Aplique `escalonado` e registre uma lição com o gatilho `escalonado` ([../licao/formato.md](../licao/formato.md)). Pare. |
+
+Um CA atendido na saída parcial só vale como evidência se aparecer de novo na saída completa: não junte as duas saídas.
+
 **Antigravity (`browser`):** quando `harness.sh detect` retornar `antigravity`, o projeto tiver interface web local e o subagente built-in `browser` estiver disponível, a etapa (ou o revisor) pode acioná-lo via `invoke_subagent(TypeName="browser", ...)` (ou `/browser`) para verificações visuais ou E2E complementares. Se `browser` estiver indisponível (ambiente headless/VM) ou falhar com assinatura de ambiente, siga normalmente sem bloquear a revisão.
 
 ## 4. Corrigir

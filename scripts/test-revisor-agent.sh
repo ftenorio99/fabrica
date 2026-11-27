@@ -41,8 +41,13 @@ field() { frontmatter "$1" | grep -m 1 "^$2: "; }
 
 # --- CA1: frontmatter de agents/revisor.md igual ao da main; agy-agents/revisor.md com o mesmo corpo ---
 if git -C "$root" show origin/main:agents/revisor.md > "$tmp/revisor-main.md" 2>/dev/null; then
-  check CA1 "frontmatter de agents/revisor.md igual ao da origin/main" sim \
-    "$(yesno diff -q <(frontmatter "$tmp/revisor-main.md") <(frontmatter "$agent"))"
+  # SPEC-98: o único campo novo é o maxTurns. Tirado das duas versões, para o
+  # teste seguir verde na main depois do merge.
+  check CA1 "frontmatter de agents/revisor.md igual ao da origin/main, fora o maxTurns" sim \
+    "$(yesno diff -q <(frontmatter "$tmp/revisor-main.md" | grep -v '^maxTurns:') \
+      <(frontmatter "$agent" | grep -v '^maxTurns:'))"
+  check CA1 "agents/revisor.md com maxTurns: 80" "maxTurns: 80" "$(field "$agent" maxTurns)"
+  check CA1 "agy-agents/revisor.md sem maxTurns" "" "$(field "$agy_agent" maxTurns)"
 else
   skip CA1 "frontmatter de agents/revisor.md igual ao da origin/main" "origin/main ausente"
 fi
