@@ -2,6 +2,10 @@
 name: status
 description: Mostra o quadro do fluxo da fábrica em todos os repositórios do usuário (ou em um só) - o que espera aprovação ou revisão do usuário, as ações externas pendentes (checklist na issue), o que espera agente e com qual comando, o avanço por marco, a próxima issue de backlog a puxar, as lições registradas desde o último marco e alertas como limite de trabalho em andamento, CI vermelho e itens parados. Só lê, não altera nada. Use quando o usuário perguntar o que falta, o que fazer agora ou como estão as issues.
 argument-hint: "[repositório]"
+context: fork
+agent: general-purpose
+background: false
+effort: medium
 ---
 
 # Quadro da fábrica
@@ -115,3 +119,5 @@ Uma linha por repositório sem nada no fluxo: a próxima issue a puxar, ou o blo
 ```
 
 Termine com uma linha de recomendação: o que fazer primeiro, priorizando o que destrava agentes (aprovar spec, responder perguntas) antes do que só fecha ciclos (merge). Sem nada no fluxo nem no backlog em nenhum repositório, diga isso e indique `/fabrica:prd` para um projeto novo e `/fabrica:backlog` para um PRD que ainda não tem backlog.
+
+**Resposta final:** esta skill roda num subagente, e só a última mensagem dele chega ao usuário. Termine com o quadro inteiro, no formato acima, seguido da linha de recomendação: não resuma, não omita seções e não diga "veja acima".
