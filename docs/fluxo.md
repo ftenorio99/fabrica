@@ -57,6 +57,8 @@ No OpenCode, a etapa roda no modelo da sessão: a tabela não é usada, a triage
 
 As etapas que só leem ou rodam scripts (`/fabrica:status`, `/fabrica:metricas` e `/fabrica:setup`) declaram esforço médio no frontmatter da skill; as etapas da tabela acima não declaram esforço nem modelo no frontmatter, para não passar por cima dela.
 
+Antes de liberar o PR, a revisão confere se a `main` avançou em arquivos que ele toca ou se há conflito e, nesses casos, atualiza a branch e espera o CI de novo ([`revisar`](../skills/revisar/SKILL.md#conferir-a-base)).
+
 O revisor tem um teto de turnos. Uma revisão parcial, que parou no teto, não aprova nada: a revisão roda o revisor de novo uma vez e, se ele parar no teto outra vez, deixa o PR em rascunho e escala ([`revisar`](../skills/revisar/SKILL.md)).
 
 Quando algo dá errado, o agente para, comenta na issue e aplica `escalonado`. Veja o guia [Issue escalonada](guias/issue-escalonada.md).
