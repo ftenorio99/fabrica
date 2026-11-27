@@ -13,6 +13,13 @@ Num PR de `fix`, a evidência dos critérios que descrevem o bug mostra a reprod
 
 O `/fabrica:status` já resume esses pontos para cada PR que espera você.
 
+## Antes do merge
+Outro PR pode ter entrado na `main` depois da revisão, e o CI verde vale para a base antiga. Confira no `/fabrica:status` se o PR tem o alerta de `main` avançada ou de conflito:
+- **Com o alerta:** rode `/fabrica:revisar <nº>` no clone. A revisão atualiza a branch com a `main`, verifica de novo e devolve o PR com `pronto-revisao`, ou escala se não conseguir.
+- **Sem o alerta:** siga para a decisão. Um PR atrás só em arquivos que ele não toca pode ser mergeado.
+
+A conferência é por arquivo: ela não pega um conflito de comportamento entre arquivos diferentes.
+
 ## Decidir
 - **Aprovar:** faça o merge com squash (`gh pr merge <nº> --squash --delete-branch`), ou peça ao Claude, que confirma antes de fazer. A issue fecha sozinha pelo `Fixes #<nº>`.
 - **Pedir mudanças:** comente no PR, na conversa ou nas linhas do diff, e rode `/fabrica:revisar <nº>` no clone. Os agentes usam a sua conta, então o PR é seu, e o GitHub não deixa o autor pedir mudanças com uma review; por isso o caminho é o comentário. O `/fabrica:status` mostra a issue como "Ajustes do PR pedidos" até a revisão responder. A revisão corrige o que cabe na spec, responde no PR com o que fez em cada pedido e devolve o PR para você. Só contam os comentários feitos depois do início da última revisão; os que chegam enquanto ela roda são citados na resposta e ficam para a próxima.
