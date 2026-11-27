@@ -9,6 +9,8 @@ Leia as seções do corpo do PR nesta ordem, que não é a ordem em que elas apa
 3. **Revisão automática:** os achados que foram corrigidos e as **sugestões não aplicadas**, que são para você decidir.
 4. **Critérios de aceite:** a evidência de cada critério. O detalhe, com o arquivo e a linha ou o teste e o comando de cada um e o que o revisor não conseguiu provar ("Não encontrado"), está na seção "Evidência por critério" do último comentário da revisão no PR. "Implementado" sem teste ou comando não conta. Um CA com ⏳ foi marcado na spec como verificação depois do merge, com o motivo: ele não bloqueia o PR, e você o confere depois do merge, como diz "Para a sua revisão".
 
+Num PR de `fix`, a evidência dos critérios que descrevem o bug mostra a reprodução antes e depois da correção ([prova do bug](../fluxo.md#prova-do-bug)). "Pela anotação do implementar, não reproduzida" quer dizer que o revisor não repetiu a falha por conta própria. Se o bug não pôde ser reproduzido, o motivo está em "Para a sua revisão": confira se ele convence antes do merge.
+
 O `/fabrica:status` já resume esses pontos para cada PR que espera você.
 
 ## Antes do merge

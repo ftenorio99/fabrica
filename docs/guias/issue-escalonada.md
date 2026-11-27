@@ -8,6 +8,7 @@ Um agente parou e aplicou a label `escalonado`. O `/fabrica:status` mostra a iss
 | A implementação encontrou um desvio relevante da spec: mudança de comportamento, de critério ou de escopo | Comentário `<!-- fabrica:implementar -->` na issue, com as opções e uma recomendação |
 | `make lint` ou `make test` falharam depois de duas rodadas de correção | Comentário `<!-- fabrica:implementar -->` com o comando, o erro e o que já foi tentado |
 | A revisão terminou com achados bloqueantes depois de duas rodadas de correção | PR em rascunho com os achados pendentes |
+| A espera do CI esgotou o limite de 60 minutos, ou a API do Actions não respondeu | Comentário `<!-- fabrica:revisar -->` na issue, com o resultado e a última linha de estado; o PR fica em rascunho |
 | O ambiente não rodou a verificação de integração (por exemplo, o Docker estava desligado) e o projeto não tem CI em `pull_request` ([ADR 0011](../adr/0011-verificacao-de-integracao-na-etapa.md)) | Comentário `<!-- fabrica:revisar -->` na issue, com os comandos que você roda com `!` e o que conferir no ambiente |
 | Verificação manual pedida a você: um critério de aceite pede uma verificação que depende de você (outra sessão, conta externa, passo interativo), ou que o agente tentou e o ambiente não rodou | Comentário `<!-- fabrica:revisar -->` na issue, com o critério, o comando que você roda com `!` e o que conferir; o PR fica em rascunho |
 | Um pedido seu no PR mudaria um critério de aceite ou entraria no "Fora de escopo" da spec | Comentário `<!-- fabrica:revisar -->` no PR, com o que foi feito em cada pedido |
@@ -21,6 +22,7 @@ Um agente parou e aplicou a label `escalonado`. O `/fabrica:status` mostra a iss
 3. **Retome a etapa que parou:**
    - **Se a implementação parou:** rode `/fabrica:implementar <nº>`. Ela lê a sua resposta, remove `escalonado` e continua dos commits que já existem.
    - **Se a revisão parou por achados pendentes:** rode `/fabrica:revisar <nº>`.
+   - **Se a revisão parou na espera do CI:** confira o run no GitHub (ou a permissão do token para ler o Actions) e rode `/fabrica:revisar <nº>`, que começa uma espera nova.
    - **Se a revisão pediu a verificação de integração:** rode os comandos do comentário com `!`, responda na issue com o resultado e rode `/fabrica:revisar <nº>`. Ele usa a sua resposta como verificação manual.
    - **Se a revisão pediu uma verificação manual:** rode o comando do comentário com `!`, responda na issue com o comando e a saída e rode `/fabrica:revisar <nº>`, sem tirar o `escalonado`. A revisão usa a sua resposta como evidência do critério; se a saída mostra falha, a correção volta para o `/fabrica:implementar`.
    - **Se a revisão parou porque um pedido seu no PR muda a spec:** remova `spec-aprovada`, rode `/fabrica:spec <nº> <ajuste>`, aprove de novo e retome com `/fabrica:implementar <nº>`.
