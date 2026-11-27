@@ -52,12 +52,48 @@ result() {
 # nenhuma variável de teste.
 fake="$tmp/fake"
 mkdir -p "$fake/bin" "$fake/state"
-export FAKE_STATE="$fake/state" FAKE_DEST="$dest" FAKE_PROT="$PROT"
+export FAKE_STATE="$fake/state" FAKE_DEST="$dest" FAKE_PROT="$PROT" FAKE_HOOKS="$fake/hooks.sh"
 export REAL_MV="$(command -v mv)" REAL_CP="$(command -v cp)" REAL_RM="$(command -v rm)" REAL_LN="$(command -v ln)"
 
+# Comum aos falsos de mv e rm, pelo caminho de origem do mv ou pelo operando
+# do rm (padrão glob):
+#   FAKE_SLEEP_SRC + FAKE_SLEEP_SECS: dorme antes de agir;
+#   FAKE_KILL_SRC: mata o script com KILL e sai sem agir;
+#   FAKE_PAUSE_SRC: avisa em pause.on e espera pause.go (age) ou pause.abort
+#     (sai sem agir);
+#   FAKE_ORPHAN_SRC: mata o script com KILL e fica como filho órfão, sem
+#     stdio, até orphan.go; então age e grava o código em orphan.done.
+cat >"$fake/hooks.sh" <<'EOF'
+fake_hooks() { # <caminho> <comando real> <argumentos...>
+  local path=$1 real=$2 i
+  shift 2
+  if [[ -n ${FAKE_SLEEP_SRC-} && $path == $FAKE_SLEEP_SRC ]]; then sleep "${FAKE_SLEEP_SECS:-1}"; fi
+  if [[ -n ${FAKE_KILL_SRC-} && $path == $FAKE_KILL_SRC ]]; then kill -KILL "$PPID"; exit 1; fi
+  if [[ -n ${FAKE_PAUSE_SRC-} && $path == $FAKE_PAUSE_SRC && ! -e $FAKE_STATE/pause.on ]]; then
+    : >"$FAKE_STATE/pause.on"
+    for i in $(seq 1 600); do
+      [[ -e $FAKE_STATE/pause.go ]] && break
+      [[ -e $FAKE_STATE/pause.abort ]] && exit 1
+      sleep 0.05
+    done
+  fi
+  if [[ -n ${FAKE_ORPHAN_SRC-} && $path == $FAKE_ORPHAN_SRC && ! -e $FAKE_STATE/orphan.armed ]]; then
+    : >"$FAKE_STATE/orphan.armed"
+    exec </dev/null >/dev/null 2>&1
+    kill -KILL "$PPID"
+    for i in $(seq 1 600); do [[ -e $FAKE_STATE/orphan.go ]] && break; sleep 0.05; done
+    "$real" "$@"
+    echo $? >"$FAKE_STATE/orphan.done"
+    exit 0
+  fi
+}
+EOF
 cat >"$fake/bin/mv" <<'EOF'
 #!/usr/bin/env bash
 case ${1-} in --version | --help) exec "$REAL_MV" "$@" ;; esac
+. "$FAKE_HOOKS"
+src=""
+for a in "$@"; do case $a in -*) ;; *) src=$a; break ;; esac; done
 n=$(($(cat "$FAKE_STATE/mv.count" 2>/dev/null || echo 0) + 1))
 echo "$n" >"$FAKE_STATE/mv.count"
 st=ok
@@ -76,6 +112,7 @@ if [[ -n ${FAKE_MV_KILL_AT-} && $FAKE_MV_KILL_AT == "$n" ]]; then
   kill "-${FAKE_MV_SIG:-KILL}" "$PPID"
   exit 1
 fi
+fake_hooks "$src" "$REAL_MV" "$@"
 exec "$REAL_MV" "$@"
 EOF
 cat >"$fake/bin/cp" <<'EOF'
@@ -95,7 +132,8 @@ exec "$REAL_CP" "$@"
 EOF
 cat >"$fake/bin/rm" <<'EOF'
 #!/usr/bin/env bash
-if [[ -n ${FAKE_RM_SLEEP-} && ${*: -1} == */.publicando ]]; then sleep "$FAKE_RM_SLEEP"; fi
+. "$FAKE_HOOKS"
+fake_hooks "${*: -1}" "$REAL_RM" "$@"
 exec "$REAL_RM" "$@"
 EOF
 cat >"$fake/bin/ln" <<'EOF'
@@ -115,7 +153,7 @@ done
 fake_reset() {
   rm -rf "$fake/state"
   mkdir -p "$fake/state"
-  unset FAKE_MV_KILL_AT FAKE_MV_SIG FAKE_MV_SLEEP FAKE_MV_STEAL_AT FAKE_CP_KILL_AT FAKE_CP_SIG FAKE_CP_SLEEP FAKE_CP_STEAL_AT FAKE_RM_SLEEP FAKE_LN_SLEEP
+  unset FAKE_MV_KILL_AT FAKE_MV_SIG FAKE_MV_SLEEP FAKE_MV_STEAL_AT FAKE_CP_KILL_AT FAKE_CP_SIG FAKE_CP_SLEEP FAKE_CP_STEAL_AT FAKE_LN_SLEEP FAKE_SLEEP_SRC FAKE_SLEEP_SECS FAKE_PAUSE_SRC FAKE_ORPHAN_SRC FAKE_KILL_SRC
 }
 
 # ---------------------------------------------------------------------------
@@ -158,8 +196,14 @@ make_dist da 1.0.0 1.0.0 -post-merge -pre-rebase
 make_dist db 2.0.0 2.0.0 -update
 
 # Distribuição com o script da base (de4c39a), para gerar instalações legadas.
-legacy_script="$tmp/legacy-setup-githooks.sh"
-git -C "$repo" show de4c39a:scripts/setup-githooks.sh >"$legacy_script" 2>/dev/null
+# A cópia fica versionada em scripts/fixtures/ (o checkout raso do CI não tem
+# o commit); o sha256 confere que ela é a original.
+legacy_script="$repo/scripts/fixtures/setup-githooks-de4c39a.sh"
+legacy_sha=611640e299b1fc2f57cba408dc81cb0430b2e5f020aaf85722066c70b433841a
+if [[ ! -s $legacy_script || $(sha256sum <"$legacy_script" | cut -c1-64) != "$legacy_sha" ]]; then
+  echo "test-setup-githooks: $legacy_script falta ou não é a cópia do de4c39a (veja scripts/fixtures/README.md)." >&2
+  exit 1
+fi
 make_legacy() { # <nome> <versão> [marca]
   make_dist "$1" "$2" "${3:-$2}"
   cp "$legacy_script" "$tmp/dist/$1/scripts/setup-githooks.sh"
@@ -281,10 +325,13 @@ if ((unit)); then
   resume_possible() { ((RES)); }
   cur_get() { CK=valid CH=$([[ $FH == 1 ]] && echo aaa || echo bbb); }
   list_hash() { LH=aaa; }
-  # row <ST> <S> <I> <EQ> <modo> <para> <RES> <FH> <ACTION> <OUT>
+  # row <ST> <S> <I> <EQ> <modo> <para> <RES> <FH> <ACTION> <OUT>. Com modo,
+  # há um diário de cabeçalho válido (na danificada, só de evidência).
   row() {
     ST=$1 S=$2 I=$3 EQ=$4 J_MODO=$5 J_PARA=$6 RES=$7 FH=$8
     [[ $I == - ]] && I=""
+    J_FMT=1
+    [[ $J_MODO == - ]] && J_FMT=0 J_MODO=""
     decide
     [[ "$ACTION|$OUT" == "$9|${10}" ]]
     result $? DEC "$1 S=$2 I=$3 eq=$4 modo=$5 T=$6 res=$7 fh=$8 → $9 | ${10} (veio $ACTION | $OUT)"
@@ -298,8 +345,13 @@ if ((unit)); then
   row legada 1.0.0 1.0.0 1 - - 0 0 registrar ok
   row legada 1.0.0 1.0.0 0 - - 0 0 nada "divergente 1.0.0 incerta"
   row legada 1.0.0 2.0.0 0 - - 0 0 nada "mais-novo 2.0.0 incerta"
-  row interrompida 3.0.0 2.0.0 0 rollback 1.0.0 1 1 nada "falha rollback-interrompido"
-  row interrompida 3.0.0 2.0.0 0 substituicao 1.0.0 1 1 nada "falha rollback-interrompido"
+  # Rollback: só S >= I (= de) recupera, pelo caminho normal; nunca conclui
+  # pelos bytes alvo. Substituição: nenhuma execução automática continua.
+  row interrompida 3.0.0 2.0.0 0 rollback 1.0.0 1 1 publicar "reparado 3.0.0"
+  row interrompida 2.0.0 2.0.0 0 rollback 1.0.0 1 1 publicar "reparado 2.0.0"
+  row interrompida 1.0.0 2.0.0 0 rollback 1.0.0 1 1 nada "falha rollback-interrompido"
+  row interrompida 3.0.0 2.0.0 0 substituicao 2.0.0 1 1 nada "falha rollback-interrompido"
+  row interrompida 2.0.0 2.0.0 0 substituicao 2.0.0 1 1 nada "falha rollback-interrompido"
   row interrompida 2.0.0 2.0.0 0 atualizacao 2.0.0 0 0 publicar "reparado 2.0.0"
   row interrompida 3.0.0 2.0.0 0 reparo 2.0.0 0 0 publicar "reparado 3.0.0"
   row interrompida 1.0.0 2.0.0 0 atualizacao 2.0.0 1 0 concluir "reparado 2.0.0"
@@ -311,6 +363,12 @@ if ((unit)); then
   row danificada 1.0.0 2.0.0 0 - - 0 0 minima "falha danificada"
   row danificada 1.0.0 - 0 - - 0 1 publicar "reparado 1.0.0"
   row danificada 1.0.0 - 0 - - 0 0 minima "falha versao-desconhecida"
+  # Diário só de evidência: I já inclui de e para.
+  row danificada 1.0.0 2.0.0 0 reparo 2.0.0 0 1 minima "falha danificada"
+  row danificada 2.0.0 2.0.0 0 atualizacao 2.0.0 0 1 publicar "reparado 2.0.0"
+  row danificada 1.0.0 2.0.0 0 rollback 1.0.0 0 1 nada "falha rollback-interrompido"
+  row danificada 2.0.0 2.0.0 0 rollback 1.0.0 0 1 publicar "reparado 2.0.0"
+  row danificada 3.0.0 1.0.0 0 substituicao 1.0.0 0 1 nada "falha rollback-interrompido"
   unset -f equal_origin resume_possible cur_get list_hash
   source "$target"
   set +e
@@ -480,36 +538,42 @@ run d2x --check
 [[ $OUT == "divergente 2.0.0" && $RC == 0 && $(snap) == "$before" ]]
 result $? CA6 "íntegra 2.0.0 e origem 2.0.0 com outro fabrica-hook: divergente, nada escrito (veio '$OUT')"
 
-# CA7: execuções simultâneas terminam na versão maior.
-fresh d1
-rm -f "$tmp"/ca7.*
-for i in $(seq 1 20); do
-  bash "$(script_of d1)" --check >"$tmp/ca7.1.$i" 2>/dev/null &
-  bash "$(script_of d2)" --check >"$tmp/ca7.2.$i" 2>/dev/null &
+# CA7: execuções simultâneas terminam na versão maior. CA7_RODADAS repete o
+# caso (padrão 1).
+for round in $(seq 1 "${CA7_RODADAS:-1}"); do
+  fresh d1
+  rm -f "$tmp"/ca7.*
+  for i in $(seq 1 20); do
+    bash "$(script_of d1)" --check >"$tmp/ca7.1.$i" 2>/dev/null &
+    bash "$(script_of d2)" --check >"$tmp/ca7.2.$i" 2>/dev/null &
+  done
+  wait
+  low_updates=$(cat "$tmp"/ca7.1.* | grep -c '^atualizado' || true)
+  high_updates=$(cat "$tmp"/ca7.2.* | grep -c '^atualizado 2.0.0' || true)
+  [[ $low_updates == 0 && $high_updates == 1 ]] && is_integra_at 2.0.0 && hook_is d2 && no_internal
+  result $? CA7 "rodada $round: 20 pares simultâneos 1.0.0/2.0.0: íntegra em 2.0.0, uma atualização, nenhuma para a menor (menor=$low_updates maior=$high_updates)"
 done
-wait
-low_updates=$(cat "$tmp"/ca7.1.* | grep -c '^atualizado' || true)
-high_updates=$(cat "$tmp"/ca7.2.* | grep -c '^atualizado 2.0.0' || true)
-[[ $low_updates == 0 && $high_updates == 1 ]] && is_integra_at 2.0.0 && hook_is d2 && no_internal
-result $? CA7 "20 pares simultâneos 1.0.0/2.0.0: íntegra em 2.0.0, uma atualização, nenhuma para a menor (menor=$low_updates maior=$high_updates)"
 
 # CA8: instalação legada, gerada pelo script da base. O "arquivo válido" da
 # spec tem modo 0755: o script da base só gera isso com umask 022. Com umask
 # 002 ele gera 0775, e a pasta conta como danificada (caso no fim do CA8).
 legacy() { reset; local m; m=$(umask); umask 022; run "$1"; umask "$m"; }
 legacy l1
-run d2 --check
-[[ $OUT == "atualizado 2.0.0" ]] && is_integra_at 2.0.0
-result $? CA8 "legada 1.0.0 e origem 2.0.0: atualizado 2.0.0 (veio '$OUT')"
+fake_reset
+runfake d2 --check
+[[ $OUT == "atualizado 2.0.0" ]] && is_integra_at 2.0.0 && mv_log_ok
+result $? CA8 "legada 1.0.0 e origem 2.0.0: atualizado 2.0.0, proteção presente em cada rename (veio '$OUT')"
 legacy l1
-inodes=$(stat -c '%n %i' "$dest"/[a-z]*)
-run d1 --check
-[[ $OUT == ok && -f $dest/CONTENTS.sha256 && $(stat -c '%n %i' "$dest"/[a-z]*) == "$inodes" ]] && is_integra_at 1.0.0
+inodes=$(stat -c '%n %i' "$dest"/[a-z]* "$dest/VERSION")
+fake_reset
+runfake d1 --check
+[[ $OUT == ok && -f $dest/CONTENTS.sha256 && $(stat -c '%n %i' "$dest"/[a-z]* "$dest/VERSION") == "$inodes" ]] && is_integra_at 1.0.0 &&
+  ! grep -q -e '/\.publicando' -e '/VERSION$' "$fake/state/mv.log"
 r1=$?
 before=$(snap)
 run d1 --check
 [[ $r1 == 0 && $OUT == ok && $(snap) == "$before" ]]
-result $? CA8 "legada 1.0.0 com os mesmos bytes: grava só o CONTENTS (inodes iguais), ok, e a seguinte não escreve"
+result $? CA8 "legada 1.0.0 com os mesmos bytes: grava só o CONTENTS (inodes das entradas e do VERSION iguais, sem diário), ok, e a seguinte não escreve"
 legacy l1
 before=$(snap)
 run d1x --check
@@ -564,6 +628,25 @@ r1=$RC
 run d1 --check --allow-downgrade 1.0.0
 [[ $r1 == 2 && $RC == 2 && $(snap) == "$before" ]]
 result $? CA9 "versão diferente da origem ou no --check: saída 2, nada escrito (rc=$r1 e $RC)"
+allow_refused() { # <descrição> <dist> <versão>
+  local hp before
+  hp=$(git config --global --get core.hooksPath || echo -)
+  before=$(snap)
+  run "$2" --allow-downgrade "$3"
+  [[ $RC != 0 && -z $OUT && $ERR == *"--allow-downgrade"* && $ERR != *instalados* && $ERR != *revertido* &&
+    $(snap) == "$before" && $(git config --global --get core.hooksPath || echo -) == "$hp" ]]
+  result $? CA9 "$1: saída diferente de 0, diagnóstico e nada alterado (rc=$RC, '$ERR')"
+}
+fresh d2
+allow_refused "--allow-downgrade na mesma versão com conteúdo divergente" d2x 2.0.0
+allow_refused "--allow-downgrade na mesma versão, íntegra e igual" d2 2.0.0
+allow_refused "--allow-downgrade com origem maior" d3 3.0.0
+fresh d2
+rm "$dest/pre-push"
+allow_refused "--allow-downgrade em pasta danificada da mesma versão" d2 2.0.0
+reset
+mkdir -p "$dest"
+allow_refused "--allow-downgrade sem instalação" d1 1.0.0
 
 # CA10: comportamento real do git depois de cada publicação.
 repos() {
@@ -643,6 +726,7 @@ fresh da
 runfake db --check
 total_mv=$(cat "$fake/state/mv.count")
 names_da=$(ls "$tmp/dist/da/githooks" | sort)
+obsolete_da=$(comm -23 <(echo "$names_da") <(ls "$tmp/dist/db/githooks" | sort))
 ca13=0 ca14=0 detail=""
 for k in $(seq 1 "$total_mv"); do
   for next in db da; do
@@ -650,14 +734,15 @@ for k in $(seq 1 "$total_mv"); do
     FAKE_MV_KILL_AT=$k runfake db --check
     # Conjunto de proteção, fabrica-hook de uma das duas versões, nenhuma
     # entrada anterior removida.
+    missing=$(comm -23 <(echo "$names_da") <(ls "$dest" | sort))
     if ! prot_ok || ! { hook_is da || hook_is db; } ||
-      [[ -n $(comm -23 <(echo "$names_da") <(ls "$dest" | sort)) ]]; then
+      { [[ -n $missing ]] && { [[ -n $(comm -23 <(echo "$missing") <(echo "$obsolete_da")) ]] || ! hook_is db; }; }; then
       ca13=1 detail+=" k=$k"
     fi
     run "$next" --check
     v=$(cat "$dest/VERSION" 2>/dev/null)
     case $next:$OUT in
-      db:"reparado 2.0.0" | db:"atualizado 2.0.0") is_integra_at 2.0.0 || { ca14=1; detail+=" k=$k/$next:$OUT"; } ;;
+      db:"reparado 2.0.0" | db:"atualizado 2.0.0" | db:ok) is_integra_at 2.0.0 || { ca14=1; detail+=" k=$k/$next:$OUT"; } ;;
       da:ok | da:"mais-novo 2.0.0") ;;
       da:"reparado 2.0.0") is_integra_at 2.0.0 || { ca14=1; detail+=" k=$k/$next:$OUT"; } ;;
       da:"falha interrompida") [[ $v == 1.0.0 || $v == 2.0.0 ]] && prot_ok || { ca14=1; detail+=" k=$k/$next:$OUT"; } ;;
@@ -667,7 +752,7 @@ for k in $(seq 1 "$total_mv"); do
     [[ $v == 1.0.0 && $OUT == "reparado 2.0.0" ]] && { ca14=1; detail+=" k=$k/$next:v=$v"; }
   done
 done
-result $ca13 CA13 "interrupção (KILL) em cada um dos $total_mv renames: proteção presente, fabrica-hook de uma das versões, nada removido$detail"
+result $ca13 CA13 "interrupção (KILL) em cada um dos $total_mv renames: proteção presente, fabrica-hook de uma das versões, nada removido além das obsoletas depois do passo 9$detail"
 result $ca14 CA14 "recuperação depois de cada interrupção, com origem maior e menor$detail"
 
 fresh da
@@ -677,14 +762,23 @@ run da --check
 result $? CA14 "diário gravado sem nada trocado: diário apagado e decisão refeita (veio '$OUT')"
 fresh d2
 FAKE_MV_KILL_AT=3 runfake d1 --allow-downgrade 1.0.0
-run d3 --check
-r1=$OUT
+before=$(content)
 run d1 --check
-[[ $r1 == "falha rollback-interrompido" && $OUT == "falha rollback-interrompido" ]] && prot_ok
-result $? CA14 "rollback interrompido: execução automática, maior ou menor, não continua (veio '$r1' e '$OUT')"
+r1=$OUT
+run d0 --check
+[[ $r1 == "falha rollback-interrompido" && $OUT == "falha rollback-interrompido" && $(content) == "$before" ]] && prot_ok
+result $? CA14 "rollback interrompido: execução automática menor que o de não continua nem mexe nos hooks (veio '$r1' e '$OUT')"
 run d1 --allow-downgrade 1.0.0
 [[ $RC == 0 ]] && is_integra_at 1.0.0
 result $? CA14 "rollback interrompido: só um novo --allow-downgrade conclui"
+for nx in d2 d3; do
+  fresh d2
+  FAKE_MV_KILL_AT=3 runfake d1 --allow-downgrade 1.0.0
+  run "$nx" --check
+  v=$(sed -n 's/.*"version": "\(.*\)".*/\1/p' "$tmp/dist/$nx/.claude-plugin/plugin.json")
+  [[ $OUT == "reparado $v" ]] && is_integra_at "$v" && hook_is "$nx" && no_internal
+  result $? CA14 "rollback interrompido: origem $v (>= de) recupera pelo caminho normal, sem continuar o rollback (veio '$OUT')"
+done
 fresh d1
 FAKE_MV_KILL_AT=4 runfake d2 --check   # depois do fabrica-hook e do CONTENTS
 echo 3.0.0 >"$dest/VERSION"
@@ -697,7 +791,7 @@ phase_case() { # <fase> <sinal> <variáveis do falso>
   fresh d1
   local before
   before=$(content)
-  (export $3; PATH="$fake/bin:$PATH" timeout -s "$2" 1 bash "$(script_of d2)" --check >/dev/null 2>&1)
+  (set -f; export $3; set +f; PATH="$fake/bin:$PATH" timeout -s "$2" 1 bash "$(script_of d2)" --check >/dev/null 2>&1)
   sleep 0.3
   local ok=0
   prot_ok || ok=1
@@ -709,7 +803,7 @@ phase_case() { # <fase> <sinal> <variáveis do falso>
 for sig in TERM KILL; do
   phase_case preparação $sig FAKE_CP_SLEEP=2
   phase_case publicação $sig FAKE_MV_SLEEP=0.4
-  phase_case limpeza $sig FAKE_RM_SLEEP=3
+  phase_case limpeza $sig "FAKE_SLEEP_SRC=*/.publicando FAKE_SLEEP_SECS=3"
 done
 for sig in TERM KILL; do
   fresh d1
@@ -817,6 +911,178 @@ for i in 1 2 3 4 5; do
   [[ $n == 1 ]] && is_integra_at 2.0.0 && no_internal || bad=1
 done
 result $bad CA16 "duas quebras simultâneas da mesma trava morta: uma única aquisição que publica (5 rodadas)"
+
+# ---------------------------------------------------------------------------
+# Diário como evidência de versão (emenda do ciclo 2 da SPEC-246): com o
+# cabeçalho válido, "de" e "para" contam em I mesmo quando as entradas não
+# conferem; o diário fica até uma publicação concluída e íntegra.
+
+# Reparo interrompido a partir de uma pasta danificada (achado 1 do ciclo 1).
+fresh d1
+rm "$dest/pre-push"
+ln -s pre-commit "$dest/pre-push"
+FAKE_KILL_SRC='*/.stage.*/pre-push' runfake d2 --check
+ok=0
+hook_is d2 && [[ -L $dest/pre-push && $(cat "$dest/VERSION") == 1.0.0 && -f $dest/.publicando ]] || ok=1
+before=$(content)
+run d1 --check
+[[ $ok == 0 && $OUT == "falha danificada" && $(content) == "$before" && -f $dest/.publicando ]] && hook_is d2
+result $? CA14 "reparo 1.0.0→2.0.0 interrompido numa pasta danificada (symlink): a origem 1.0.0 não devolve o fabrica-hook menor e o diário fica (veio '$OUT')"
+run d0 --check
+[[ $OUT == "falha danificada" ]] && hook_is d2 && [[ -f $dest/.publicando ]]
+result $? CA14 "o mesmo estado com origem 0.9.0: falha danificada, nada trocado (veio '$OUT')"
+run d2 --check
+[[ $OUT == "reparado 2.0.0" && ! -e $dest/.publicando ]] && is_integra_at 2.0.0 && no_internal
+result $? CA14 "o mesmo estado com origem 2.0.0: reparado, íntegra e diário apagado só depois disso (veio '$OUT')"
+
+# Diário com cabeçalho válido e entradas incoerentes, escrito à mão.
+journal_atualizacao() { # <de> <para>
+  {
+    printf 'fabrica-githooks-journal v1\ndono 0123456789abcdef\nmodo atualizacao\nde %s\npara %s\n' "$1" "$2"
+    for p in $PROT; do printf 'alvo %064d %s\n' 0 "$p"; done
+  } >"$dest/.publicando"
+}
+fresh d1
+journal_atualizacao 1.0.0 2.0.0
+before=$(content)
+run d1 --check
+r1=$OUT
+run d1
+[[ $r1 == "falha danificada" && $RC == 1 && $(content) == "$before" && -f $dest/.publicando ]]
+result $? CA14 "diário 1.0.0→2.0.0 com entradas que não conferem: I = 2.0.0, a origem 1.0.0 não escreve no --check nem na instalação (veio '$r1', rc=$RC)"
+run d2 --check
+[[ $OUT == "reparado 2.0.0" && ! -e $dest/.publicando ]] && is_integra_at 2.0.0
+result $? CA14 "o mesmo diário com origem 2.0.0: reparado e diário apagado depois da publicação íntegra (veio '$OUT')"
+fresh d1
+printf 'fabrica-githooks-journal v1\nlixo\n' >"$dest/.publicando"
+run d1 --check
+[[ $OUT == ok && ! -e $dest/.publicando ]] && is_integra_at 1.0.0
+result $? CA14 "diário malformado não é evidência: apagado e a pasta íntegra segue ok (veio '$OUT')"
+
+# Rollback e substituição interrompidos com entradas que deixaram de conferir.
+fresh d2
+FAKE_MV_KILL_AT=3 runfake d1 --allow-downgrade 1.0.0
+echo '# mexido' >>"$dest/post-merge"
+before=$(content)
+run d1 --check
+[[ $OUT == "falha rollback-interrompido" && $(content) == "$before" ]] && grep -q '^modo rollback$' "$dest/.publicando"
+result $? CA14 "rollback com diário só de evidência: a origem menor responde falha rollback-interrompido, sem mexer nos hooks e com o modo preservado (veio '$OUT')"
+run d2 --check
+[[ $OUT == "reparado 2.0.0" ]] && is_integra_at 2.0.0 && hook_is d2
+result $? CA14 "o mesmo estado com origem 2.0.0 (= de): recupera pelo caminho normal (veio '$OUT')"
+subst_interrupted() {
+  fresh d2
+  rm "$dest/VERSION" "$dest/CONTENTS.sha256"
+  echo '# mexido' >>"$dest/fabrica-hook"
+  FAKE_MV_KILL_AT=3 runfake d1 --allow-downgrade 1.0.0
+}
+subst_interrupted
+before=$(content)
+run d1 --check
+r1=$OUT
+run d3 --check
+[[ $r1 == "falha rollback-interrompido" && $OUT == "falha rollback-interrompido" && $(content) == "$before" ]] && grep -q '^modo substituicao$' "$dest/.publicando"
+result $? CA14 "substituição interrompida: nenhuma execução automática continua, nem a da versão alvo nem uma maior (veio '$r1' e '$OUT')"
+subst_interrupted
+echo '# mexido' >>"$dest/post-merge"
+before=$(content)
+run d1 --check
+r1=$OUT
+run d3 --check
+[[ $r1 == "falha rollback-interrompido" && $OUT == "falha rollback-interrompido" && $(content) == "$before" ]]
+result $? CA14 "substituição interrompida com entradas que deixaram de conferir: não continua sozinha (veio '$r1' e '$OUT')"
+run d1 --allow-downgrade 1.0.0
+[[ $RC == 0 && $ERR == *"revertido 1.0.0"* && ! -e $dest/.publicando ]] && is_integra_at 1.0.0
+result $? CA14 "o mesmo estado com um novo --allow-downgrade confirmado: revertido 1.0.0 (rc=$RC)"
+
+# Entradas extras (achado 3 do ciclo 1).
+fresh d1
+outside="$tmp/fora"
+rm -rf "$outside"
+mkdir -p "$outside/sub"
+echo fica >"$outside/sub/arquivo"
+echo fica >"$outside/alvo"
+: >"$dest/pre-commit.bak"
+: >"$dest/Nome Estranho"
+: >"$dest/"$'linha\nquebrada'
+: >"$dest/-comeca-com-hifen"
+ln -s /nao/existe "$dest/link-solto"
+ln -s "$outside/sub" "$dest/link-pasta"
+ln -s "$outside/alvo" "$dest/link-arquivo"
+mkfifo "$dest/fila"
+run d1 --check
+r1=$OUT
+extras=$(ls -A "$dest" | grep -c -v -e '^\.' || true)
+run d1 --check
+[[ $r1 == "reparado 1.0.0" && $OUT == ok && -f $outside/sub/arquivo && -f $outside/alvo ]] &&
+  [[ $extras == $(ls "$tmp/dist/d1/githooks" | wc -l | awk '{print $1 + 2}') ]] && is_integra_at 1.0.0 && no_internal
+result $? CA5 "entradas extras com nome fora do formato, symlinks (sem segui-los) e uma fila: removidas, reparado e depois ok (veio '$r1' e '$OUT')"
+dir_case() { # <descrição> <comando de dano>
+  fresh d1
+  (cd "$dest" && eval "$2")
+  before=$(snap)
+  run d1 --check
+  r1=$OUT rc1=$RC s1=$(snap)
+  run d1 --check
+  [[ $r1 == "falha destino-invalido" && $rc1 == 1 && $OUT == "$r1" && $ERR == *subpasta* && $s1 == "$before" && $(snap) == "$before" &&
+    -f $dest/$3/dentro && ! -e $dest/.publicando ]]
+  result $? CA5 "$1: falha destino-invalido, nada apagado nem republicado, sem repetir a publicação (veio '$r1' e '$OUT')"
+}
+dir_case "subpasta extra" 'mkdir extra && echo x >extra/dentro' extra
+dir_case "subpasta no lugar de uma entrada de proteção" 'rm pre-push && mkdir pre-push && echo x >pre-push/dentro' pre-push
+
+# Filho órfão de um dono morto (achado 12 do ciclo 1). O falso mata o script
+# com KILL e fica rodando como filho órfão até o teste liberar.
+orphan_done() { local i; for i in $(seq 1 200); do [[ -e $fake/state/orphan.done ]] && return 0; sleep 0.05; done; return 1; }
+paused() { local i; for i in $(seq 1 200); do [[ -e $fake/state/pause.on ]] && return 0; sleep 0.05; done; return 1; }
+# (a) Liberação da trava atrasada.
+fresh d1
+FAKE_ORPHAN_SRC='*/.lock' runfake d2 --check
+ok=0 why=""
+[[ -L $dest/.lock && -e $fake/state/orphan.armed ]] || { ok=1 why+=" armado"; }
+# A pausa é depois da aquisição e do diário, no rename do fabrica-hook.
+FAKE_PAUSE_SRC='*/.stage.*/fabrica-hook' PATH="$fake/bin:$PATH" bash "$(script_of d3)" --check >"$tmp/b.out" 2>/dev/null &
+bpid=$!
+bg_pids+=("$bpid")
+paused || { ok=1 why+=" pausa"; }
+: >"$fake/state/orphan.go"
+orphan_done || { ok=1 why+=" órfão"; }
+[[ -L $dest/.lock ]] || { ok=1 why+=" trava-sumiu"; }
+: >"$fake/state/pause.go"
+wait "$bpid"
+is_integra_at 3.0.0 || why+=" estado=$(state)"
+no_internal || why+=" internos=$(ls -A "$dest" | grep '^\.' | tr '\n' ' ')"
+[[ $ok == 0 && $(cat "$tmp/b.out") == "atualizado 3.0.0" ]] && is_integra_at 3.0.0 && no_internal
+result $? CA16 "filho órfão do dono morto libera a trava depois que outro a adquiriu: a trava do novo dono fica e ele publica (veio '$(cat "$tmp/b.out")'$why)"
+# (b) Remoção do diário atrasada, durante a publicação seguinte.
+fresh d1
+FAKE_ORPHAN_SRC='*/.publicando' runfake d2 --check
+ok=0
+[[ -e $fake/state/orphan.armed && -f $dest/.publicando ]] || ok=1
+FAKE_PAUSE_SRC='*/.stage.*/CONTENTS.sha256' PATH="$fake/bin:$PATH" bash "$(script_of d3)" --check >"$tmp/b.out" 2>/dev/null &
+bpid=$!
+bg_pids+=("$bpid")
+paused || ok=1
+: >"$fake/state/orphan.go"
+orphan_done || ok=1
+grep -q '^para 3.0.0$' "$dest/.publicando" 2>/dev/null || ok=1
+kill -KILL "$bpid" 2>/dev/null
+wait "$bpid" 2>/dev/null
+: >"$fake/state/pause.abort"
+run d2 --check
+[[ $ok == 0 && $OUT == "reparado 3.0.0" ]] && hook_is d3 && is_integra_at 3.0.0
+result $? CA14 "filho órfão do dono morto apaga o diário de uma publicação posterior interrompida: o diário fica, e a origem 2.0.0 conclui em 3.0.0, sem downgrade (veio '$OUT')"
+# (c) Rename atrasado depois de outra execução responder ok.
+fresh d1
+FAKE_ORPHAN_SRC='*/.stage.*/fabrica-hook' runfake d2 --check
+ok=0
+[[ -e $fake/state/orphan.armed ]] || ok=1
+run d1 --check
+r1=$OUT
+: >"$fake/state/orphan.go"
+orphan_done || ok=1
+[[ $ok == 0 && $r1 == ok ]] && hook_is d1 && is_integra_at 1.0.0 && no_internal
+result $? CA13 "filho órfão do dono morto troca o fabrica-hook depois que outra execução respondeu ok: nada muda (veio '$r1')"
 
 echo
 if ((failures)); then

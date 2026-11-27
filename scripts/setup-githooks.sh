@@ -46,7 +46,7 @@ J_PRESENT=0 J_FMT=0 J_VALID=0 J_NADA=0 J_MODO="" J_DE="" J_PARA="" J_ANT="" J_AL
 ST="" I="" S=""
 ACTION="" MODO="" OUT=""
 TOKEN="" IDENTITY="" MY_HOST="" HAVE_LOCK=0 HAVE_BREAK=0 LOCK_SEEN=""
-PHASE=none STAGE=""
+PHASE=none STAGE="" DISCARDS=0
 CK="" CH="" LH="" WH="" REPLY="" WRAP_CACHE="" STAT_GNU=1
 
 # ---------------------------------------------------------------------------
@@ -419,14 +419,24 @@ is_legada() {
 }
 
 # classify <usar o diário: 1|0>: preenche ST e I. I é sempre o máximo das
-# evidências válidas.
+# evidências válidas. Um diário de cabeçalho válido é evidência de versão
+# (de e para) mesmo quando as entradas não conferem; nesse caso ele não
+# serve para retomar a publicação, e a pasta fica danificada até uma
+# publicação concluída e íntegra.
 classify() {
-  local de
-  if (($1 && J_VALID && !J_NADA)); then
+  local de=""
+  if (($1 && J_FMT)); then
     de=$J_DE
     [[ $de == desconhecida ]] && de=""
+  fi
+  if (($1 && J_VALID && !J_NADA)); then
     I=$(semver_max "$V_VER" "$C_VER" "$de" "$J_PARA")
     ST=interrompida
+    return
+  fi
+  if (($1 && J_FMT && !J_VALID)); then
+    I=$(semver_max "$V_VER" "$C_VER" "$de" "$J_PARA")
+    ST=danificada
     return
   fi
   I=$(semver_max "$V_VER" "$C_VER")
@@ -447,13 +457,43 @@ read_state() {
   classify 1
 }
 
-# Dentro da trava: apaga um diário inválido ou de uma publicação que não
-# trocou nada, e relê.
+# Dentro da trava: apaga um diário malformado (que não é evidência) ou de
+# uma publicação que não trocou nada, e relê. Um diário de cabeçalho válido
+# com entradas que não conferem fica: ele é evidência de versão.
 settle_journal() {
-  if ((J_PRESENT && (!J_VALID || J_NADA))); then
-    rm -f -- "$dest/.publicando" 2>/dev/null
+  ((J_PRESENT)) || return 0
+  if ((!J_FMT || (J_VALID && J_NADA))); then
+    discard "$dest/.publicando" || return 0
     read_state
   fi
+}
+
+# Diário (válido ou só de evidência) de um rollback ou de uma substituição
+# que a execução automática não pode continuar: substituição sempre;
+# rollback quando S < I.
+journal_blocks() {
+  ((J_FMT)) || return 1
+  [[ $J_MODO == substituicao ]] && return 0
+  [[ $J_MODO == rollback && -n $I && $(semver_cmp "$S" "$I") == -1 ]]
+}
+
+# Subpastas reais no destino (entradas ou o diário): o script não as remove
+# nem publica por cima delas. Imprime os nomes, um por linha, citados.
+bad_dirs() {
+  local p
+  for p in "$dest"/* "$dest/.publicando"; do
+    [[ -d $p && ! -L $p ]] && printf '%q\n' "${p##*/}"
+  done
+  return 0
+}
+
+# Restos de outro dono (stage ou diário ainda sem nome final).
+orphans_present() {
+  local p
+  for p in "$dest"/.stage.* "$dest"/.publicando.*; do
+    [[ -e $p || -L $p ]] && return 0
+  done
+  return 1
 }
 
 equal_origin() {
@@ -496,18 +536,21 @@ decide() {
       else OUT="mais-novo $I incerta"
       fi ;;
     interrompida)
-      if [[ $J_MODO == rollback || $J_MODO == substituicao ]]; then
+      if journal_blocks; then
         OUT="falha rollback-interrompido"
       elif [[ $(semver_cmp "$S" "$I") != -1 ]]; then
+        # Num rollback, S >= I (= de) recupera pelo caminho normal.
         ACTION=publicar MODO=reparo OUT="reparado $S"
-      elif [[ $J_PARA == "$I" ]] && resume_possible; then
+      elif [[ $J_MODO != rollback && $J_PARA == "$I" ]] && resume_possible; then
         # T >= I: como I é o máximo e inclui T, isso é T = I.
         ACTION=concluir MODO=reparo OUT="reparado $J_PARA"
       else
         OUT="falha interrompida"
       fi ;;
     danificada)
-      if [[ -n $I ]]; then
+      if journal_blocks; then
+        OUT="falha rollback-interrompido"
+      elif [[ -n $I ]]; then
         if [[ $(semver_cmp "$S" "$I") != -1 ]]; then
           ACTION=publicar MODO=reparo OUT="reparado $S"
         else
@@ -627,6 +670,11 @@ lock_break() {
   ((rc == 2)) && return 2
   HAVE_BREAK=1
   if [[ -L $dest/.lock && $(readlink -- "$dest/.lock" 2>/dev/null) == "$LOCK_SEEN" ]]; then
+    # Primeiro os restos do dono morto: um filho dele que ainda esteja rodando
+    # só age por rename de ou para o stage dele, que deixa de existir.
+    if [[ $LOCK_SEEN =~ $LOCK_RE ]]; then
+      rm -rf -- "$dest/.stage.${BASH_REMATCH[4]}" "$dest/.publicando.${BASH_REMATCH[4]}" 2>/dev/null
+    fi
     rm -f -- "$dest/.lock"
   fi
   owns "$dest/.break" && rm -f -- "$dest/.break"
@@ -665,11 +713,17 @@ lock_acquire() {
 }
 
 # 0 liberada (ou não havia trava); 1 a trava não é mais deste processo, e
-# nada foi removido.
+# nada foi removido. A trava sai por rename para o próprio stage, como toda
+# remoção no destino, e o stage é apagado por último.
 lock_release() {
   ((HAVE_LOCK)) || return 0
   HAVE_LOCK=0
-  if owns "$dest/.lock"; then rm -f -- "$dest/.lock"; return 0; fi
+  if owns "$dest/.lock"; then
+    discard "$dest/.lock" || rm -f -- "$dest/.lock"
+    rm -rf -- "$dest/.stage.$TOKEN" 2>/dev/null
+    return 0
+  fi
+  rm -rf -- "$dest/.stage.$TOKEN" 2>/dev/null
   return 1
 }
 
@@ -691,12 +745,42 @@ rename_to() {
   fi
 }
 
+# Apaga os stages e diários sem nome final de outros donos. Só roda com a
+# trava. 1 se algum ficou.
 remove_orphans() {
-  local p
+  local p rc=0
   for p in "$dest"/.stage.* "$dest"/.publicando.*; do
     [[ -e $p || -L $p ]] || continue
-    rm -rf -- "$p"
+    [[ -n $TOKEN && ($p == "$dest/.stage.$TOKEN" || $p == "$dest/.publicando.$TOKEN") ]] && continue
+    rm -rf -- "$p" 2>/dev/null
+    [[ -e $p || -L $p ]] && rc=1
   done
+  return $rc
+}
+
+# discard <caminho>: tira um arquivo, symlink ou outro não-diretório do
+# destino por rename para o stage deste processo, sem seguir symlinks. Um
+# filho atrasado de um dono morto não repete isso depois que o stage dele foi
+# apagado. Recusa pastas reais: nada no destino é removido recursivamente.
+discard() {
+  local p=$1
+  [[ -e $p || -L $p ]] || return 0
+  [[ -d $p && ! -L $p ]] && return 1
+  STAGE="$dest/.stage.$TOKEN"
+  [[ -d $STAGE ]] || mkdir -- "$STAGE" 2>/dev/null || return 1
+  DISCARDS=$((DISCARDS + 1))
+  rename_to "$p" "$STAGE/.descarte.$DISCARDS"
+}
+
+# write_contents <versão> <lista> <arquivo>
+write_contents() {
+  local h n
+  {
+    printf 'fabrica-githooks-contents v1 %s\n' "$1"
+    while read -r h n; do
+      if [[ -n $n ]]; then printf '%s  %s\n' "$h" "$n"; fi
+    done <<<"$2"
+  } >"$3" && chmod 644 -- "$3"
 }
 
 on_signal() {
@@ -720,13 +804,15 @@ on_exit() {
 # publish <versão alvo> <lista alvo>: usa MODO e I. Retorna 0 depois de
 # publicar e conferir a pasta íntegra; senão, OUT recebe a falha.
 publish() {
-  local tver=$1 tlist=$2 h n p k
+  local tver=$1 tlist=$2 h n p k de=${I:-desconhecida}
   local -a need=()
+  # A substituição parte de uma versão que não está comprovada.
+  [[ $MODO == substituicao ]] && de=desconhecida
   PHASE=staging
   # Passo 2: restos de donos anteriores.
   remove_orphans
   STAGE="$dest/.stage.$TOKEN"
-  if ! mkdir -- "$STAGE" 2>/dev/null; then OUT="falha preparacao"; PHASE=locked; return 1; fi
+  if ! { [[ -d $STAGE ]] || mkdir -- "$STAGE" 2>/dev/null; }; then OUT="falha preparacao"; PHASE=locked; return 1; fi
   # Passo 3: preparação, só dos arquivos que mudam.
   while read -r h n; do
     [[ -n $n ]] || continue
@@ -741,20 +827,15 @@ publish() {
     fi
     need+=("$n")
   done <<<"$tlist"
-  if ! {
-    printf 'fabrica-githooks-contents v1 %s\n' "$tver"
-    while read -r h n; do
-      if [[ -n $n ]]; then printf '%s  %s\n' "$h" "$n"; fi
-    done <<<"$tlist"
-  } >"$STAGE/CONTENTS.sha256" || ! printf '%s\n' "$tver" >"$STAGE/VERSION" ||
-    ! chmod 644 -- "$STAGE/CONTENTS.sha256" "$STAGE/VERSION"; then
+  if ! write_contents "$tver" "$tlist" "$STAGE/CONTENTS.sha256" ||
+    ! printf '%s\n' "$tver" >"$STAGE/VERSION" || ! chmod 644 -- "$STAGE/VERSION"; then
     rm -rf -- "$STAGE"; PHASE=locked; OUT="falha preparacao"; return 1
   fi
   # Passo 4: diário, só com a trava.
   if ! owns "$dest/.lock"; then rm -rf -- "$STAGE"; PHASE=locked; OUT="falha trava"; return 1; fi
   if ! {
     printf 'fabrica-githooks-journal v1\ndono %s\nmodo %s\nde %s\npara %s\n' \
-      "$TOKEN" "$MODO" "${I:-desconhecida}" "$tver"
+      "$TOKEN" "$MODO" "$de" "$tver"
     while read -r k h n; do
       if [[ -n $n && ($k == valid || $k == nomode) ]]; then printf 'anterior %s %s\n' "$h" "$n"; fi
     done <<<"$CUR"
@@ -779,14 +860,16 @@ publish() {
     ! rename_to "$STAGE/VERSION" "$dest/VERSION"; then
     rm -rf -- "$STAGE"; PHASE=locked; OUT="falha publicacao"; return 1
   fi
-  # Passo 9: entradas fora do alvo. O alvo sempre tem o conjunto de proteção.
-  scan_entries
-  while read -r k h n; do
-    [[ -n $n && $n != '!invalido' ]] || continue
-    list_hash "$tlist" "$n" && continue
-    p="$dest/$n"
-    if [[ -L $p || -f $p ]]; then rm -f -- "$p"; fi
-  done <<<"$CUR"
+  # Passo 9: entradas fora do alvo, pelo nome real (qualquer nome, inclusive
+  # fora do formato), sem seguir symlinks. O alvo sempre tem o conjunto de
+  # proteção. Uma pasta real fica, e a releitura abaixo falha.
+  for p in "$dest"/*; do
+    [[ -e $p || -L $p ]] || continue
+    n=${p##*/}
+    [[ $n == VERSION || $n == CONTENTS.sha256 ]] && continue
+    if [[ $n =~ $NAME_RE ]] && list_hash "$tlist" "$n"; then continue; fi
+    discard "$p"
+  done
   # Releitura antes de apagar o diário: só conta como publicada se íntegra.
   V_VER=$(read_version_file "$dest/VERSION") || V_VER=""
   parse_contents
@@ -797,10 +880,40 @@ publish() {
     rm -rf -- "$STAGE"; PHASE=locked; OUT="falha publicacao"; return 1
   fi
   # Passo 10.
-  rm -f -- "$dest/.publicando"
+  if ! discard "$dest/.publicando"; then
+    rm -rf -- "$STAGE"; PHASE=locked; OUT="falha publicacao"; return 1
+  fi
   rm -rf -- "$STAGE"
   PHASE=locked
   J_PRESENT=0 J_FMT=0 J_VALID=0 J_NADA=0
+  return 0
+}
+
+# register_contents: pasta legada com as entradas iguais às da origem. Grava
+# só o CONTENTS.sha256 (stage e rename), sem diário e sem tocar nos hooks nem
+# no VERSION; depois relê e confere a pasta íntegra.
+register_contents() {
+  PHASE=staging
+  remove_orphans
+  STAGE="$dest/.stage.$TOKEN"
+  if ! { [[ -d $STAGE ]] || mkdir -- "$STAGE" 2>/dev/null; } ||
+    ! write_contents "$S" "$ORIG_LIST" "$STAGE/CONTENTS.sha256"; then
+    rm -rf -- "$STAGE"; PHASE=locked; OUT="falha preparacao"; return 1
+  fi
+  if ! owns "$dest/.lock"; then rm -rf -- "$STAGE"; PHASE=locked; OUT="falha trava"; return 1; fi
+  if ! rename_to "$STAGE/CONTENTS.sha256" "$dest/CONTENTS.sha256"; then
+    rm -rf -- "$STAGE"; PHASE=locked; OUT="falha publicacao"; return 1
+  fi
+  rm -rf -- "$STAGE"
+  PHASE=locked
+  V_VER=$(read_version_file "$dest/VERSION") || V_VER=""
+  parse_contents
+  scan_entries
+  classify 0
+  if [[ $ST != integra || $V_VER != "$S" ]]; then
+    echo "setup-githooks: a pasta não ficou íntegra depois de registrar o CONTENTS.sha256." >&2
+    OUT="falha publicacao"; return 1
+  fi
   return 0
 }
 
@@ -826,7 +939,7 @@ minimal_recovery() {
   } | sort -u)
   remove_orphans
   STAGE="$dest/.stage.$TOKEN"
-  mkdir -- "$STAGE" 2>/dev/null || return 0
+  [[ -d $STAGE ]] || mkdir -- "$STAGE" 2>/dev/null || return 0
   PHASE=staging
   while IFS= read -r n; do
     [[ -n $n && $n != fabrica-hook ]] || continue
@@ -846,7 +959,7 @@ usage() {
 
 main() {
   set -u -o pipefail
-  local check=false force=false allow="" current ro_st wait rc first can_write
+  local check=false force=false allow="" current ro_st wait rc first can_write dirs
 
   while (($#)); do
     case $1 in
@@ -921,7 +1034,7 @@ main() {
   # Leitura sem escrita. Conteúdo íntegro e igual ao da origem, sem diário,
   # é "ok" sem precisar da trava: nada seria escrito.
   read_state
-  if $check && [[ $ST == integra ]] && ((!J_PRESENT)) && equal_origin; then finish ok 0; fi
+  if $check && [[ $ST == integra ]] && ((!J_PRESENT)) && ! orphans_present && equal_origin; then finish ok 0; fi
   ro_st=$ST
   wait=$INSTALL_WAIT
   $check && wait=$CHECK_WAIT
@@ -936,6 +1049,9 @@ main() {
   fi
   PHASE=locked
 
+  # Com a trava, antes de ler: os restos de outro dono saem primeiro. Um filho
+  # ainda rodando de um dono morto não consegue mais trocar nada depois disso.
+  remove_orphans || { echo "setup-githooks: não consegui apagar os restos de outra execução." >&2; finish "falha preparacao" 1; }
   read_state
   settle_journal
   can_write=true
@@ -943,20 +1059,39 @@ main() {
   first=false
   if ! $check && [[ -z $CUR && $V_PRESENT == 0 && $C_PRESENT == 0 ]]; then first=true; fi
 
-  if $first; then
+  # Subpasta real no destino: nada é removido nem publicado por cima, para
+  # não repetir a publicação a cada execução. Só a recuperação mínima.
+  dirs=$(bad_dirs)
+  if [[ -n $dirs ]]; then
+    if $can_write && [[ $ST == danificada ]] && ! journal_blocks; then minimal_recovery; fi
+    echo "setup-githooks: a pasta dos hooks tem uma subpasta que o script não remove ($(printf '%s' "$dirs" | tr '\n' ' ')). Confira e remova à mão; nada mais foi alterado." >&2
+    finish "falha destino-invalido" 1
+  fi
+
+  if [[ -n $allow ]]; then
+    # Rollback ou substituição confirmados pelo usuário. Sem publicação
+    # autorizada, sai com 2 sem escrever nada.
+    ACTION=publicar OUT="revertido $S"
+    if $first; then MODO=""
+    elif [[ -z $I ]]; then MODO=substituicao
+    elif [[ $(semver_cmp "$S" "$I") == -1 ]]; then MODO=rollback
+    elif ((J_FMT)) && [[ $J_MODO == substituicao ]]; then MODO=substituicao
+    else MODO=""
+    fi
+    if [[ -z $MODO ]]; then
+      if $first; then
+        echo "setup-githooks: --allow-downgrade $S não se aplica: não há instalação para reverter. Nada foi alterado; rode sem --allow-downgrade." >&2
+      else
+        echo "setup-githooks: --allow-downgrade $S não se aplica: a versão instalada comprovada é $I, e $S não é menor. Nada foi alterado; rode sem --allow-downgrade." >&2
+      fi
+      lock_release
+      exit 2
+    fi
+  elif $first; then
     # Primeira instalação: pasta sem entradas nem metadados.
     I="" ACTION=publicar MODO=reparo OUT="atualizado $S"
-  elif [[ -n $allow ]] && ! { [[ $ST == integra ]] && equal_origin; } &&
-    { [[ -z $I ]] || [[ $(semver_cmp "$S" "$I") == -1 ]] ||
-      [[ $ST == interrompida && ($J_MODO == rollback || $J_MODO == substituicao) ]]; }; then
-    # Rollback ou substituição confirmados pelo usuário.
-    ACTION=publicar
-    if [[ -z $I ]]; then MODO=substituicao OUT="revertido $S"
-    elif [[ $(semver_cmp "$S" "$I") == -1 ]]; then MODO=rollback OUT="revertido $S"
-    else MODO=reparo OUT="reparado $S"
-    fi
   elif [[ $ST == danificada ]]; then
-    if $can_write; then
+    if $can_write && ! journal_blocks; then
       minimal_recovery
       read_state
     fi
@@ -973,7 +1108,8 @@ main() {
   fi
 
   case $ACTION in
-    publicar | registrar) publish "$S" "$ORIG_LIST" || finish "$OUT" 1 ;;
+    publicar) publish "$S" "$ORIG_LIST" || finish "$OUT" 1 ;;
+    registrar) register_contents || finish "$OUT" 1 ;;
     concluir) publish "$J_PARA" "$J_ALVO" || finish "$OUT" 1 ;;
   esac
   case $OUT in
