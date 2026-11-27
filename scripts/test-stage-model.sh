@@ -106,14 +106,37 @@ check CA6 "fora de ~/.claude/plugins/ leva --plugin-dir do clone" "yes" \
 
 installed="$tmp/home/.claude/plugins/cache/fabrica/fabrica/9.9.9"
 mkdir -p "$installed/scripts" "$installed/skills/avancar"
-cp "$script" "$installed/scripts/stage-model.sh"
-cp "$script_dir/harness.sh" "$installed/scripts/harness.sh"
+cp "$script_dir"/{stage-model,claude-exec,harness,sbx-context,setup-isolation,run-as-agent}.sh "$installed/scripts/"
 cp "$script_dir/../skills/avancar/modelos.md" "$installed/skills/avancar/modelos.md"
 rm -f "$args_file"
 env -u CLAUDECODE -u FABRICA_HARNESS -u OPENCODE_SESSION_ID -u ANTIGRAVITY_AGENT -u ANTIGRAVITY_CONVERSATION_ID HOME="$tmp/home" \
-  FABRICA_CLAUDE_BIN="$fake" bash "$installed/scripts/stage-model.sh" run triagem 12 >/dev/null 2>&1
-check CA6 "de dentro de ~/.claude/plugins/ não leva --plugin-dir" "no" \
-  "$(grep -qx -- '--plugin-dir' "$args_file" && echo yes || echo no)"
+  FABRICA_SBX_PERSISTENT_FILE="$tmp/ausente.sh" FABRICA_CLAUDE_BIN="$fake" \
+  bash "$installed/scripts/stage-model.sh" run triagem 12 >/dev/null 2>&1
+check CA6 "a fachada no cache consegue rodar o executor" 0 "$?"
+check CA6 "de dentro de ~/.claude/plugins/ passa os argumentos sem --plugin-dir" \
+  "-p --model claude-sonnet-5-5 --permission-mode auto --output-format json /fabrica:triagem 12" "$(args)"
+
+# O wrapper do dispatcher completa o caminho do plugin quando a fachada está
+# no cache. O sudo falso mantém o exec e passa pelo env -i real do wrapper.
+fake_sudo="$tmp/sudo"
+cat > "$fake_sudo" <<'EOF'
+#!/usr/bin/env bash
+[[ "$1 $2 $3 $4" == "-n -u fabrica-agent -H" ]] || exit 99
+shift 4
+exec "$@"
+EOF
+chmod +x "$fake_sudo"
+mkdir -p "$tmp/isolation"
+: > "$tmp/isolation/agent.env"
+env -u CLAUDECODE -u FABRICA_HARNESS -u OPENCODE_SESSION_ID -u ANTIGRAVITY_AGENT -u ANTIGRAVITY_CONVERSATION_ID \
+  -u PROXY_CA_CERT_B64 HOME="$tmp/home" FABRICA_SBX_PERSISTENT_FILE="$tmp/ausente.sh" \
+  FABRICA_CLAUDE_BIN="$installed/scripts/run-as-agent.sh" FABRICA_REAL_CLAUDE_BIN="$fake" \
+  FABRICA_ISOLATION_DIR="$tmp/isolation" FABRICA_SUDO_BIN="$fake_sudo" FABRICA_PLUGIN_COPY="$tmp/plugin-copy" \
+  bash "$installed/scripts/stage-model.sh" run triagem 12 > "$tmp/wrapper.out"
+check B1.2 "a fachada no cache delega para run-as-agent.sh" 0 "$?"
+check B1.2 "o wrapper injeta apenas o caminho da cópia isolada" \
+  "--plugin-dir $tmp/plugin-copy -p --model claude-sonnet-5-5 --permission-mode auto --output-format json /fabrica:triagem 12" "$(args)"
+check B1.2 "o wrapper conserva stdout da etapa" '{"result":"ok"}' "$(cat "$tmp/wrapper.out")"
 
 # CA13: modo de permissão pela VM e pelo modo de isolamento.
 proj="$tmp/proj"
@@ -144,7 +167,7 @@ check CA13 "VM com modo inválido usa auto" "auto" "$(mode_of vm valor-estranho)
 # os dois auxiliares trocados por versões falsas.
 broken="$tmp/broken"
 mkdir -p "$broken/scripts" "$broken/skills/avancar"
-cp "$script" "$broken/scripts/stage-model.sh"
+cp "$script" "$script_dir/claude-exec.sh" "$broken/scripts/"
 cp "$script_dir/harness.sh" "$broken/scripts/harness.sh"
 cp "$script_dir/../skills/avancar/modelos.md" "$broken/skills/avancar/modelos.md"
 run_broken() { (cd "$proj" && env -u PROXY_CA_CERT_B64 -u CLAUDECODE -u FABRICA_HARNESS -u OPENCODE_SESSION_ID -u ANTIGRAVITY_AGENT -u ANTIGRAVITY_CONVERSATION_ID HOME="$tmp/home" FABRICA_CLAUDE_BIN="$fake" bash "$broken/scripts/stage-model.sh" run triagem 12 >/dev/null 2>&1); }
@@ -196,6 +219,17 @@ for native_exit in 2 3 124 130 143; do
 done
 check B1.1 "saída do processo continua disponível depois de exit não zero" sim \
   "$(cmp -s "$process_dir/native.json" "$process_dir/stdout" && echo sim || echo não)"
+
+# BASH_ENV pode ter efeitos a cada inicialização de Bash. Entrar no executor
+# intermediário deve preservar o ambiente sem carregar o arquivo outra vez.
+printf '%s\n' 'export TEST_BOOTSTRAPS=$(( ${TEST_BOOTSTRAPS:-0} + 1 ))' > "$tmp/startup.sh"
+cat > "$executor" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\n' "$TEST_BOOTSTRAPS" "$BASH_ENV"
+EOF
+out="$(BASH_ENV="$tmp/startup.sh" TEST_BOOTSTRAPS=0 process_run 0)"
+check B1.2 "BASH_ENV roda só no lançador, na fachada e no binário falso" \
+  "$(printf '3\n%s' "$tmp/startup.sh")" "$out"
 
 echo
 echo "$((total - failures)) de $total passaram."

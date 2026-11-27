@@ -180,6 +180,9 @@ cat > "$bin/claude" <<EOF
 printf '%s\n' "\$@" > "$tmp/claude.args"
 tail -n 1 "$tmp/claude.args" >> "$tmp/claude.log"
 cat "$tmp/claude.json"
+if [[ \${DISPATCH_FIXTURE_NO_JSON:-} == 1 ]]; then
+  unlink "\$RUNNER_TEMP/fabrica-dispatch/stage.json"
+fi
 exit "\$(cat "$tmp/claude.exit")"
 EOF
 # Estados falsos em sequência: cada "state" lê a próxima linha de states.txt
@@ -418,6 +421,55 @@ check B1.1 "exit nativo 2 tem o mesmo retorno legado que conflito de labels" "2 
   "$(dispatch run) $(state_calls) $(called_claude)"
 check B1.1 "o artefato preserva o resultado mesmo com exit nativo 2" sim \
   "$(cmp -s "$tmp/claude.json" "$tmp/runner/fabrica-dispatch/stage.json" && echo sim || echo não)"
+
+# B1.4: falhas no normalizador não autorizam uma nova leitura da issue.
+mkdir -p "$tmp/normalizer-bin"
+cat > "$tmp/normalizer-bin/python3" <<EOF
+#!/usr/bin/env bash
+if [[ "\$2" == */claude-result.py ]]; then
+  printf '%s\n' "\$@" > "$tmp/normalizer.args"
+  case "\${NORMALIZER_FIXTURE:-}" in
+    failed)
+      echo 'detalhe privado do normalizador' >&2
+      printf '%s\n' '{"version":1,"runtime":"claude-code","status":"succeeded","reason":null,"exit_code":0,"origin":null}'
+      exit 9 ;;
+    invalid) echo 'resultado truncado {'; exit 0 ;;
+    version) echo '{"version":2,"runtime":"claude-code","status":"succeeded","reason":null,"exit_code":0,"origin":null}'; exit 0 ;;
+  esac
+fi
+exec "$(command -v python3)" "\$@"
+EOF
+chmod +x "$tmp/normalizer-bin/python3"
+dispatch_normalized() { PATH="$tmp/normalizer-bin:$PATH" dispatch "$@"; }
+for fixture in failed invalid version; do
+  setup OPEN agente
+  states "linha=2 etapa=triagem quem=agente inconsistencia=-"
+  check B1.4 "normalizador $fixture falha e não relê o estado" "1 1" \
+    "$(NORMALIZER_FIXTURE="$fixture" dispatch_normalized run) $(state_calls)"
+  check B1.4 "normalizador $fixture: diagnóstico fixo, sem saída privada" \
+    "dispatch: não consegui normalizar a saída do claude." "$(cat "$tmp/err.txt")"
+done
+check B1.4 "falha do normalizador preserva stage.json e stage.exit" "sim 0" \
+  "$(cmp -s "$tmp/claude.json" "$tmp/runner/fabrica-dispatch/stage.json" && echo sim || echo não) $(cat "$tmp/runner/fabrica-dispatch/stage.exit")"
+check B1.4 "a limpeza remove a marca mesmo após falha do normalizador" "0 1" \
+  "$(dispatch unmark) $(grep -c '^issue edit .*--remove-label em-andamento' "$calls")"
+
+setup OPEN agente
+states "linha=2 etapa=triagem quem=agente inconsistencia=-"
+check B1.4 "JSON ausente não autoriza releitura" "1 1" \
+  "$(DISPATCH_FIXTURE_NO_JSON=1 dispatch run) $(state_calls)"
+check B1.4 "JSON ausente conserva diagnóstico legado" \
+  "dispatch: a saída do claude não é um JSON legível." "$(cat "$tmp/err.txt")"
+
+setup OPEN agente,modelo:haiku,modelo:opus
+states "linha=2 etapa=triagem quem=agente inconsistencia=-"
+check B1.4 "conflito anterior ao exec preserva código 2 sem atribuir origem" "2 não 0" \
+  "$(dispatch_normalized run) $(called_claude) $(grep -c -- '^--evidence$' "$tmp/normalizer.args")"
+setup OPEN agente
+states "linha=2 etapa=triagem quem=agente inconsistencia=-"
+echo 2 > "$tmp/claude.exit"
+check B1.4 "exit 2 depois do exec preserva código 2 sem atribuir origem" "2 sim 0" \
+  "$(dispatch_normalized run) $(called_claude) $(grep -c -- '^--evidence$' "$tmp/normalizer.args")"
 
 # CA14: comentário de falha.
 body() { cat "$tmp/comment.txt" 2>/dev/null; }
