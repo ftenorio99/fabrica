@@ -392,6 +392,33 @@ dispatch run >/dev/null
 check CA14 "falha registra no log o resumo seguro" "1" "$(grep -c 'resumo da saída: subtype=success is_error=True api_error_status=401 num_turns=1' "$tmp/err.txt")"
 check CA14 "o resumo do log não traz result nem secret" "0" "$(grep -c 'texto secreto do result\|sk-ant-oat-valor-do-teste' "$tmp/err.txt" "$tmp/out.txt" | awk -F: '{ s += $NF } END { print s }')"
 
+# B1.1: contrato entre stdout nativo, estado técnico e artefatos do workflow.
+setup OPEN agente
+states "linha=2 etapa=triagem quem=agente inconsistencia=-"
+printf '{ "is_error": false }\n\n' > "$tmp/claude.json"
+check B1.1 "só is_error booleano falso basta para sucesso técnico" "0" "$(dispatch run)"
+check B1.1 "sucesso técnico relê o estado e para sem avanço" "2 1 sim" \
+  "$(state_calls) $(claude_runs) $(out_has 'sem avanço')"
+check B1.1 "stage.json guarda stdout bruto, inclusive quebras finais" sim \
+  "$(cmp -s "$tmp/claude.json" "$tmp/runner/fabrica-dispatch/stage.json" && echo sim || echo não)"
+check B1.1 "stage.exit guarda o código do executor" 0 "$(cat "$tmp/runner/fabrica-dispatch/stage.exit")"
+
+for invalid_result in '{"is_error":"false"}' '{"is_error":0}' '[]' '{"is_error":false'; do
+  setup OPEN agente
+  states "linha=2 etapa=triagem quem=agente inconsistencia=-"
+  printf '%s\n' "$invalid_result" > "$tmp/claude.json"
+  check B1.1 "resultado inválido ($invalid_result) falha sem reler o estado" "1 1" \
+    "$(dispatch run) $(state_calls)"
+done
+
+setup OPEN agente
+states "linha=2 etapa=triagem quem=agente inconsistencia=-"
+echo 2 > "$tmp/claude.exit"
+check B1.1 "exit nativo 2 tem o mesmo retorno legado que conflito de labels" "2 1 sim" \
+  "$(dispatch run) $(state_calls) $(called_claude)"
+check B1.1 "o artefato preserva o resultado mesmo com exit nativo 2" sim \
+  "$(cmp -s "$tmp/claude.json" "$tmp/runner/fabrica-dispatch/stage.json" && echo sim || echo não)"
+
 # CA14: comentário de falha.
 body() { cat "$tmp/comment.txt" 2>/dev/null; }
 reason() { grep -o '^\*\*Motivo:\*\* `[a-z-]*`' "$tmp/comment.txt" 2>/dev/null | sed 's/.*`\(.*\)`/\1/'; }

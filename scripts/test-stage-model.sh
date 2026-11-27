@@ -161,6 +161,42 @@ check CA13 "setup-isolation.sh falhando usa auto" "auto" "$(perm_mode)"
 agy_tier_code() { bash "$script" agy-tier "$@" >/dev/null 2>&1; echo $?; }
 check CA2 "agy-tier removido sai com código 1" "1" "$(agy_tier_code triagem)"
 
+# B1.1: o processo herda o diretório e o ambiente, substitui a fachada com
+# exec, e conserva os dois canais de saída e o código nativo.
+process_dir="$tmp/projeto com espaco"
+executor="$tmp/claude falso"
+mkdir -p "$process_dir"
+printf '{ "is_error": false, "result": "linha\\nseguinte" }\n\n' > "$process_dir/native.json"
+cat > "$executor" <<'EOF'
+#!/usr/bin/env bash
+printf '%s\n' "$PWD" "$LC_ALL" "$TEST_MARKER" "$$" > process.txt
+cat native.json
+printf 'diagnóstico do processo\n\n' >&2
+exit "$TEST_EXIT"
+EOF
+chmod +x "$executor"
+process_run() (
+  cd "$process_dir" || exit 1
+  export HOME="$tmp/home" FABRICA_CLAUDE_BIN="$executor" TEST_MARKER="valor de teste" TEST_EXIT="$1"
+  unset CLAUDECODE FABRICA_HARNESS OPENCODE_SESSION_ID ANTIGRAVITY_AGENT ANTIGRAVITY_CONVERSATION_ID
+  exec bash -c 'echo "$$" > facade.pid; exec bash "$@"' bash "$script" run triagem 12
+)
+process_run 0 > "$process_dir/stdout" 2> "$process_dir/stderr"
+check B1.1 "executor com espaço no caminho roda com sucesso" 0 "$?"
+check B1.1 "stdout conserva o JSON e as quebras finais" sim \
+  "$(cmp -s "$process_dir/native.json" "$process_dir/stdout" && echo sim || echo não)"
+check B1.1 "stderr conserva o diagnóstico separado do JSON" sim \
+  "$(printf 'diagnóstico do processo\n\n' | cmp -s - "$process_dir/stderr" && echo sim || echo não)"
+check B1.1 "diretório, locale e variável herdada chegam ao executor" \
+  "$(printf '%s\n' "$process_dir" C.UTF-8 'valor de teste')" "$(head -n 3 "$process_dir/process.txt")"
+check B1.1 "exec preserva o PID da fachada" "$(cat "$process_dir/facade.pid")" "$(tail -n 1 "$process_dir/process.txt")"
+for native_exit in 2 3 124 130 143; do
+  process_run "$native_exit" > "$process_dir/stdout" 2> "$process_dir/stderr"
+  check B1.1 "a fachada repassa o código nativo $native_exit" "$native_exit" "$?"
+done
+check B1.1 "saída do processo continua disponível depois de exit não zero" sim \
+  "$(cmp -s "$process_dir/native.json" "$process_dir/stdout" && echo sim || echo não)"
+
 echo
 echo "$((total - failures)) de $total passaram."
 [[ $failures -eq 0 ]]
