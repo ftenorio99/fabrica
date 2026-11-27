@@ -57,7 +57,7 @@ Guarde, para cada pedido, um trecho dele e o que foi feito: o commit da correç�
    - **Primeira vez:** faça o "Pedido" da verificação pedida ao usuário, com os comandos que o ambiente não roda e a orientação do modo.
    - **Retomada:** siga a "Retomada" da verificação pedida ao usuário. Sem PR em rascunho e sem esperar CI, siga a partir do revisor.
 2. **PR em rascunho:** sem PR, abra-o já como rascunho (`gh pr create --draft --body-file <arquivo>`), com o corpo do passo 5 e os CAs que dependem da verificação que o ambiente não roda com ⏳ "aguardando o CI". Em "Para a sua revisão", liste a anotação de cada comando e a orientação do modo. Com PR, use-o e, se ele não estiver em rascunho, converta com `gh pr ready --undo`.
-3. **CI:** espere o CI do head como no passo 6 ("Ler o CI").
+3. **CI:** espere o CI do head com o `ci-wait.sh`, como no passo 6 ("Ler o CI"), e aja pela tabela de códigos de lá.
 4. **Revisor:** passe a ele, além do que vem abaixo, os comandos que o ambiente não roda e o resultado do CI: nome, `conclusion` e link de cada run.
 
 Sem verificação pendente, o PR só é aberto no passo 5 e não nasce em rascunho por causa da verificação de integração: o revisor roda a verificação, e a evidência dos CAs de integração é a dele. O CI do passo 6 continua sendo esperado, como em todo PR.
@@ -164,15 +164,24 @@ Se já existir PR da branch (`gh pr view`), inclusive o rascunho do passo 3, atu
 - **Prova do bug** (só em issue de `fix`, pelo campo `Tipo` da triagem): na tabela de critérios de aceite, a evidência de cada CA que descreve o bug cita a reprodução antes da correção (comando e falha) e depois dela (o mesmo comando e o resultado). Se o revisor não a reproduziu e aceitou a anotação do `implementar`, escreva "pela anotação do implementar, não reproduzida". Sem reprodução, a evidência remete a "Para a sua revisão", e essa seção traz o motivo. Nos outros tipos, nada disso se aplica.
 
 ## 6. CI, labels e resposta no PR
-- **Ler o CI:** o `gh pr checks` não funciona com o token fine-grained do [guia de isolamento](../../docs/guias/isolamento-do-agente.md#token-fine-grained), que não lê checks. Leia os runs do head pela API do Actions, repetindo a consulta até o fim:
+- **Ler o CI:** o `gh pr checks` não funciona com o token fine-grained do [guia de isolamento](../../docs/guias/isolamento-do-agente.md#token-fine-grained), que não lê checks, e não escreva um laço de espera seu. Quem espera é o script, que lê os runs do head pela API do Actions. Guarde o `<desde>` uma vez por espera, com `date -u +%Y-%m-%dT%H:%M:%SZ`, e rode em primeiro plano:
   ```
-  gh api "repos/<dono>/<repo>/actions/runs?head_sha=$(git rev-parse HEAD)" -q '.workflow_runs[] | [.name, .status, .conclusion, .html_url] | @tsv'
+  cd <wt> && bash <diretório base desta skill>/../../scripts/ci-wait.sh <dono>/<repo> $(git rev-parse HEAD) <desde>
   ```
-  - **Terminou:** todos os runs do head estão com `status` `completed`.
-  - **Verde:** todo run tem `conclusion` `success`, `skipped` ou `neutral`.
-  - **Sem CI:** nenhum run do head depois de 10 minutos. Registre no PR e siga, como com um PR sem CI. Com verificação pendente para o CI, isso equivale a não ter CI: siga o item 1 da "Verificação pendente para o CI" do passo 3. Depois da "Retomada" desse item, a verificação já está atendida pela resposta do usuário: trate o PR como sem CI, sem esperar os 10 minutos.
-- Espere o CI. Se falhar por causa da mudança, corrija como no passo 4 (conta como rodada). Se precisou de duas ou mais correções por CI vermelho, registre uma lição com o gatilho `rodadas`, com os checks que falharam e o que os resolveu ([../licao/formato.md](../licao/formato.md)). Se falhar por motivo externo (instabilidade, credencial), registre no PR e siga.
-- Com CI verde, sem achados bloqueantes e sem telas pendentes ou recusadas no passo 5, mesmo com CAs ⏳ "depois do merge": se o PR está em rascunho só por causa do passo 3, de um "CA manual fora do alcance" do passo 4 ou das telas do passo 5, já atendidos na retomada, tire o rascunho (`gh pr ready`). Depois, `gh issue edit <nº> --add-label pronto-revisao --remove-label escalonado`. Nos CAs verificados pelo CI, a evidência no corpo é o nome e o link do run, e o resumo ganha a linha "Verificação de integração pelo CI (ADR 0011)". Se o passo 2 escalou uma mudança de escopo, remova `pronto-revisao` se estiver aplicada (`gh issue edit <nº> --remove-label pronto-revisao`) e mantenha `escalonado`: o PR espera a mudança da spec, não a revisão do usuário.
+  Aja pelo código de saída:
+
+  | Código | O que fazer |
+  |---|---|
+  | 0 | CI verde: siga. |
+  | 1 | CI vermelho: as linhas `falhou:` trazem o nome, a `conclusion` e o link de cada run que falhou. Siga o item "CI vermelho" abaixo. |
+  | 3 | Sem CI: registre no PR e siga, como com um PR sem CI. Com verificação pendente para o CI, isso equivale a não ter CI: siga o item 1 da "Verificação pendente para o CI" do passo 3. |
+  | 4 ou 5 | Deixe o PR em rascunho (`gh pr ready --undo`, se não estiver), sem `pronto-revisao` (`--remove-label pronto-revisao`, se estiver aplicada). Aplique `escalonado` e comente na issue, com o marcador `<!-- fabrica:revisar -->`, o resultado (`tempo-esgotado` ou `erro-leitura`), a última linha de estado e que a retomada é `/fabrica:revisar <nº>`. Não registre lição. Pare. |
+  | 6 | A espera não acabou: chame de novo, com os mesmos argumentos, até sair outro código. |
+  | 2 ou outro | Trate como o 5. |
+
+  Cada espera nova (um head novo, ou a retomada depois de um código 4 ou 5) tem um `<desde>` novo. Depois da "Retomada" do item 1 da "Verificação pendente para o CI" do passo 3, a verificação já está atendida pela resposta do usuário: trate o PR como sem CI, sem chamar o script.
+- **CI vermelho:** se falhar por causa da mudança, corrija como no passo 4 (conta como rodada). Se precisou de duas ou mais correções por CI vermelho, registre uma lição com o gatilho `rodadas`, com os checks que falharam e o que os resolveu ([../licao/formato.md](../licao/formato.md)). Se falhar por motivo externo (instabilidade, credencial), registre no PR e siga.
+- Com CI verde, sem achados bloqueantes e sem telas pendentes ou recusadas no passo 5, mesmo com CAs ⏳ "depois do merge": se o PR está em rascunho só por causa do passo 3, de um "CA manual fora do alcance" do passo 4, das telas do passo 5 ou de um código 4 ou 5 da espera do CI, já atendidos na retomada, tire o rascunho (`gh pr ready`). Depois, `gh issue edit <nº> --add-label pronto-revisao --remove-label escalonado`. Nos CAs verificados pelo CI, a evidência no corpo é o nome e o link do run, e o resumo ganha a linha "Verificação de integração pelo CI (ADR 0011)". Se o passo 2 escalou uma mudança de escopo, remova `pronto-revisao` se estiver aplicada (`gh issue edit <nº> --remove-label pronto-revisao`) e mantenha `escalonado`: o PR espera a mudança da spec, não a revisão do usuário.
 - **Resposta no PR:** comente no PR (`gh pr comment <nº do PR> --body-file <arquivo>`) com o marcador `<!-- fabrica:revisar -->`. Esse comentário vira a nova âncora do passo 2, então publique-o sempre que aplicar `pronto-revisao` e sempre que tratar pedidos, mesmo com rascunho ou escalado:
   - **instante da coleta:** logo abaixo do marcador, a linha `**Pedidos lidos até:** <instante da coleta do passo 2>`;
   - **sem pedidos:** uma linha, "PR pronto para a sua revisão", com o resumo da revisão automática;
