@@ -79,7 +79,7 @@ Chame o subagente `revisor` deste plugin: no Claude Code, pelo Agent tool, como 
 Passe ao revisor:
 - o número da issue e o caminho da spec ou, no atalho, o link do comentário de triagem com a spec curta;
 - a branch, a base (`origin/main`) e o caminho `<wt>` da worktree da issue, onde ele lê o código e roda as verificações;
-- as anotações da implementação (verificações manuais feitas e desvios da spec), rotuladas como "afirmações do `implementar`, a conferir": o revisor só aceita como evidência o que ele mesmo encontra ou roda;
+- as anotações da implementação (verificações manuais feitas, desvios da spec e, numa issue de `fix`, a prova do bug: a reprodução antes e depois ou o motivo de não haver reprodução), rotuladas como "afirmações do `implementar`, a conferir": o revisor só aceita como evidência o que ele mesmo encontra ou roda, com a exceção da prova do bug prevista nas instruções dele. Rodada sozinha, com PR, a prova do bug é a que o corpo do PR cita;
 - na retomada de uma verificação pedida ao usuário, o comando e a saída da resposta dele, com os CAs a que ela se refere;
 - a saída do `setup-isolation.sh --check`;
 - com verificação pendente para o CI, os comandos que o ambiente não roda e o resultado do CI do head;
@@ -157,10 +157,11 @@ Se já existir PR da branch (`gh pr view`), inclusive o rascunho do passo 3, atu
   <Número de rodadas, achados corrigidos, achados de que discordou (com o motivo) e sugestões não aplicadas.>
 
   ## Para a sua revisão
-  <Onde vale olhar com mais atenção: arquivos sensíveis, decisões, riscos. Cite cada CA ⏳ e o que você confere depois do merge.>
+  <Onde vale olhar com mais atenção: arquivos sensíveis, decisões, riscos. Cite cada CA ⏳ e o que você confere depois do merge. Numa issue de `fix` com bug sem reprodução, o motivo.>
 
   Fixes #<nº>
   ```
+- **Prova do bug** (só em issue de `fix`, pelo campo `Tipo` da triagem): na tabela de critérios de aceite, a evidência de cada CA que descreve o bug cita a reprodução antes da correção (comando e falha) e depois dela (o mesmo comando e o resultado). Se o revisor não a reproduziu e aceitou a anotação do `implementar`, escreva "pela anotação do implementar, não reproduzida". Sem reprodução, a evidência remete a "Para a sua revisão", e essa seção traz o motivo. Nos outros tipos, nada disso se aplica.
 
 ## 6. CI, labels e resposta no PR
 - **Ler o CI:** o `gh pr checks` não funciona com o token fine-grained do [guia de isolamento](../../docs/guias/isolamento-do-agente.md#token-fine-grained), que não lê checks. Leia os runs do head pela API do Actions, repetindo a consulta até o fim:
