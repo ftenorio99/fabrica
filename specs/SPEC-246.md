@@ -1,7 +1,7 @@
 # SPEC-246: fix: impede downgrade e janela sem proteção na atualização dos hooks do git
 
 **Issue:** #246 · **PRD:** base (proteção da `main`, ADR 0002) · **Fonte do escopo:** — · **Classe:** implementacao-complexa · **Tamanho:** G
-**Status:** rascunho · **Atualizada em:** 2026-11-27
+**Status:** aprovada · **Atualizada em:** 2026-11-27
 
 ## Contexto
 Os hooks globais do git da fábrica ([ADR 0002](../docs/adr/0002-protecao-da-main-por-hooks-do-git.md), SPEC-27) ficam numa pasta única por usuário, `${XDG_CONFIG_HOME:-~/.config}/fabrica/githooks`, apontada pelo `core.hooksPath` global. O Claude Code e o Antigravity rodam `scripts/setup-githooks.sh --check` em toda sessão; o OpenCode e o Codex, pelo `/fabrica:setup`.
@@ -488,3 +488,4 @@ Enquanto houver uma distribuição legada ativa, ela pode reintroduzir o downgra
   - A conclusão automática de uma publicação interrompida pelos bytes `alvo` exige T ≥ I; com T < I, `falha interrompida`.
   - Garantias separadas por tipo de publicação (atualização, reparo, primeira instalação, rollback) e declaração de integridade só depois da releitura.
   - CAs alterados: 3, 5, 10, 13 e 14. Nenhum incluído ou removido.
+- 2026-11-27: aprovada pelo usuário, com os ajustes de consistência acima.
