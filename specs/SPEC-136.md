@@ -1,7 +1,7 @@
 # SPEC-136: Script de espera do CI substitui o laço improvisado no revisar
 
 **Issue:** #136 · **PRD:** — · **Fonte do escopo:** — · **Classe:** implementacao-complexa · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-11-27
+**Status:** aprovada · **Atualizada em:** 2026-11-27
 
 ## Contexto
 Para esperar o CI, o `/fabrica:revisar` manda ler os runs do head pela API do Actions "repetindo a consulta até o fim" (passo 6, "Ler o CI", e o item 3 da "Verificação pendente para o CI" do passo 3). O intervalo, o tempo máximo e a forma do laço ficam por conta do agente, e as regras de "terminou", "verde" e "sem CI" (SPEC-116) estão em prosa. A skill `babysit-pr` do tstack resolve isso com um script que imprime uma linha por evento e sai com um código por resultado, mas lê checks, que o token fine-grained do [guia de isolamento](../docs/guias/isolamento-do-agente.md#token-fine-grained) não lê.
@@ -117,3 +117,4 @@ nenhum
 
 ## Histórico
 - 2026-11-27: criação.
+- 2026-11-27: spec aprovada.
