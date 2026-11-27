@@ -1,7 +1,7 @@
 # SPEC-135: Revisar confere se a main avançou em arquivos do PR antes de aplicar pronto-revisao
 
 **Issue:** #135 · **PRD:** — · **Fonte do escopo:** — · **Classe:** implementacao-complexa · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-11-27
+**Status:** aprovada · **Atualizada em:** 2026-11-27
 
 ## Contexto
 Hoje a branch da issue só é atualizada com a `main` no início do `/fabrica:implementar` (`skills/implementar/SKILL.md`, passo de preparo: `git rebase origin/main`). Com até 3 issues em andamento, outro PR entra na `main` enquanto este é implementado ou espera a revisão, e o `/fabrica:revisar` aplica `pronto-revisao` (passo 6) com um CI verde que vale para uma base antiga. A ideia vem da seção "Base branch and merging" da skill `babysit-pr` do tstack: o PR não está pronto se ficou atrás da base em arquivos que ele toca ou em conflito, e a conferência se repete logo antes de liberar.
@@ -136,3 +136,4 @@ nenhum
 
 ## Histórico
 - 2026-11-27: criação.
+- 2026-11-27: aprovada.
