@@ -81,11 +81,16 @@ Rode `bash <diretório base>/../../scripts/check-gh.sh` e siga a linha que ele i
 - Se falhar, anote o erro e siga para o passo 4: os hooks do git não dependem do repositório.
 
 ## 4. Hooks do git
-- Confira com `bash <diretório base>/../../scripts/setup-githooks.sh --check`:
-  - `ok` ou `atualizado <versão>`: já estão instalados. Não pergunte nada.
+- Confira com `bash <diretório base>/../../scripts/setup-githooks.sh --check` e mostre ao usuário a linha que ele imprimir. O que cada saída garante está na [SPEC-246](../../specs/SPEC-246.md); a versão deste plugin é o campo `version` de `<diretório base>/../../.claude-plugin/plugin.json`.
+  - `ok`, `atualizado <versão>`, `mais-novo <versão>` ou `ocupado integra`: já estão instalados e íntegros. Não pergunte nada.
+  - `reparado <versão>`: diga que a pasta estava danificada ou com uma atualização interrompida e foi recuperada nessa versão. Não pergunte nada.
+  - `mais-novo <versão> incerta`, `divergente <versão>`, `divergente <versão> incerta`, `falha danificada`, `falha versao-desconhecida`, `falha interrompida` ou `falha rollback-interrompido`: diga que nada foi trocado por uma versão menor e explique as duas saídas. A normal é rodar o setup de uma distribuição da fábrica na versão indicada ou mais nova. A outra é voltar para a versão deste plugin, com o rollback abaixo. Em `falha rollback-interrompido`, diga que um rollback anterior foi interrompido e que ele só continua com uma nova confirmação.
+  - `ocupado incerta`: outro setup está rodando ou a trava dos hooks precisa de conferência manual. Mostre os passos de [solução de problemas](../../docs/solucao-de-problemas.md#os-hooks-do-git-da-fábrica-avisam-de-outro-estado) e diga que eles são do usuário, no terminal: o `protect-main.sh` recusa comandos do agente que citam a pasta dos hooks.
+  - Outro `falha <código>` (`origem-invalida`, `destino-invalido`, `preparacao`, `publicacao`, `trava`): mostre a linha e o erro do script e remeta à mesma seção. Não tente de novo com outra opção.
   - `ausente`: explique ao usuário que o script copia os hooks para `~/.config/fabrica/githooks/` e define o `core.hooksPath` no `~/.gitconfig`, o que passa a recusar commit e push na `main`/`master` em todos os repositórios da máquina, inclusive os feitos à mão (no terminal, `--no-verify` passa por cima). Os hooks de cada repositório (`.git/hooks`) continuam rodando, encadeados. Peça confirmação com o AskUserQuestion antes de instalar.
 - Com a confirmação, rode `bash <diretório base>/../../scripts/setup-githooks.sh`.
 - Se o script disser que já existe outro `core.hooksPath` global, mostre o valor e pergunte, com o AskUserQuestion, se o usuário quer trocar. Só com um sim rode de novo com `--force`.
+- **Rollback:** só quando o usuário escolher voltar para a versão deste plugin. Pergunte com o AskUserQuestion, com "Não reverter" como primeira opção, e diga na pergunta que a versão deste plugin pode ter menos proteções que a instalada e que o rollback vale até uma distribuição mais nova da fábrica rodar o setup. Só com um sim rode `bash <diretório base>/../../scripts/setup-githooks.sh --allow-downgrade <versão deste plugin>`. Nunca passe essa opção sem a confirmação desta execução, nem depois de um `falha rollback-interrompido`.
 
 ## 5. Statusline
 - Confira com `bash <diretório base>/../../scripts/setup-statusline.sh --check`:
@@ -157,7 +162,7 @@ Monte os itens conforme a linha `onde`. Item feito aparece marcado como feito, c
 | 3, rede base | Pendente | Feito: o setup roda dentro da VM. O item 6 confere |
 | 3, Playwright | Com `e2e sim`, pendente. Com `e2e não`, não mostre a linha | Igual ao host |
 | 4 | Pendente | Com `token marcador`, feito: o `GH_TOKEN` da VM é o marcador do proxy. Com `token ausente`, pendente. Com `token real`, pendente, com o aviso de que o `GH_TOKEN` da VM tem formato de token real e deveria ser o marcador do proxy |
-| 5 | Feito se o `--check` do passo 4 imprimiu `ok` ou `atualizado <versão>`, ou se os hooks foram instalados nesta execução; senão, pendente | Igual ao host |
+| 5 | Feito se o `--check` do passo 4 imprimiu `ok`, `atualizado <versão>`, `mais-novo <versão>`, `reparado <versão>` ou `ocupado integra`, ou se os hooks foram instalados nesta execução; senão, pendente | Igual ao host |
 | 6 | Pendente | Pendente, dizendo que ele também confere os itens 1 e 3, que não dá para provar de dentro da VM |
 
 1. **No host, uma vez por máquina:** fechar a rede padrão do `sbx`, que nasce aberta. Conferir com `sbx policy ls`; se a política global liberar tudo, `sbx policy reset` e `sbx policy init deny-all`.

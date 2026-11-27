@@ -60,7 +60,37 @@ Problemas que já apareceram no uso real e como resolver cada um.
 ## "Os hooks do git da fábrica não estão instalados nesta máquina"
 - **Sintoma:** a sessão abre com esse aviso, ou o Claude é bloqueado em qualquer `commit` ou `push`.
 - **Causa:** a máquina ainda não tem os hooks globais do git, ou o `core.hooksPath` foi alterado.
-- **O que fazer:** rode `/fabrica:setup` e confirme a instalação. Para conferir o estado, use `bash scripts/setup-githooks.sh --check` no clone da fábrica, onde o script fica. A resposta é `ok`, `ausente` ou `atualizado <versão>`. O `--check` não muda a configuração do git, mas não é só leitura: se a versão do plugin mudou, ele copia os hooks novos e responde `atualizado <versão>`.
+- **O que fazer:** rode `/fabrica:setup` e confirme a instalação. Para conferir o estado, use `bash scripts/setup-githooks.sh --check` no clone da fábrica, onde o script fica. O `--check` não muda a configuração do git, mas não é só leitura: quando a origem é mais nova ou a pasta está danificada, ele publica os hooks e diz o que fez. As outras respostas estão na seção seguinte.
+
+## Os hooks do git da fábrica avisam de outro estado
+A pasta dos hooks é uma só por máquina e é compartilhada pelo Claude Code, pelo Antigravity, pelo OpenCode, pelo Codex e pelos clones usados com `--plugin-dir`, cada um na sua versão. O `setup-githooks.sh` nunca volta sozinho para uma versão menor, troca os arquivos sem deixar faltar as entradas de proteção e usa uma trava para duas sessões não escreverem ao mesmo tempo ([SPEC-246](../specs/SPEC-246.md), emenda da [ADR 0002](adr/0002-protecao-da-main-por-hooks-do-git.md)).
+- **Sintoma:** a sessão abre com um aviso sobre os hooks do git, ou o `--check` responde algo além de `ok`, `atualizado <versão>`, `mais-novo <versão>` e `ocupado integra`, que são as respostas sem aviso.
+- **O que cada resposta quer dizer:**
+  - `reparado <versão>`: a pasta estava danificada, ou uma atualização tinha sido interrompida, e foi recuperada nessa versão. Não precisa fazer nada.
+  - `mais-novo <versão> incerta`: a pasta é de uma versão mais nova que a deste plugin, gravada por um script antigo, e o script não consegue provar que ela está íntegra. Nada foi trocado.
+  - `divergente <versão>` ou `divergente <versão> incerta`: a pasta tem a mesma versão do plugin, mas outro conteúdo. Nada foi trocado.
+  - `falha danificada` ou `falha versao-desconhecida`: a pasta está danificada e é de uma versão maior que a deste plugin, ou de uma versão que não dá para provar. Só os invólucros que faltavam foram recriados, e as permissões perdidas, devolvidas; nada foi sobrescrito.
+  - `falha interrompida`: uma atualização foi interrompida e este plugin é mais antigo que ela. Rode o setup de uma distribuição da versão nova.
+  - `falha rollback-interrompido`: um rollback foi interrompido. Ele não continua sozinho: rode o rollback de novo, com a confirmação, ou o setup de uma distribuição da versão anterior a ele.
+  - `ocupado incerta`: outro setup está rodando, ou a trava da pasta ficou num estado que o script não decide sozinho. Se o aviso se repetir, siga a recuperação manual abaixo.
+  - `falha <outro código>`: `origem-invalida` (versão do plugin fora do formato), `destino-invalido` (a pasta dos hooks virou um symlink ou um arquivo), `preparacao` ou `publicacao` (cópia ou troca dos arquivos falhou, sem perder as entradas de proteção) e `trava` (o setup perdeu a trava no meio). O detalhe sai no erro do script.
+- **O que fazer:**
+  - O caminho normal é rodar o `/fabrica:setup` de uma distribuição na versão indicada ou mais nova, ou atualizar todas, como em "Migração" abaixo.
+  - **Rollback:** para voltar de propósito para uma versão menor, rode o `/fabrica:setup` dessa distribuição e confirme o rollback, ou rode `bash scripts/setup-githooks.sh --allow-downgrade <versão do plugin>` no clone dela. A versão repetida é a confirmação. A versão menor pode ter menos proteções que a instalada, e o rollback dura até uma distribuição mais nova rodar o setup, que sobe a versão de novo. Para mantê-lo, atualize ou desative as distribuições mais novas. Se o rollback for interrompido, ele só continua com um novo `--allow-downgrade` confirmado.
+  - **Recuperação manual da trava**, no terminal, porque o `protect-main.sh` recusa comandos do agente que citam a pasta dos hooks:
+    1. Confirme que nenhum setup está rodando: `pgrep -af setup-githooks.sh` não deve listar nada.
+    2. Inspecione a pasta com `ls -la ~/.config/fabrica/githooks/` (ou o caminho com `XDG_CONFIG_HOME`) e o `readlink` do `.lock` e do `.break`. Confira o host e se o PID não existe mais (`kill -0 <pid>` falha) ou é de outro processo.
+    3. Remova o que estiver abandonado: `rm` no `.break` e no `.lock`, ou `rm -r` no `.lock` se ele for uma pasta criada por engano.
+    4. Rode `bash <clone>/scripts/setup-githooks.sh --check`.
+- **Migração:** a proteção completa só vale depois que todas as distribuições ativas na máquina tiverem o script novo. Uma distribuição antiga ainda pode trocar a pasta por uma versão menor ou abrir a janela sem as entradas de proteção; o script novo detecta isso na sessão seguinte e volta para a versão maior quando pode. Para atualizar:
+  - Claude Code: `claude plugin marketplace update fabrica` e `claude plugin update fabrica@fabrica`;
+  - Antigravity: reinstale com `agy plugin install`;
+  - OpenCode: atualize o adaptador, como diz o [`opencode/README.md`](../opencode/README.md);
+  - clones usados com `--plugin-dir`: rebase sobre a `main`;
+  - Codex: gere o pacote de novo depois da readequação da SPEC-245.
+
+  Depois, abra uma sessão ou rode o `/fabrica:setup` e confira que o `--check` responde `ok`. Numa máquina com umask 002, a pasta gravada pelo script antigo tem permissões 0775 e conta como danificada: a primeira execução nova a republica (`reparado`) ou, se este plugin for mais antigo que ela, avisa sem trocar nada.
+- **Limites:** a proteção cobre interrupções, disco cheio, sessões simultâneas e distribuições de versões diferentes. Ela não cobre distribuições antigas, edição manual da pasta, processos do mesmo usuário que ignoram a trava, pasta em NFS ou compartilhada entre contêineres com o mesmo nome de host, nem o macOS, que não foi testado. A lista completa está na SPEC-246.
 
 ## "Commit direto na 'main' bloqueado" ou "Push para a main bloqueado"
 - **Sintoma:** o git recusa um commit ou um push.
