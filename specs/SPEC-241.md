@@ -1,7 +1,7 @@
 # SPEC-241: remover adaptações e overrides do Antigravity e tratá-lo como sessão genérica
 
 **Issue:** #241 · **PRD:** F10 · **Fonte do escopo:** — · **Classe:** implementacao-complexa · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-11-27
+**Status:** aprovada · **Atualizada em:** 2026-11-27
 
 ## Contexto
 As adaptações específicas para o Antigravity CLI (`agy`) introduzidas nas issues #216–#220 criaram orquestração própria via `run_workflow`, subagentes estáticos de etapa em `agy-agents/`, delegação a `research`/`browser` e tradução de labels `modelo:*` para tiers (`flash_lite`, `flash`, `pro`) via `scripts/stage-model.sh agy-tier`. Como `run_workflow` e `invoke_subagent` no `agy` aceitam apenas tiers genéricos em vez de modelos específicos selecionados por terminal/sessão, essas adaptações impedem o fluxo desejado de abrir um terminal por agente com o modelo fixado manualmente e executar as etapas diretamente na sessão. Esta issue remove essas adaptações específicas (F10 — execução das etapas por sessão) para alinhar o Antigravity ao caminho genérico de sessão, como já ocorre no `opencode`.
@@ -108,3 +108,4 @@ nenhum
 
 ## Histórico
 - 2026-11-27: criação.
+- 2026-11-27: aprovada.
