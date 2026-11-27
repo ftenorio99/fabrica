@@ -75,6 +75,48 @@ for contract in claude agy; do
   result $? CA5 "statusline --check, $contract: sem saída e sem erro"
 done
 
+# CA11 (SPEC-246): cada saída do --check, com um setup-githooks.sh falso.
+fake_root="$tmp/fake-root"
+mkdir -p "$fake_root/scripts"
+cat >"$fake_root/scripts/setup-githooks.sh" <<'EOF'
+printf '%s\n' "$FAKE_LINE"
+exit "$FAKE_RC"
+EOF
+# check <silencioso|mensagem> <código de saída> <linha> [trecho esperado]
+check() {
+  local kind=$1 rc=$2 line=$3 want=${4-} c a ok=0
+  c=$(printf '%s' "$claude_in" | FAKE_LINE=$line FAKE_RC=$rc CLAUDE_PLUGIN_ROOT=$fake_root bash "$hook" 2>/dev/null)
+  a=$(printf '%s' "$agy_in" | FAKE_LINE=$line FAKE_RC=$rc CLAUDE_PLUGIN_ROOT=$fake_root bash "$hook" 2>/dev/null)
+  if [[ $kind == silencioso ]]; then
+    [[ -z $c && -z $a ]] || ok=1
+  else
+    [[ -n $c && $c != *$'\n'* && $c == *"$want"* ]] || ok=1
+    jq -e --arg m "$c" '.injectSteps | length == 1 and .[0].systemMessage.systemMessage == $m' <<<"$a" >/dev/null || ok=1
+  fi
+  result $ok CA11 "'$line' (saída $rc): $kind${want:+, com \"$want\"}"
+}
+check silencioso 0 ok
+check silencioso 0 'atualizado 1.2.3'
+check silencioso 0 'mais-novo 1.2.3'
+check silencioso 0 'ocupado integra'
+check mensagem 0 'reparado 1.2.3' 'recuperados na versão 1.2.3'
+check mensagem 0 'mais-novo 1.2.3 incerta' 'Não houve downgrade'
+check mensagem 0 'ocupado incerta' 'recuperação manual da trava'
+check mensagem 0 'divergente 1.2.3' 'conteúdo diferente'
+check mensagem 0 'divergente 1.2.3 incerta' 'integridade deles não está comprovada'
+check mensagem 0 ausente "$msg"
+for code in origem-invalida destino-invalido preparacao publicacao interrompida rollback-interrompido danificada versao-desconhecida trava; do
+  check mensagem 1 "falha $code" "falhou ($code)"
+done
+check mensagem 3 ok 'não respondeu como esperado'
+check mensagem 0 'falha danificada' 'não respondeu como esperado'
+check mensagem 1 'falha inventada' 'não respondeu como esperado'
+check mensagem 0 'atualizado 01.2.3' 'não respondeu como esperado'
+check mensagem 0 'qualquer coisa' 'não respondeu como esperado'
+out=$(printf '%s' "$claude_in" | FAKE_LINE='divergente 1.2.3 $(touch x)' FAKE_RC=0 CLAUDE_PLUGIN_ROOT=$fake_root bash "$hook" 2>/dev/null)
+[[ $out != *touch* ]]
+result $? CA11 "linha não reconhecida não é repetida na mensagem"
+
 echo
 if (( failures )); then
   echo "$failures de $total casos falharam."
