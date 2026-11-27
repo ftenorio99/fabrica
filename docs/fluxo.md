@@ -59,6 +59,9 @@ As etapas que só leem ou rodam scripts (`/fabrica:status`, `/fabrica:metricas` 
 
 O revisor tem um teto de turnos. Uma revisão parcial, que parou no teto, não aprova nada: a revisão roda o revisor de novo uma vez e, se ele parar no teto outra vez, deixa o PR em rascunho e escala ([`revisar`](../skills/revisar/SKILL.md)).
 
+## Prova do bug
+Numa issue de `fix`, o teste verde não basta: um teste que já passava antes da correção não prova que ela resolveu o problema. Por isso, a implementação reproduz a falha antes de corrigir, vê o teste novo falhar e roda a mesma reprodução depois ([`implementar`](../skills/implementar/SKILL.md)). O revisor confere que o teste falha sem a correção, sem mexer na branch nem na worktree ([`revisor`](../agents/revisor.md)), e o PR mostra o antes e o depois ([`revisar`](../skills/revisar/SKILL.md)). Quando o bug não pode ser reproduzido, o PR traz o motivo em "Para a sua revisão". Nos outros tipos de issue, nada disso é exigido.
+
 Quando algo dá errado, o agente para, comenta na issue e aplica `escalonado`. Veja o guia [Issue escalonada](guias/issue-escalonada.md).
 
 Quando a implementação ou a revisão dependem de uma ação sua fora do GitHub (criar uma conta, cadastrar um secret, gerar uma chave), o agente publica na issue uma checklist passo a passo e aplica `acao-externa`. Você faz os passos, marca os itens e retoma com `/fabrica:avancar`. Veja o guia [Ação externa](guias/acao-externa.md).
