@@ -3,6 +3,7 @@ name: avancar
 description: Avança sozinho as issues da fábrica no repositório atual - executa a próxima etapa de agente de cada issue (triagem, spec, implementar, revisar), relê o estado e repete até a issue chegar a um portão do usuário, com no máximo 4 etapas por execução. Nunca aprova spec, nunca faz merge e nunca responde no lugar do usuário. Use quando o usuário quiser que o fluxo ande sem digitar cada comando.
 argument-hint: "[número da issue]"
 disable-model-invocation: true
+disallowed-tools: AskUserQuestion
 ---
 
 # Avançar o fluxo

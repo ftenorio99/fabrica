@@ -3,6 +3,7 @@ name: setup
 description: Define o modo de isolamento do projeto (VM do Docker Sandboxes, o sbx, ou sem sandbox) e grava a escolha em .fabrica/isolamento.txt, remove os restos do sandbox nativo antigo do projeto e, com confirmação, da máquina, confere se o gh está instalado, autenticado e na versão mínima da fábrica, cria ou corrige as labels da fábrica (agente, precisa-info, spec-pronta, spec-aprovada, escalonado, acao-externa, pronto-revisao, licao, em-andamento) num repositório do GitHub, conforme a tabela de estados.md, instala na máquina os hooks do git que bloqueiam commit e push na main, se o usuário quiser, instala a statusline da fábrica e, com confirmação, instala ou atualiza no projeto o workflow do dispatcher (.github/workflows/agente.yml), terminando com o checklist dos três secrets dele, e confere o CI do PR do projeto, instalando com confirmação o modelo .github/workflows/ci.yml (make lint, make test e make e2e) quando não há CI em pull_request e avisando quando o CI existente não roda o make e2e. No modo sbx, termina com o checklist da VM. Use num repositório que ainda não tem as labels, para ligar o dispatcher num projeto ou atualizar o workflow dele, para instalar o CI do PR num projeto sem CI, quando uma etapa avisar que uma label não existe ou que o gh está desatualizado, quando avisarem que os hooks do git não estão instalados, dentro de uma VM nova do sbx ou para escolher como isolar os agentes num projeto.
 argument-hint: "[<dono>/<repo>]"
 disable-model-invocation: true
+effort: medium
 ---
 
 # Setup da fábrica

@@ -2,6 +2,10 @@
 name: metricas
 description: Mede o desempenho da fábrica a partir dos eventos do GitHub - por issue entregue, por marco e por repositório - com o tempo da abertura ao merge, o tempo esperando o usuário e o tempo com o agente, dividido em fila e trabalho, os tokens gastos, as rodadas de triagem e de spec, as respostas no PR, os escalonamentos e as lições. Compara dois períodos para medir o efeito de uma mudança na fábrica. Só lê, não altera nada. Use quando o usuário perguntar como a fábrica está indo, quanto tempo as issues levam ou se uma mudança melhorou o fluxo.
 argument-hint: "[repositório] [AAAA-MM-DD..AAAA-MM-DD] [AAAA-MM-DD..AAAA-MM-DD]"
+context: fork
+agent: general-purpose
+background: false
+effort: medium
 ---
 
 # Métricas da fábrica
@@ -135,3 +139,5 @@ As três notas aparecem sempre. Ordene a tabela por issue da mais recente para a
 - **Só leitura:** nenhum comando que altere o GitHub ou o repositório. Os arquivos de timeline ficam na pasta temporária da sessão.
 - Calcule os tempos com o script e as medianas com `python3`, nunca de cabeça.
 - Não invente dados: um campo sem fonte no histórico é `—`.
+
+**Resposta final:** esta skill roda num subagente, e só a última mensagem dele chega ao usuário. Termine com o relatório inteiro, no formato acima, com todas as tabelas e notas: não resuma, não omita seções e não diga "veja acima".
