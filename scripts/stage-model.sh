@@ -4,7 +4,6 @@
 #
 # Uso:
 #   stage-model.sh model <etapa> [label...]    -> "<apelido> <id> <esforço>"
-#   stage-model.sh agy-tier <etapa> [label...] -> "<flash_lite|flash|pro>"
 #   stage-model.sh next <apelido> <falhas>     -> apelido do próximo modelo
 #   stage-model.sh run <etapa> <nº> [label...]  -> executa o claude e repassa a saída
 #
@@ -27,13 +26,13 @@ fail() {
 
 [[ -f "$models_file" ]] || fail "não encontrei a tabela de modelos em $models_file."
 
-# Linhas "apelido<TAB>id<TAB>tier-agy" da seção "Modelos".
+# Linhas "apelido<TAB>id" da seção "Modelos".
 model_rows() {
   awk -F'|' '
     /^## / { in_t = ($0 == "## Modelos"); next }
     in_t && /^\| *`/ {
-      for (i = 2; i <= 4; i++) { gsub(/^ +| +$/, "", $i); gsub(/`/, "", $i) }
-      print $2 "\t" $3 "\t" $4
+      for (i = 2; i <= 3; i++) { gsub(/^ +| +$/, "", $i); gsub(/`/, "", $i) }
+      print $2 "\t" $3
     }
   ' "$models_file"
 }
@@ -62,10 +61,6 @@ step_rows() {
 
 model_id() { # model_id <apelido>
   model_rows | awk -F'\t' -v a="$1" '$1 == a { print $2; found = 1 } END { exit !found }'
-}
-
-agy_tier() { # agy_tier <apelido>
-  model_rows | awk -F'\t' -v a="$1" '$1 == a && $3 != "" { print $3; found = 1 } END { exit !found }'
 }
 
 # Apelido pedido pelas labels: imprime vazio (sem label) ou o apelido. Sai com 2
@@ -115,16 +110,6 @@ cmd_model() {
   [[ $rc -eq 0 ]] || exit $rc
   IFS=$'\t' read -r alias effort <<< "$sel"
   printf '%s %s %s\n' "$alias" "$(model_id "$alias")" "$effort"
-}
-
-cmd_agy_tier() {
-  [[ $# -ge 1 ]] || fail "uso: stage-model.sh agy-tier <etapa> [label...]"
-  local sel rc alias effort tier
-  sel="$(resolve_stage_selection "$@")"; rc=$?
-  [[ $rc -eq 0 ]] || exit $rc
-  IFS=$'\t' read -r alias effort <<< "$sel"
-  tier="$(agy_tier "$alias")" || fail "apelido $alias sem Tier agy na tabela."
-  printf '%s\n' "$tier"
 }
 
 cmd_next() {
@@ -192,12 +177,11 @@ cmd_run() {
   exec "${FABRICA_CLAUDE_BIN:-claude}" "${args[@]}"
 }
 
-[[ $# -ge 1 ]] || fail "uso: stage-model.sh model|agy-tier|next|run ..."
+[[ $# -ge 1 ]] || fail "uso: stage-model.sh model|next|run ..."
 sub="$1"
 shift
 case $sub in
   model) cmd_model "$@" ;;
-  agy-tier) cmd_agy_tier "$@" ;;
   next) cmd_next "$@" ;;
   run) cmd_run "$@" ;;
   *) fail "subcomando desconhecido: $sub." ;;
