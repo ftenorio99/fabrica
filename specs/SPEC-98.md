@@ -1,7 +1,7 @@
 # SPEC-98: Skills e revisor definem esforço, contexto e ferramentas proibidas no frontmatter
 
 **Issue:** #98 · **PRD:** F10 · **Fonte do escopo:** — · **Classe:** implementacao-complexa · **Tamanho:** M
-**Status:** rascunho · **Atualizada em:** 2026-11-26
+**Status:** aprovada · **Atualizada em:** 2026-11-26
 
 ## Contexto
 Hoje nenhuma skill do plugin nem o agente `revisor` usam os campos de frontmatter do Claude Code: tudo herda a sessão. O `/fabrica:avancar` diz "sem conversa no chat" só no texto, o `/fabrica:status` e o `/fabrica:metricas` despejam a saída do `gh` na sessão principal, as etapas mecânicas gastam o esforço da sessão e o revisor não tem teto de turnos. A F10 do PRD já escolhe o modelo por etapa ([ADR 0013](../docs/adr/0013-modelo-por-etapa-e-por-issue.md)); esta issue usa o frontmatter para o que o ADR 0013 não cobre, sem mexer nas etapas da tabela de `skills/avancar/modelos.md`.
@@ -114,3 +114,4 @@ nenhum
 
 ## Histórico
 - 2026-11-26: criação.
+- 2026-11-26: aprovada.
