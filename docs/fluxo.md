@@ -55,6 +55,10 @@ A triagem sugere a label pela complexidade da issue, e você pode trocá-la até
 
 No OpenCode, a etapa roda no modelo da sessão: a tabela não é usada, a triagem não aplica `modelo:*` e não há escalonamento. No Antigravity (detectado automaticamente ou via `FABRICA_HARNESS=antigravity`), o `run_workflow` do `/fabrica:avancar` e a chamada ao `revisor` no `/fabrica:revisar` traduzem a tabela e as labels `modelo:*` para os tiers `flash_lite`, `flash` e `pro` via `scripts/stage-model.sh agy-tier`, mantendo a triagem sem aplicar `modelo:*` e sem escalonamento automático. A escolha é pela harness, não pela presença do binário `claude`, porque as ferramentas podem estar instaladas na mesma máquina.
 
+As etapas que só leem ou rodam scripts (`/fabrica:status`, `/fabrica:metricas` e `/fabrica:setup`) declaram esforço médio no frontmatter da skill; as etapas da tabela acima não declaram esforço nem modelo no frontmatter, para não passar por cima dela.
+
+O revisor tem um teto de turnos. Uma revisão parcial, que parou no teto, não aprova nada: a revisão roda o revisor de novo uma vez e, se ele parar no teto outra vez, deixa o PR em rascunho e escala ([`revisar`](../skills/revisar/SKILL.md)).
+
 Quando algo dá errado, o agente para, comenta na issue e aplica `escalonado`. Veja o guia [Issue escalonada](guias/issue-escalonada.md).
 
 Quando a implementação ou a revisão dependem de uma ação sua fora do GitHub (criar uma conta, cadastrar um secret, gerar uma chave), o agente publica na issue uma checklist passo a passo e aplica `acao-externa`. Você faz os passos, marca os itens e retoma com `/fabrica:avancar`. Veja o guia [Ação externa](guias/acao-externa.md).
