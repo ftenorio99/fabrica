@@ -313,6 +313,13 @@ expect_bash_env allexport "$tmp/startup.sh" 2 início início BASH_ENV="$tmp/sta
 expect_bash_env readonly "$tmp/startup.sh" 2 início início BASH_ENV="$tmp/startup.sh"
 expect_bash_env array '<ausente>' 1 início '' BASH_ENV="$tmp/startup.sh"
 
+if python3 -I "$script_dir/test-stage-model-environment.py" > "$tmp/environment-diff.log" 2>&1; then
+  environment_diff=igual
+else
+  environment_diff="$(cat "$tmp/environment-diff.log")"
+fi
+check CA1 "ambiente integral e resultado iguais à base de4c39a" igual "$environment_diff"
+
 echo
 echo "$((total - failures)) de $total passaram."
 [[ $failures -eq 0 ]]

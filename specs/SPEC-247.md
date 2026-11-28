@@ -8,7 +8,7 @@ Registro do trabalho B1 previamente desenvolvido e validado. A base é `de4c39ad
 
 ## Desenho técnico
 
-`stage-model.sh` conserva o contrato público. `claude-exec.sh` traduz a chamada para Claude e mantém a cadeia de `exec`. `claude-result.py` classifica o resultado técnico no Execution Result v1, com proveniência desconhecida na falta de evidência. O dispatcher usa a classificação e mantém os artefatos, códigos e decisões de workflow legados. O avanço da issue depende do estado observado no GitHub.
+`stage-model.sh` conserva o contrato público e a política de seleção. Carrega `claude-exec.sh` como módulo interno no mesmo Bash. O módulo mantém as funções de preparação e execução originais, com o `exec` final do binário delegado. `claude-result.py` classifica o resultado técnico no Execution Result v1, com proveniência desconhecida na falta de evidência. O dispatcher usa a classificação e mantém os artefatos, códigos e decisões de workflow legados. O avanço da issue depende do estado observado no GitHub.
 
 Referências: [arquitetura multi-runtime](../docs/propostas/fabrica-codex-evolution/docs/02-adr-multi-runtime.md), [resultado técnico](../docs/propostas/fabrica-codex-evolution/docs/09-resultado-tecnico.md) e [consolidação B1](../docs/propostas/fabrica-codex-evolution/docs/10-consolidacao-b1.md).
 

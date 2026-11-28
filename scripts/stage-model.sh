@@ -126,36 +126,8 @@ cmd_next() {
   fi
 }
 
-cmd_run() {
-  [[ $# -ge 2 ]] || fail "uso: stage-model.sh run <etapa> <nº> [label...]"
-  local stage="$1" number="$2" selection rc alias id effort
-  shift 2
-  [[ "$number" =~ ^[1-9][0-9]*$ ]] || fail "o número da issue precisa ser um inteiro positivo."
-
-  local harness
-  harness="$(bash "$script_dir/harness.sh" detect)"; rc=$?
-  [[ $rc -eq 0 ]] || fail "não consegui detectar a harness."
-  case $harness in
-    opencode | antigravity)
-      echo "stage-model: a harness $harness roda a etapa na sessão; não use stage-model.sh run." >&2
-      exit 3
-      ;;
-  esac
-
-  selection="$(cmd_model "$stage" "$@")"; rc=$?
-  [[ $rc -eq 0 ]] || exit $rc
-  read -r alias id effort <<< "$selection"
-
-  # Remova BASH_ENV só do ambiente do Bash intermediário, mesmo quando a
-  # variável é readonly. Apenas escalares exportados chegam aos filhos.
-  if [[ ${BASH_ENV+x} && $(declare -p BASH_ENV) =~ ^declare\ -[ilrtux]*x[ilrtux]*\  ]]; then
-    exec /usr/bin/env -u BASH_ENV "$BASH" "$script_dir/claude-exec.sh" \
-      "$stage" "$number" "$id" "$effort" 1 "$BASH_ENV"
-  else
-    exec /usr/bin/env -u BASH_ENV "$BASH" "$script_dir/claude-exec.sh" \
-      "$stage" "$number" "$id" "$effort" "" ""
-  fi
-}
+# Módulo interno: mantém os handlers no mesmo Bash da fachada.
+source "$script_dir/claude-exec.sh" || exit $?
 
 [[ $# -ge 1 ]] || fail "uso: stage-model.sh model|next|run ..."
 sub="$1"

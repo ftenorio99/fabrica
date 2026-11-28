@@ -19,12 +19,16 @@ A reprodução controlada usou `date`, `sleep` e `gh` falsos com intervalo de 2 
 
 ## Fronteiras depois de B1
 
-- `stage-model.sh` guarda validação, tabela de modelos, escalonamento e detecção. `claude-exec.sh` traduz a seleção em argumentos, modo de permissão e chamada Claude. A cadeia de `exec` e `FABRICA_CLAUDE_BIN` foram caracterizados com fakes.
+- `stage-model.sh` guarda a fachada, a tabela de modelos e o escalonamento. O módulo interno `claude-exec.sh` contém os handlers legados `cmd_run` e `permission_mode`. O primeiro valida o comando run, consulta a detecção e a política de seleção, monta a chamada e faz `exec` do binário delegado.
 - [Execution Result v1](09-resultado-tecnico.md) classifica a execução fora do modelo. `dispatch.sh` valida o objeto, preserva a projeção de códigos e diagnósticos e permite releitura do GitHub somente depois de sucesso técnico. O GitHub ainda decide avanço, portão humano, inconsistência e próximo passo.
 - O dispatcher ainda escolhe Claude por compatibilidade. A projeção legada usa o código observado antes de interpretar causas, inclusive exit 2. O normalizador recebe esse código sem evidência de origem. Os detalhes nativos continuam disponíveis para o comentário de falha e o artefato `stage.json`.
 - O `avancar` ainda combina `result`, `modelUsage`, `permission_denials`, texto sobre hooks/classificador e sinais do fluxo para relatório e escalonamento. A skill é executada pelo agente e suas decisões de texto não têm equivalência demonstrada com V1. Substituir esse julgamento pelo motivo normalizado poderia mudar quando um modelo sobe. O caminho de sessão e o encadeamento implementação → revisão continuam intactos. Os testes determinísticos cobrem detecção, saídas da fachada e promoção por alias. O comportamento da skill em sessão com modelo real permanece como aceite.
 
 ## Rollback e publicação
+
+O checkpoint `ffb3dc4` preserva as duas tentativas de transferir `BASH_ENV` pelo Bash intermediário. As revisões encontraram diferenças de inicialização, atributos, `allexport` e colisão de nomes herdados. O módulo interno carrega as duas funções originais na posição em que eram declaradas e mantém a preparação no Bash da fachada. Essa é uma decisão de compatibilidade do adaptador Claude. B2.3 continua livre para executar `codex exec` com seu próprio contrato.
+
+O teste diferencial usa a fachada original de `de4c39a` como fixture congelada, inclusive em clones rasos. A base e o candidato rodam no mesmo caminho temporário com o mesmo ambiente sintético. Compara ambientes completos, incluindo o ambiente recebido pelas sondas antes da inicialização, argumentos, diretório, entrada, canais, status e o registro de inicializações. A ordem dos campos de ambiente é irrelevante. O PID do delegado é comparado ao PID da própria fachada em cada execução. Nenhuma variável é filtrada. O cenário nameref depende do suporte do Bash em teste.
 
 ### Resultado da validação local
 
