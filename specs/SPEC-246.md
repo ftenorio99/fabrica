@@ -405,7 +405,7 @@ Todos os testes rodam com HOME, `XDG_CONFIG_HOME`, `GIT_CONFIG_GLOBAL` e `GIT_CO
 - `scripts/test-session-start.sh`: o CA11.
 - `AGENTS.md`: cita a suíte nova na lista de testes.
 - `docs/adr/0002-protecao-da-main-por-hooks-do-git.md` (emenda), `docs/solucao-de-problemas.md` e `docs/comandos.md`.
-- `.claude-plugin/plugin.json`: a versão sobe no PR. O número é definido na preparação da integração.
+- `.claude-plugin/plugin.json`: a versão sobe no PR. Na preparação da integração, sobre a base `5d88a65` (0.64.0, com a B1 da SPEC-247), a candidata ficou em 0.65.0.
 
 **Dados:** `CONTENTS.sha256`, `.publicando`, `.lock` e `.break` no destino, nos formatos de "Termos", "Diário de publicação" e "Trava". O `VERSION` continua com uma linha.
 
@@ -516,3 +516,4 @@ Enquanto houver uma distribuição legada ativa, ela pode reintroduzir o downgra
   - CAs alterados: 5, 7, 8, 9, 13, 14 e 16. Nenhum incluído ou removido.
 - 2026-11-28: mudança (alterar) — correção da revisão independente do ciclo 2, dentro da emenda aprovada: a quebra da trava apaga os restos do dono morto antes de conferir a identidade e remover o `.lock`, e o `--allow-downgrade` sem instalação não cria a pasta. CAs alterados: 9 e 16.
 - 2026-11-28: mudança (alterar) — correção da revisão independente do ciclo 3, no quarto ciclo autorizado pelo usuário: a liberação nunca apaga a trava pelo nome quando o `rename` falha (a trava fica, `falha trava`), e o manual descreve a recuperação dos stages e diários abandonados. CAs alterados: 13, 16 e 17.
+- 2026-11-28: preparação da integração, aprovada pelo usuário depois do parecer favorável do ciclo 4 (`84f67ec`): a `main` com a B1 (`5d88a65`, 0.64.0) foi integrada por merge, sem reescrever o histórico publicado, e a versão candidata é 0.65.0. Requisitos e CAs sem mudança.
