@@ -53,7 +53,7 @@ result() {
 fake="$tmp/fake"
 mkdir -p "$fake/bin" "$fake/state"
 export FAKE_STATE="$fake/state" FAKE_DEST="$dest" FAKE_PROT="$PROT" FAKE_HOOKS="$fake/hooks.sh"
-export REAL_MV="$(command -v mv)" REAL_CP="$(command -v cp)" REAL_RM="$(command -v rm)" REAL_LN="$(command -v ln)"
+export REAL_MV="$(command -v mv)" REAL_CP="$(command -v cp)" REAL_RM="$(command -v rm)" REAL_LN="$(command -v ln)" REAL_CHMOD="$(command -v chmod)"
 
 # Comum aos falsos de mv e rm, pelo caminho de origem do mv ou pelo operando
 # do rm (padrão glob):
@@ -62,7 +62,9 @@ export REAL_MV="$(command -v mv)" REAL_CP="$(command -v cp)" REAL_RM="$(command 
 #   FAKE_PAUSE_SRC: avisa em pause<tag>.on e espera pause<tag>.go (age) ou
 #     pause<tag>.abort (sai sem agir); a tag vem de FAKE_PAUSE_TAG (padrão vazio);
 #   FAKE_ORPHAN_SRC: mata o script com KILL e fica como filho órfão, sem
-#     stdio, até orphan.go; então age e grava o código em orphan.done.
+#     stdio, até orphan.go; então age e grava o código em orphan.done;
+#   FAKE_ORPHAN_AFTER_ABORT: o mesmo, no primeiro mv ou rm depois de uma pausa
+#     abortada, qualquer que seja o caminho.
 cat >"$fake/hooks.sh" <<'EOF'
 fake_hooks() { # <caminho> <comando real> <argumentos...>
   local path=$1 real=$2 i
@@ -74,11 +76,13 @@ fake_hooks() { # <caminho> <comando real> <argumentos...>
     : >"$pt.on"
     for i in $(seq 1 600); do
       [[ -e $pt.go ]] && break
-      [[ -e $pt.abort ]] && exit 1
+      [[ -e $pt.abort ]] && { : >"$FAKE_STATE/aborted"; exit 1; }
       sleep 0.05
     done
   fi
-  if [[ -n ${FAKE_ORPHAN_SRC-} && $path == $FAKE_ORPHAN_SRC && ! -e $FAKE_STATE/orphan.armed ]]; then
+  if [[ ! -e $FAKE_STATE/orphan.armed ]] &&
+    { [[ -n ${FAKE_ORPHAN_SRC-} && $path == $FAKE_ORPHAN_SRC ]] ||
+      [[ -n ${FAKE_ORPHAN_AFTER_ABORT-} && -e $FAKE_STATE/aborted ]]; }; then
     : >"$FAKE_STATE/orphan.armed"
     exec </dev/null >/dev/null 2>&1
     kill -KILL "$PPID"
@@ -137,6 +141,16 @@ cat >"$fake/bin/rm" <<'EOF'
 fake_hooks "${*: -1}" "$REAL_RM" "$@"
 exec "$REAL_RM" "$@"
 EOF
+cat >"$fake/bin/chmod" <<'EOF'
+#!/usr/bin/env bash
+# Os gatilhos só valem no chmod com FAKE_CHMOD_HOOKS, para não mudar os
+# padrões dos outros casos (que miram o mv e o rm).
+if [[ -n ${FAKE_CHMOD_HOOKS-} ]]; then
+  . "$FAKE_HOOKS"
+  fake_hooks "${*: -1}" "$REAL_CHMOD" "$@"
+fi
+exec "$REAL_CHMOD" "$@"
+EOF
 cat >"$fake/bin/ln" <<'EOF'
 #!/usr/bin/env bash
 [[ -n ${FAKE_LN_SLEEP-} ]] && sleep "$FAKE_LN_SLEEP"
@@ -154,7 +168,7 @@ done
 fake_reset() {
   rm -rf "$fake/state"
   mkdir -p "$fake/state"
-  unset FAKE_MV_KILL_AT FAKE_MV_SIG FAKE_MV_SLEEP FAKE_MV_STEAL_AT FAKE_CP_KILL_AT FAKE_CP_SIG FAKE_CP_SLEEP FAKE_CP_STEAL_AT FAKE_LN_SLEEP FAKE_SLEEP_SRC FAKE_SLEEP_SECS FAKE_PAUSE_SRC FAKE_ORPHAN_SRC FAKE_KILL_SRC FAKE_PAUSE_TAG
+  unset FAKE_MV_KILL_AT FAKE_MV_SIG FAKE_MV_SLEEP FAKE_MV_STEAL_AT FAKE_CP_KILL_AT FAKE_CP_SIG FAKE_CP_SLEEP FAKE_CP_STEAL_AT FAKE_LN_SLEEP FAKE_SLEEP_SRC FAKE_SLEEP_SECS FAKE_PAUSE_SRC FAKE_ORPHAN_SRC FAKE_KILL_SRC FAKE_PAUSE_TAG FAKE_ORPHAN_AFTER_ABORT FAKE_CHMOD_HOOKS
 }
 
 # ---------------------------------------------------------------------------
@@ -1085,6 +1099,119 @@ wait "$cpid"
 wait "$dpid"
 [[ $ok == 0 && $(cat "$tmp/d.out") == "atualizado 3.0.0" && $(cat "$tmp/c.out") == ocupado* ]] && is_integra_at 3.0.0 && no_internal
 result $? CA16 "liberação atrasada do dono morto no meio de uma quebra: quem adquiriu depois mantém a trava e publica (C '$(cat "$tmp/c.out")', D '$(cat "$tmp/d.out")'$why)"
+# Estado publicado, sem os stages: entradas, metadados, diário e trava.
+pub_snap() {
+  local f
+  for f in "$dest"/* "$dest"/.[!.]*; do
+    [[ -e $f || -L $f ]] || continue
+    case ${f##*/} in .stage.*) continue ;; esac
+    if [[ -L $f ]]; then echo "${f##*/} L $(readlink "$f")"
+    elif [[ -d $f ]]; then echo "${f##*/} D"
+    else echo "${f##*/} $(stat -c '%i %a' "$f") $(sha256sum <"$f" | cut -c1-64)"
+    fi
+  done
+}
+
+# (a3) Revisão do ciclo 3: o discard da trava falha na liberação de A, e A
+# morre com um filho atrasado (o próximo mv ou rm depois da falha). C quebra a
+# trava morta e publica; o filho é liberado no meio da publicação de C; D
+# tenta adquirir enquanto C publica. A posse é observada o tempo todo: a
+# trava de C não pode sumir nem mudar, D não pode chegar à publicação e o
+# filho não pode mudar nada do que está publicado.
+fresh d1
+ok=0 why=""
+FAKE_PAUSE_SRC='*/.lock' FAKE_PAUSE_TAG=A FAKE_ORPHAN_AFTER_ABORT=1 PATH="$fake/bin:$PATH" bash "$(script_of d2)" --check >"$tmp/a.out" 2>/dev/null &
+apid=$!
+bg_pids+=("$apid")
+paused A || { ok=1 why+=" pausa-A"; }
+lock_a=$(readlink "$dest/.lock" 2>/dev/null)
+: >"$fake/state/pauseA.abort"
+wait "$apid" 2>/dev/null
+[[ -e $fake/state/orphan.armed ]] || { ok=1 why+=" órfão-não-armado"; }
+[[ -n $lock_a && $(readlink "$dest/.lock" 2>/dev/null) == "$lock_a" ]] || { ok=1 why+=" trava-de-A-não-ficou"; }
+FAKE_PAUSE_SRC='*/.stage.*/fabrica-hook' FAKE_PAUSE_TAG=C PATH="$fake/bin:$PATH" bash "$(script_of d3)" --check >"$tmp/c.out" 2>/dev/null &
+cpid=$!
+bg_pids+=("$cpid")
+paused C || { ok=1 why+=" pausa-C"; }
+lock_c=$(readlink "$dest/.lock" 2>/dev/null)
+[[ -n $lock_c && $lock_c != "$lock_a" ]] || { ok=1 why+=" C-sem-trava"; }
+before=$(pub_snap)
+: >"$fake/state/orphan.go"
+orphan_done || { ok=1 why+=" órfão"; }
+[[ $(pub_snap) == "$before" ]] || { ok=1 why+=" filho-mudou-o-destino"; }
+FAKE_PAUSE_SRC='*/.stage.*/fabrica-hook' FAKE_PAUSE_TAG=D PATH="$fake/bin:$PATH" bash "$(script_of d3)" --check >"$tmp/d.out" 2>/dev/null &
+dpid=$!
+bg_pids+=("$dpid")
+# Enquanto D tenta (até o prazo do --check), a trava é sempre a de C e D
+# nunca chega à publicação.
+while kill -0 "$dpid" 2>/dev/null; do
+  [[ $(readlink "$dest/.lock" 2>/dev/null) == "$lock_c" ]] || { ok=1 why+=" trava-de-C-trocada"; break; }
+  [[ -e $fake/state/pauseD.on ]] && { ok=1 why+=" dois-donos"; break; }
+  sleep 0.05
+done
+: >"$fake/state/pauseC.go"
+wait "$cpid"
+: >"$fake/state/pauseD.go"
+wait "$dpid"
+[[ $ok == 0 && -z $(cat "$tmp/a.out") && $(cat "$tmp/c.out") == "atualizado 3.0.0" && $(cat "$tmp/d.out") == ocupado* ]] &&
+  is_integra_at 3.0.0 && no_internal
+result $? CA16 "discard da trava falha na liberação e o dono morre com um filho atrasado: a trava fica, C quebra e publica, o filho não muda nada e D não adquire (C '$(cat "$tmp/c.out")', D '$(cat "$tmp/d.out")'$why)"
+
+# O mesmo discard falhando, sem filho atrasado: a execução não diz que
+# liberou (falha trava, saída 1), a trava fica com a identidade dela e
+# nenhum rm a tira pelo nome; a execução seguinte quebra pelo caminho seguro.
+fresh d1
+: >"$fake/state/pause.abort"
+FAKE_PAUSE_SRC='*/.lock' runfake d2 --check
+r1=$OUT rc1=$RC e1=$ERR l1=$(readlink "$dest/.lock" 2>/dev/null)
+s1=$(state)
+fake_reset
+run d2 --check
+r2=$OUT l2=$(readlink "$dest/.lock" 2>/dev/null)
+run d3 --check
+[[ $r1 == "falha trava" && $rc1 == 1 && $e1 == *"não consegui liberar a trava"* && $l1 == *"pid="* &&
+  $s1 == "integra 2.0.0" && $r2 == ok && $l2 == "$l1" && $OUT == "atualizado 3.0.0" && ! -e $dest/.lock && ! -L $dest/.lock ]] &&
+  is_integra_at 3.0.0 && no_internal
+result $? CA16 "discard da trava falha na liberação: falha trava e a trava fica; o ok seguinte só lê, e a publicação seguinte quebra a trava pelo caminho seguro (veio '$r1' rc=$rc1, '$r2' e '$OUT')"
+
+# O chmod da recuperação mínima age direto no nome da entrada. Atrasado num
+# filho de um dono morto, ele roda depois que outra execução publicou: só
+# pode dar 0755 a uma entrada que o dono seguinte já publica com 0755, e não
+# muda conteúdo, versão, metadados nem a trava.
+fresh d2
+chmod 644 "$dest/pre-push"
+ok=0 why=""
+FAKE_CHMOD_HOOKS=1 FAKE_ORPHAN_SRC="$dest/pre-push" runfake d1 --check
+[[ -e $fake/state/orphan.armed ]] || { ok=1 why+=" órfão-não-armado"; }
+run d3 --check
+r3=$OUT
+before=$(pub_snap)
+: >"$fake/state/orphan.go"
+orphan_done || { ok=1 why+=" órfão"; }
+[[ $ok == 0 && $r3 == "reparado 3.0.0" && $(pub_snap) == "$before" ]] && is_integra_at 3.0.0 && no_internal
+result $? CA13 "chmod atrasado da recuperação mínima de um dono morto, depois da publicação seguinte: nada muda (veio '$r3'$why)"
+
+# Desistência da quebra: o stage do dono morto não sai (pasta sem escrita).
+# A trava fica, nada é publicado e a resposta é ocupado incerta, sempre.
+fresh d1
+dead_pid
+id=$(lock_id "$(my_host)" "$DEAD" 1)
+ln -s "$id" "$dest/.lock"
+mkdir -p "$dest/.stage.0123456789abcdef/sub"
+: >"$dest/.stage.0123456789abcdef/sub/f"
+chmod 555 "$dest/.stage.0123456789abcdef/sub"
+before=$(snap)
+hp=$(git config --global --get core.hooksPath || echo -)
+runfake d2 --check
+r1=$OUT rc1=$RC e1=$ERR
+runfake d2
+[[ $r1 == "ocupado incerta" && $rc1 == 0 && $e1 == *solucao-de-problemas* && $RC != 0 &&
+  $(readlink "$dest/.lock") == "$id" && ! -e $dest/.break && ! -L $dest/.break &&
+  $(snap) == "$before" && ! -e $fake/state/mv.log &&
+  $(git config --global --get core.hooksPath || echo -) == "$hp" ]]
+result $? CA16 "stage do dono morto que não sai: a quebra desiste, ocupado incerta, a trava fica e nada é publicado nem no --check nem na instalação (veio '$r1' e '$OUT', rc=$RC)"
+chmod -R u+rwx "$dest/.stage.0123456789abcdef"
+
 # (b) Remoção do diário atrasada, durante a publicação seguinte.
 fresh d1
 FAKE_ORPHAN_SRC='*/.publicando' runfake d2 --check

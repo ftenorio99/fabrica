@@ -720,14 +720,21 @@ lock_acquire() {
   done
 }
 
-# 0 liberada (ou não havia trava); 1 a trava não é mais deste processo, e
-# nada foi removido. A trava sai por rename para o próprio stage, como toda
-# remoção no destino, e o stage é apagado por último.
+# 0 liberada (ou não havia trava); 1 a trava não é mais deste processo, ou
+# não saiu, e nada foi removido. A trava sai só por rename para o próprio
+# stage, como toda remoção no destino, e o stage é apagado por último. Se o
+# rename falhar, a trava fica: apagá-la pelo nome deixaria um filho atrasado
+# remover a trava de quem a adquirir depois. A execução seguinte a quebra
+# pelo caminho seguro, depois que este processo terminar.
 lock_release() {
   ((HAVE_LOCK)) || return 0
   HAVE_LOCK=0
   if owns "$dest/.lock"; then
-    discard "$dest/.lock" || rm -f -- "$dest/.lock"
+    if ! discard "$dest/.lock"; then
+      echo "setup-githooks: não consegui liberar a trava $dest/.lock; ela fica com a identidade deste processo, e a próxima execução a quebra depois que ele terminar." >&2
+      rm -rf -- "$dest/.stage.$TOKEN" 2>/dev/null
+      return 1
+    fi
     rm -rf -- "$dest/.stage.$TOKEN" 2>/dev/null
     return 0
   fi
