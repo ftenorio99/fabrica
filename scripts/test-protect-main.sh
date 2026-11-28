@@ -65,10 +65,12 @@ result $? CA5 "rodar de novo não muda nada"
 [[ $(bash "$setup_script" --check) == ok ]]
 result $? CA5 "--check instalado: ok"
 
+# SPEC-246: VERSION 0.0.0 com o CONTENTS.sha256 na versão atual e uma entrada
+# faltando é uma pasta danificada; a versão comprovada é a maior das duas.
 echo 0.0.0 >"$dest/VERSION"
 rm "$dest/pre-push"
-[[ $(bash "$setup_script" --check) == "atualizado $version" && -x "$dest/pre-push" && $(cat "$dest/VERSION") == "$version" ]]
-result $? CA5 "--check com versão antiga: atualizado $version e copia de novo"
+[[ $(bash "$setup_script" --check) == "reparado $version" && -x "$dest/pre-push" && $(cat "$dest/VERSION") == "$version" ]]
+result $? CA5 "--check com VERSION antigo e entrada faltando: reparado $version e copia de novo"
 
 git config --global core.hooksPath /outra/ferramenta
 bash "$setup_script" >/dev/null 2>&1
