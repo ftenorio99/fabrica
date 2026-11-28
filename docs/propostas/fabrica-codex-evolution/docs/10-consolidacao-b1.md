@@ -19,16 +19,16 @@ A reprodução controlada usou `date`, `sleep` e `gh` falsos com intervalo de 2 
 
 ## Fronteiras depois de B1
 
-- `stage-model.sh` guarda a fachada, a tabela de modelos e o escalonamento. O módulo interno `claude-exec.sh` contém os handlers legados `cmd_run` e `permission_mode`. O primeiro valida o comando run, consulta a detecção e a política de seleção, monta a chamada e faz `exec` do binário delegado.
+- `stage-model.sh` é idêntico à base em bytes e modo Git. Preserva a fachada, política de modelos e escalonamento, detecção e preparação do `exec` delegado.
 - [Execution Result v1](09-resultado-tecnico.md) classifica a execução fora do modelo. `dispatch.sh` valida o objeto, preserva a projeção de códigos e diagnósticos e permite releitura do GitHub somente depois de sucesso técnico. O GitHub ainda decide avanço, portão humano, inconsistência e próximo passo.
 - O dispatcher ainda escolhe Claude por compatibilidade. A projeção legada usa o código observado antes de interpretar causas, inclusive exit 2. O normalizador recebe esse código sem evidência de origem. Os detalhes nativos continuam disponíveis para o comentário de falha e o artefato `stage.json`.
 - O `avancar` ainda combina `result`, `modelUsage`, `permission_denials`, texto sobre hooks/classificador e sinais do fluxo para relatório e escalonamento. A skill é executada pelo agente e suas decisões de texto não têm equivalência demonstrada com V1. Substituir esse julgamento pelo motivo normalizado poderia mudar quando um modelo sobe. O caminho de sessão e o encadeamento implementação → revisão continuam intactos. Os testes determinísticos cobrem detecção, saídas da fachada e promoção por alias. O comportamento da skill em sessão com modelo real permanece como aceite.
 
 ## Rollback e publicação
 
-O checkpoint `ffb3dc4` preserva as duas tentativas de transferir `BASH_ENV` pelo Bash intermediário. As revisões encontraram diferenças de inicialização, atributos, `allexport` e colisão de nomes herdados. O módulo interno carrega as duas funções originais na posição em que eram declaradas e mantém a preparação no Bash da fachada. Essa é uma decisão de compatibilidade do adaptador Claude. B2.3 continua livre para executar `codex exec` com seu próprio contrato.
+As revisões de `4679453`, `d86a9cd` e `ffb3dc4` rejeitaram o Bash intermediário por diferenças de inicialização, atributos, `allexport` e colisão de nomes herdados. A revisão do módulo carregado com `source` em `d3e8b5d` confirmou a equivalência dos ambientes exercitados, mas reproduziu uma mudança determinística no arquivo e na linha do diagnóstico de `exec` quando o delegado está ausente. A decisão de B1 é restaurar a fachada original e retirar `claude-exec.sh` do pacote. A separação lógica continua no fluxo seleção e execução, normalização e coordenação. A extração física fica adiada até uma necessidade concreta.
 
-O teste diferencial usa a fachada original de `de4c39a` como fixture congelada, inclusive em clones rasos. A base e o candidato rodam no mesmo caminho temporário com o mesmo ambiente sintético. Compara ambientes completos, incluindo o ambiente recebido pelas sondas antes da inicialização, argumentos, diretório, entrada, canais, status e o registro de inicializações. A ordem dos campos de ambiente é irrelevante. O PID do delegado é comparado ao PID da própria fachada em cada execução. Nenhuma variável é filtrada. O cenário nameref depende do suporte do Bash em teste.
+O teste diferencial usa a fachada original de `de4c39a` como fixture congelada, inclusive em clones rasos. A base e o candidato rodam no mesmo caminho temporário com o mesmo ambiente sintético. Compara ambientes completos, incluindo o ambiente recebido pelas sondas antes da inicialização, argumentos, diretório, entrada, canais, status e o registro de inicializações. A ordem dos campos de ambiente é irrelevante. O PID do delegado é comparado ao PID da própria fachada em cada execução. Nenhuma variável é filtrada. O cenário nameref depende do suporte do Bash em teste. Com o delegado ausente, compara o exit 127, stdout vazio e stderr integral, incluindo a localização emitida pelo Bash.
 
 ### Resultado da validação local
 
@@ -47,9 +47,9 @@ Os casos novos cobrem falha do normalizador apesar de stdout de sucesso, objeto 
 
 ### Reversão e distribuição
 
-Reverta primeiro a leitura normalizada do dispatcher e seus casos de teste. A fachada, o executor e o contrato continuam utilizáveis de forma independente. O rollback de B1 inteiro restaura a invocação na fachada e retira os arquivos e testes adicionados pelos incrementos. Os formatos de `stage.json` e `stage.exit` e os passos `run`, `unmark` e `fail` dispensam migração de workflows.
+Reverta primeiro a leitura normalizada do dispatcher e seus casos de teste. O rollback integral de B1 retira o normalizador e os testes adicionados e restaura o pacote 0.63.0. Os formatos de `stage.json` e `stage.exit` e os passos `run`, `unmark` e `fail` dispensam migração de workflows.
 
-Antes de publicar, aprovar um aumento de versão e incluir fachada, executor, normalizador e dispatcher no mesmo pacote. O manifesto de marketplace usa a raiz e o runner copia a árvore do plugin. O aceite deve confirmar que a atualização de uma instalação 0.63.0 carrega a nova árvore completa e que o rollback restaura um pacote completo.
+O pacote candidato 0.64.0 inclui a fachada original, o normalizador e o dispatcher. O manifesto de marketplace usa a raiz e o runner copia a árvore do plugin. N1 confere a atualização da 0.63.0, a integridade do pacote candidato e a volta à 0.63.0.
 
 Em ambiente descartável e mediante autorização, validar instalação e atualização Claude, delegação ao wrapper no runner, registro e sessão Antigravity conforme a SPEC-241 e prontidão do OpenCode na VM. Separar o aceite remoto dos casos de qualidade com modelo real. Verificar gates, revisão com base atualizada conforme a SPEC-135 e retenção do artefato bruto no repositório de teste.
 
@@ -72,6 +72,8 @@ Em ambiente descartável e mediante autorização, validar instalação e atuali
 ## Proposta preliminar para B2
 
 B1 oferece uma fronteira suficiente para acrescentar Codex local em incrementos. Começar comparando plugin nativo e descoberta de skills na versão suportada, com instalação exclusivamente Codex. Medir invocação explícita, resolução de recursos relativos, descoberta a partir da worktree, instalação, atualização e remoção. Usar o catálogo atual como fonte canônica.
+
+Na integração futura da SPEC-245, retirar o executor Claude do inventário Codex e declarar as sondas de isolamento diretamente como dependências de `stage-model.sh`. Rever as fixtures de distribuição e os conflitos de integração que ainda suponham a extração. B2.3 executará `codex exec` pela fronteira do próprio adaptador, sem depender da extração física do Claude.
 
 Depois da escolha de distribuição, adicionar seleção explícita independente de `harness.sh`, um executor local de `codex exec` com modelo e esforço nativos, e um leitor de JSONL que produza V1 sob suas próprias regras. Iniciar com fakes e manter o dispatcher Claude como padrão. O aceite deve demonstrar uso de worktree da Fabrica, confirmação de portões por releitura do GitHub e funcionamento sem as outras CLIs. Revisão read-only do julgador, CI Codex e workers seguem incrementos e aceites próprios.
 

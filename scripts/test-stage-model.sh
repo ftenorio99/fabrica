@@ -167,7 +167,7 @@ check CA13 "VM com modo inválido usa auto" "auto" "$(mode_of vm valor-estranho)
 # os dois auxiliares trocados por versões falsas.
 broken="$tmp/broken"
 mkdir -p "$broken/scripts" "$broken/skills/avancar"
-cp "$script" "$script_dir/claude-exec.sh" "$broken/scripts/"
+cp "$script" "$broken/scripts/"
 cp "$script_dir/harness.sh" "$broken/scripts/harness.sh"
 cp "$script_dir/../skills/avancar/modelos.md" "$broken/skills/avancar/modelos.md"
 run_broken() { (cd "$proj" && env -u PROXY_CA_CERT_B64 -u CLAUDECODE -u FABRICA_HARNESS -u OPENCODE_SESSION_ID -u ANTIGRAVITY_AGENT -u ANTIGRAVITY_CONVERSATION_ID HOME="$tmp/home" FABRICA_CLAUDE_BIN="$fake" bash "$broken/scripts/stage-model.sh" run triagem 12 >/dev/null 2>&1); }

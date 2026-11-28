@@ -68,7 +68,11 @@ sys.exit(17 if role == "delegado" else 0)
 def observe(lab, facade, module, scenario, env, bash):
     scripts = lab / "plugin/scripts"
     shutil.copyfile(facade, scripts / "stage-model.sh")
-    shutil.copyfile(module, scripts / "claude-exec.sh")
+    # Permite repetir a comparação contra os candidatos históricos.
+    target_module = scripts / "claude-exec.sh"
+    target_module.unlink(missing_ok=True)
+    if module.is_file():
+        shutil.copyfile(module, target_module)
     log = pathlib.Path(env["TEST_LOG"])
     startups = pathlib.Path(env["TEST_STARTUPS"])
     log.write_text("")
@@ -86,10 +90,14 @@ def observe(lab, facade, module, scenario, env, bash):
             raise
     records = [json.loads(line) for line in log.read_text().splitlines()]
     roles = [record["role"] for record in records]
-    if roles != [*PROBES, "delegado"]:
-        raise ValueError(f"{scenario}: sequência de processos inesperada: {roles}")
-    if records[-1].pop("pid") != process.pid or records[-1]["stdin"] != input_bytes.hex():
-        raise ValueError(f"{scenario}: o delegado perdeu a identidade ou a entrada da fachada")
+    delegate = pathlib.Path(env["FABRICA_CLAUDE_BIN"])
+    if delegate.is_file():
+        if roles != [*PROBES, "delegado"]:
+            raise ValueError(f"{scenario}: sequência de processos inesperada: {roles}")
+        if records[-1].pop("pid") != process.pid or records[-1]["stdin"] != input_bytes.hex():
+            raise ValueError(f"{scenario}: o delegado perdeu a identidade ou a entrada da fachada")
+    elif roles != list(PROBES) or process.returncode != 127 or out or os.fsencode(delegate) not in err:
+        raise ValueError(f"{scenario}: esperado exit 127, stdout vazio e diagnóstico do Bash")
     return {"records": records, "startup": startups.read_text(), "result": (process.returncode, out, err)}
 
 
@@ -105,13 +113,14 @@ def compare(lab, scripts, bash):
     delegate.chmod(0o700)
     for name in PROBES:
         (target / name).write_text(
-            f'#!/usr/bin/env bash\n"{sys.executable}" "$FABRICA_CLAUDE_BIN" '
+            f'#!/usr/bin/env bash\n"{sys.executable}" "$TEST_RECORDER" '
             '--probe "${0##*/}" "$BASHPID" "$@"\n'
         )
 
     env = {
         "PATH": "/usr/bin:/bin", "HOME": str(lab / "home"), "TMPDIR": str(lab / "tmp"),
         "FABRICA_CLAUDE_BIN": str(delegate),
+        "TEST_RECORDER": str(delegate),
         "FABRICA_MODELS_FILE": str(HERE.parent / "skills/avancar/modelos.md"),
         "TEST_SECONDARY": str(secondary), "TEST_STARTUPS": str(lab / "startups"),
         "TEST_LOG": str(lab / "log"),
@@ -120,6 +129,7 @@ def compare(lab, scripts, bash):
         "ausente": {}, "vazia": {"BASH_ENV": ""}, "exportada": {"BASH_ENV": str(startup)},
         "model herdada": {"model": "modelo preexistente"},
         "plugin herdado": {"plugin_root": "raiz anterior", "plugins_dir": "cache anterior"},
+        "delegado ausente": {"FABRICA_CLAUDE_BIN": str(lab / "delegado-inexistente")},
     }
     for name in ("local", "desexportada", "removida", "alterada", "allexport", "readonly", "array"):
         scenarios[name] = {"BASH_ENV": str(startup)}
@@ -133,6 +143,12 @@ def compare(lab, scripts, bash):
         inputs = env | variables | {"TEST_CASE": scenario}
         module = scripts / "claude-exec.sh"
         base = observe(lab, HERE / "fixtures/stage-model-de4c39a.sh", module, scenario, inputs, bash)
+        if scenario == "delegado ausente":
+            diagnostic = base["result"][2]
+            # Compare stderr inteiro abaixo, inclusive arquivo e linha do
+            # exec original quando o Bash os inclui no diagnóstico.
+            if b": line " in diagnostic and b"/stage-model.sh: line 177:" not in diagnostic:
+                raise ValueError("a fixture legada mudou a origem do diagnóstico de exec")
         got = observe(lab, scripts / "stage-model.sh", module, scenario, inputs, bash)
         if base == got:
             print(f"OK {scenario}")

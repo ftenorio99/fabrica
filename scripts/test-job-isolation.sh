@@ -324,7 +324,7 @@ free_port() { python3 -I -c 'import socket; s = socket.socket(); s.bind(("127.0.
 new_case() {
   local d="$tmp/$1"
   mkdir -p "$d/users" "$d/plugin/scripts" "$d/plugin/templates/workflows" "$d/work/projeto"
-  cp "$isolation" "$wrapper" "$addon" "$script_dir/claude-exec.sh" "$d/plugin/scripts/"
+  cp "$isolation" "$wrapper" "$addon" "$d/plugin/scripts/"
   cp "$domains_file" "$d/plugin/templates/workflows/"
   cp -r "$script_dir/../githooks" "$d/plugin/githooks"
   mkdir -p "$d/plugin/.git"; echo x > "$d/plugin/.git/config"
@@ -358,8 +358,6 @@ check CA6 "passa o checkout ao agente" "True" \
   "$(grep -q "^chown -R fabrica-agent:runner $c/work/projeto\$" "$c/calls.log" && echo True || echo False)"
 check CA6 "copia o plugin sem o .git" "True" \
   "$([[ -f "$c/opt-plugin/scripts/job-isolation.sh" && ! -e "$c/opt-plugin/.git" ]] && echo True || echo False)"
-check B1.2 "a cópia isolada inclui o executor Claude byte a byte" "True" \
-  "$(cmp -s "$script_dir/claude-exec.sh" "$c/opt-plugin/scripts/claude-exec.sh" && echo True || echo False)"
 check CA6 "não escreve em /etc/sudoers" "0" "$(grep -c 'sudoers' "$isolation")"
 check CA6 "sem o plugin no caminho, falha" "1" \
   "$(iso "$c" prepare "$c/nao-existe" "$c/work/projeto" >/dev/null 2>&1; echo $?)"
