@@ -192,29 +192,60 @@ json.dump({"issue": issue, "acao": acao, "prs": prs}, open(sys.argv[4], "w"))
 # field <campo> <linha do issue-state.py>
 field() { tr ' ' '\n' <<< "$2" | sed -n "s/^$1=//p"; }
 
+# O código observado vem da cadeia inteira. Sem evidência, a origem é nula.
+stage_status() {
+  python3 -I "$script_dir/claude-result.py" "$json_file" --exit-code "$1" 2>/dev/null |
+    python3 -I -c '
+import json, sys
+try:
+    report = json.load(sys.stdin)
+    if (type(report["version"]) is not int or report["version"] != 1
+            or report["runtime"] != "claude-code"
+            or type(report["exit_code"]) is not int or report["exit_code"] != int(sys.argv[2])
+            or report["origin"] is not None):
+        sys.exit(1)
+    pair = (report["status"], report["reason"])
+except (KeyError, TypeError, ValueError, RecursionError):
+    sys.exit(1)
+
+if pair == ("succeeded", None) and report["exit_code"] == 0:
+    print("succeeded")
+elif pair == ("failed", "invalid_result"):
+    # O diagnóstico legado distingue JSON ilegível de JSON com forma errada.
+    try:
+        with open(sys.argv[1], encoding="utf-8") as stream:
+            json.load(stream)
+    except (OSError, ValueError, RecursionError):
+        print("ilegivel")
+    else:
+        print("failed")
+elif pair in (("failed", "execution"), ("blocked", "permission_denied")):
+    print("failed")
+else:
+    sys.exit(1)
+' "$json_file" "$1" 2>/dev/null
+}
+
 # Roda uma etapa e trata a saída. 0 ok; 1 falha; 2 labels modelo:*.
 run_stage() {
   local stage="$1" issue="$2"
   shift 2
-  local rc is_error
+  local rc status normalized_rc
   echo "$stage" > "$stage_file"
   rm -f "$json_file" "$exit_file"
   bash "$script_dir/stage-model.sh" run "$stage" "$issue" "$@" > "$json_file"
   rc=$?
   echo "$rc" > "$exit_file"
+  status="$(stage_status "$rc")"; normalized_rc=$?
   [[ $rc -eq 0 || $rc -eq 2 ]] || say "resumo da saída: $(stage_summary)"
   if [[ $rc -eq 2 ]]; then say "duas ou mais labels modelo:* na issue #$issue."; return 2; fi
   if [[ $rc -ne 0 ]]; then say "o claude saiu com $rc."; return 1; fi
-  is_error="$(python3 -I -c '
-import json, sys
-try:
-    d = json.load(open(sys.argv[1]))
-except Exception:
-    print("ilegivel"); sys.exit()
-print("falso" if isinstance(d, dict) and d.get("is_error") is False else "verdadeiro")
-' "$json_file")"
-  case $is_error in
-    falso) echo "etapa $stage da issue #$issue concluída"; return 0 ;;
+  if [[ $normalized_rc -ne 0 ]]; then
+    say "não consegui normalizar a saída do claude."
+    return 1
+  fi
+  case $status in
+    succeeded) echo "etapa $stage da issue #$issue concluída"; return 0 ;;
     ilegivel) say "a saída do claude não é um JSON legível."; return 1 ;;
     *) say "o claude terminou com is_error verdadeiro. Resumo: $(stage_summary)"; return 1 ;;
   esac
