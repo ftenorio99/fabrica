@@ -105,9 +105,29 @@ check CA6 "fora de ~/.claude/plugins/ leva --plugin-dir do clone" "yes" \
   "$(grep -qx -- "$clone_root" "$args_file" && grep -qx -- '--plugin-dir' "$args_file" && echo yes || echo no)"
 
 installed="$tmp/home/.claude/plugins/cache/fabrica/fabrica/9.9.9"
-mkdir -p "$installed/scripts" "$installed/skills/avancar"
-cp "$script_dir"/{stage-model,claude-exec,harness,sbx-context,setup-isolation,run-as-agent}.sh "$installed/scripts/"
-cp "$script_dir/../skills/avancar/modelos.md" "$installed/skills/avancar/modelos.md"
+prepare_installed_fixture() {
+  local source_dir="$1" target="$2"
+  mkdir -p "$target/scripts" "$target/skills/avancar" &&
+    cp "$source_dir"/{stage-model,harness,sbx-context,setup-isolation,run-as-agent}.sh "$target/scripts/" &&
+    cp "$source_dir/../skills/avancar/modelos.md" "$target/skills/avancar/modelos.md" || {
+      printf '%s\n' 'test-stage-model: falha ao preparar a fixture do cache do plugin' >&2
+      exit 1
+    }
+}
+prepare_installed_fixture "$script_dir" "$installed"
+
+# O preparo negativo roda em subshell para que seu exit seja verificável.
+cache_error="$(
+  exec 2>&1
+  prepare_installed_fixture "$tmp/origem-ausente/scripts" "$tmp/cache-negativo"
+  printf '%s\n' 'preparo continuou indevidamente'
+  exit 0
+)"
+cache_status=$?
+check CA6 "falha na cópia obrigatória encerra a preparação" 1 "$cache_status"
+check CA6 "falha na preparação emite diagnóstico" sim \
+  "$( [[ "$cache_error" == *'falha ao preparar a fixture do cache do plugin'* ]] && echo sim || echo não )"
+
 rm -f "$args_file"
 env -u CLAUDECODE -u FABRICA_HARNESS -u OPENCODE_SESSION_ID -u ANTIGRAVITY_AGENT -u ANTIGRAVITY_CONVERSATION_ID HOME="$tmp/home" \
   FABRICA_SBX_PERSISTENT_FILE="$tmp/ausente.sh" FABRICA_CLAUDE_BIN="$fake" \
