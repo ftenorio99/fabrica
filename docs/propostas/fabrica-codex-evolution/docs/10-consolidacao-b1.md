@@ -49,6 +49,22 @@ Antes de publicar, aprovar um aumento de versão e incluir fachada, executor, no
 
 Em ambiente descartável e mediante autorização, validar instalação e atualização Claude, delegação ao wrapper no runner, registro e sessão Antigravity conforme a SPEC-241 e prontidão do OpenCode na VM. Separar o aceite remoto dos casos de qualidade com modelo real. Verificar gates, revisão com base atualizada conforme a SPEC-135 e retenção do artefato bruto no repositório de teste.
 
+### Identificadores dos aceites nativos
+
+| ID | Aceite | Estado no candidato 0.64.0 |
+|---|---|---|
+| N0 | Validação estrutural do plugin Claude | Aprovado com Claude CLI 2.1.332 |
+| N1 | Instalação, atualização e rollback offline | Aprovado em marketplace local e configuração descartável |
+| N2 | Coexistência dos hooks compartilhados | Pendente, com coordenação da SPEC-246 |
+| N3 | Execução real de uma etapa Claude | Pendente de autorização específica |
+| N4 | Dispatcher completo no GitHub Actions | Pendente de autorização específica |
+| N5 | Isolamento em VM sbx | Pendente de autorização específica |
+| N6 | Qualidade do revisor | Pendente de autorização específica |
+
+**N3, execução local.** Preparar um repositório e uma configuração Claude descartáveis, instalar o candidato por SHA e criar uma issue de teste se a etapa precisar ler o GitHub. Com autorização de provedor, conta e orçamento, usar uma credencial Claude dedicada e um token GitHub restrito ao repositório, quando necessário. Rodar uma única etapa pela fachada e registrar a versão, o código nativo, a classificação e o estado observado. O risco principal é uma ferramenta do modelo escrever fora do escopo do cenário. Restringir a etapa e o ambiente, sanitizar os artefatos e descartar credenciais, configuração e recursos de teste.
+
+**N4, execução automatizada.** Preparar um repositório privado descartável com workflow do dispatcher e candidato fixado por SHA, runner efêmero e job de isolamento. Usar credenciais dedicadas para leitura do pacote, acesso limitado ao repositório e Claude, conforme o cenário autorizado. Disparar a etapa pelo evento previsto, observar labels e portões, conferir delegação ao wrapper, `stage.json`, `stage.exit` e a releitura do GitHub. Usar apenas issues e branches desse repositório. Conferir logs sanitizados, revogar credenciais e remover workflow, artefatos e recursos de teste.
+
 ## Proposta preliminar para B2
 
 B1 oferece uma fronteira suficiente para acrescentar Codex local em incrementos. Começar comparando plugin nativo e descoberta de skills na versão suportada, com instalação exclusivamente Codex. Medir invocação explícita, resolução de recursos relativos, descoberta a partir da worktree, instalação, atualização e remoção. Usar o catálogo atual como fonte canônica.
