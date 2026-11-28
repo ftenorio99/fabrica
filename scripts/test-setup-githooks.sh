@@ -59,8 +59,8 @@ export REAL_MV="$(command -v mv)" REAL_CP="$(command -v cp)" REAL_RM="$(command 
 # do rm (padrão glob):
 #   FAKE_SLEEP_SRC + FAKE_SLEEP_SECS: dorme antes de agir;
 #   FAKE_KILL_SRC: mata o script com KILL e sai sem agir;
-#   FAKE_PAUSE_SRC: avisa em pause.on e espera pause.go (age) ou pause.abort
-#     (sai sem agir);
+#   FAKE_PAUSE_SRC: avisa em pause<tag>.on e espera pause<tag>.go (age) ou
+#     pause<tag>.abort (sai sem agir); a tag vem de FAKE_PAUSE_TAG (padrão vazio);
 #   FAKE_ORPHAN_SRC: mata o script com KILL e fica como filho órfão, sem
 #     stdio, até orphan.go; então age e grava o código em orphan.done.
 cat >"$fake/hooks.sh" <<'EOF'
@@ -69,11 +69,12 @@ fake_hooks() { # <caminho> <comando real> <argumentos...>
   shift 2
   if [[ -n ${FAKE_SLEEP_SRC-} && $path == $FAKE_SLEEP_SRC ]]; then sleep "${FAKE_SLEEP_SECS:-1}"; fi
   if [[ -n ${FAKE_KILL_SRC-} && $path == $FAKE_KILL_SRC ]]; then kill -KILL "$PPID"; exit 1; fi
-  if [[ -n ${FAKE_PAUSE_SRC-} && $path == $FAKE_PAUSE_SRC && ! -e $FAKE_STATE/pause.on ]]; then
-    : >"$FAKE_STATE/pause.on"
+  local pt="$FAKE_STATE/pause${FAKE_PAUSE_TAG-}"
+  if [[ -n ${FAKE_PAUSE_SRC-} && $path == $FAKE_PAUSE_SRC && ! -e $pt.on ]]; then
+    : >"$pt.on"
     for i in $(seq 1 600); do
-      [[ -e $FAKE_STATE/pause.go ]] && break
-      [[ -e $FAKE_STATE/pause.abort ]] && exit 1
+      [[ -e $pt.go ]] && break
+      [[ -e $pt.abort ]] && exit 1
       sleep 0.05
     done
   fi
@@ -153,7 +154,7 @@ done
 fake_reset() {
   rm -rf "$fake/state"
   mkdir -p "$fake/state"
-  unset FAKE_MV_KILL_AT FAKE_MV_SIG FAKE_MV_SLEEP FAKE_MV_STEAL_AT FAKE_CP_KILL_AT FAKE_CP_SIG FAKE_CP_SLEEP FAKE_CP_STEAL_AT FAKE_LN_SLEEP FAKE_SLEEP_SRC FAKE_SLEEP_SECS FAKE_PAUSE_SRC FAKE_ORPHAN_SRC FAKE_KILL_SRC
+  unset FAKE_MV_KILL_AT FAKE_MV_SIG FAKE_MV_SLEEP FAKE_MV_STEAL_AT FAKE_CP_KILL_AT FAKE_CP_SIG FAKE_CP_SLEEP FAKE_CP_STEAL_AT FAKE_LN_SLEEP FAKE_SLEEP_SRC FAKE_SLEEP_SECS FAKE_PAUSE_SRC FAKE_ORPHAN_SRC FAKE_KILL_SRC FAKE_PAUSE_TAG
 }
 
 # ---------------------------------------------------------------------------
@@ -633,9 +634,9 @@ allow_refused() { # <descrição> <dist> <versão>
   hp=$(git config --global --get core.hooksPath || echo -)
   before=$(snap)
   run "$2" --allow-downgrade "$3"
-  [[ $RC != 0 && -z $OUT && $ERR == *"--allow-downgrade"* && $ERR != *instalados* && $ERR != *revertido* &&
+  [[ $RC == 2 && -z $OUT && $ERR == *"--allow-downgrade"* && $ERR != *instalados* && $ERR != *revertido* &&
     $(snap) == "$before" && $(git config --global --get core.hooksPath || echo -) == "$hp" ]]
-  result $? CA9 "$1: saída diferente de 0, diagnóstico e nada alterado (rc=$RC, '$ERR')"
+  result $? CA9 "$1: saída 2, diagnóstico e nada alterado (rc=$RC, '$ERR')"
 }
 fresh d2
 allow_refused "--allow-downgrade na mesma versão com conteúdo divergente" d2x 2.0.0
@@ -646,7 +647,11 @@ rm "$dest/pre-push"
 allow_refused "--allow-downgrade em pasta danificada da mesma versão" d2 2.0.0
 reset
 mkdir -p "$dest"
-allow_refused "--allow-downgrade sem instalação" d1 1.0.0
+allow_refused "--allow-downgrade com a pasta vazia" d1 1.0.0
+reset
+run d1 --allow-downgrade 1.0.0
+[[ $RC == 2 && -z $OUT && ! -e $dest && -z $(git config --global --get core.hooksPath) ]]
+result $? CA9 "--allow-downgrade sem instalação: saída 2 e a pasta dos hooks não é criada (rc=$RC)"
 
 # CA10: comportamento real do git depois de cada publicação.
 repos() {
@@ -1034,7 +1039,7 @@ dir_case "subpasta no lugar de uma entrada de proteção" 'rm pre-push && mkdir 
 # Filho órfão de um dono morto (achado 12 do ciclo 1). O falso mata o script
 # com KILL e fica rodando como filho órfão até o teste liberar.
 orphan_done() { local i; for i in $(seq 1 200); do [[ -e $fake/state/orphan.done ]] && return 0; sleep 0.05; done; return 1; }
-paused() { local i; for i in $(seq 1 200); do [[ -e $fake/state/pause.on ]] && return 0; sleep 0.05; done; return 1; }
+paused() { local i; for i in $(seq 1 200); do [[ -e $fake/state/pause${1-}.on ]] && return 0; sleep 0.05; done; return 1; }
 # (a) Liberação da trava atrasada.
 fresh d1
 FAKE_ORPHAN_SRC='*/.lock' runfake d2 --check
@@ -1054,6 +1059,32 @@ is_integra_at 3.0.0 || why+=" estado=$(state)"
 no_internal || why+=" internos=$(ls -A "$dest" | grep '^\.' | tr '\n' ' ')"
 [[ $ok == 0 && $(cat "$tmp/b.out") == "atualizado 3.0.0" ]] && is_integra_at 3.0.0 && no_internal
 result $? CA16 "filho órfão do dono morto libera a trava depois que outro a adquiriu: a trava do novo dono fica e ele publica (veio '$(cat "$tmp/b.out")'$why)"
+# (a2) A liberação atrasada acontece no meio da quebra da trava por C, e D
+# adquire a trava que ficou livre. C não pode remover a trava de D.
+fresh d1
+FAKE_ORPHAN_SRC='*/.lock' runfake d2 --check
+ok=0 why=""
+[[ -L $dest/.lock && -e $fake/state/orphan.armed ]] || { ok=1 why+=" armado"; }
+# C para dentro da quebra, no rm dos restos do dono morto.
+FAKE_PAUSE_SRC='*/.publicando.*' FAKE_PAUSE_TAG=C PATH="$fake/bin:$PATH" bash "$(script_of d3)" --check >"$tmp/c.out" 2>/dev/null &
+cpid=$!
+bg_pids+=("$cpid")
+paused C || { ok=1 why+=" pausa-C"; }
+: >"$fake/state/orphan.go"
+orphan_done || { ok=1 why+=" órfão"; }
+# D adquire a trava livre e para no rename do fabrica-hook.
+FAKE_PAUSE_SRC='*/.stage.*/fabrica-hook' FAKE_PAUSE_TAG=D PATH="$fake/bin:$PATH" bash "$(script_of d3)" --check >"$tmp/d.out" 2>/dev/null &
+dpid=$!
+bg_pids+=("$dpid")
+paused D || { ok=1 why+=" pausa-D"; }
+lock_d=$(readlink "$dest/.lock" 2>/dev/null)
+: >"$fake/state/pauseC.go"
+wait "$cpid"
+[[ -n $lock_d && $(readlink "$dest/.lock" 2>/dev/null) == "$lock_d" ]] || { ok=1 why+=" trava-de-D-removida"; }
+: >"$fake/state/pauseD.go"
+wait "$dpid"
+[[ $ok == 0 && $(cat "$tmp/d.out") == "atualizado 3.0.0" && $(cat "$tmp/c.out") == ocupado* ]] && is_integra_at 3.0.0 && no_internal
+result $? CA16 "liberação atrasada do dono morto no meio de uma quebra: quem adquiriu depois mantém a trava e publica (C '$(cat "$tmp/c.out")', D '$(cat "$tmp/d.out")'$why)"
 # (b) Remoção do diário atrasada, durante a publicação seguinte.
 fresh d1
 FAKE_ORPHAN_SRC='*/.publicando' runfake d2 --check

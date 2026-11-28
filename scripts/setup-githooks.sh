@@ -669,12 +669,20 @@ lock_break() {
   ((rc == 1)) && return 1
   ((rc == 2)) && return 2
   HAVE_BREAK=1
-  if [[ -L $dest/.lock && $(readlink -- "$dest/.lock" 2>/dev/null) == "$LOCK_SEEN" ]]; then
-    # Primeiro os restos do dono morto: um filho dele que ainda esteja rodando
-    # só age por rename de ou para o stage dele, que deixa de existir.
-    if [[ $LOCK_SEEN =~ $LOCK_RE ]]; then
-      rm -rf -- "$dest/.stage.${BASH_REMATCH[4]}" "$dest/.publicando.${BASH_REMATCH[4]}" 2>/dev/null
+  # Primeiro os restos do dono morto: um filho dele que ainda esteja rodando
+  # só age por rename de ou para o stage dele. Sem o stage, ele não tira mais
+  # o .lock, e a conferência abaixo vale até a remoção: enquanto o .lock
+  # existe, ninguém cria outro, e enquanto o .break existe, ninguém quebra.
+  if [[ $LOCK_SEEN =~ $LOCK_RE ]]; then
+    local dead="$dest/.stage.${BASH_REMATCH[4]}" dead_j="$dest/.publicando.${BASH_REMATCH[4]}"
+    rm -rf -- "$dead" "$dead_j" 2>/dev/null
+    if [[ -e $dead || -L $dead || -e $dead_j || -L $dead_j ]]; then
+      owns "$dest/.break" && rm -f -- "$dest/.break"
+      HAVE_BREAK=0
+      return 2
     fi
+  fi
+  if [[ -L $dest/.lock && $(readlink -- "$dest/.lock" 2>/dev/null) == "$LOCK_SEEN" ]]; then
     rm -f -- "$dest/.lock"
   fi
   owns "$dest/.break" && rm -f -- "$dest/.break"
@@ -1022,6 +1030,10 @@ main() {
   fi
   pick_hash || { echo "setup-githooks: falta sha256sum ou shasum." >&2; finish "falha preparacao" 1; }
   read_origin || finish "falha preparacao" 1
+  if [[ -n $allow && ! -e $dest && ! -L $dest ]]; then
+    echo "setup-githooks: --allow-downgrade $S não se aplica: não há instalação para reverter. Nada foi alterado; rode sem --allow-downgrade." >&2
+    exit 2
+  fi
   if ! $check; then
     mkdir -p -- "$dest" 2>/dev/null || finish "falha preparacao" 1
   elif [[ ! -d $dest ]]; then
