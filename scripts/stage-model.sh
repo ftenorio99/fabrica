@@ -146,9 +146,15 @@ cmd_run() {
   [[ $rc -eq 0 ]] || exit $rc
   read -r alias id effort <<< "$selection"
 
-  # A fachada já carregou BASH_ENV. O executor o restaura após iniciar.
+  # O executor não deve carregar BASH_ENV na partida. Restaure somente
+  # o valor que a fachada efetivamente transmitiria aos processos filhos.
+  local bash_env_exported="" bash_env_value=""
+  if [[ ${BASH_ENV+x} && $(declare -p BASH_ENV) =~ ^declare\ -[a-zA-Z]*x[a-zA-Z]*\  ]]; then
+    bash_env_exported=1
+    bash_env_value="$BASH_ENV"
+  fi
   BASH_ENV= exec "$BASH" "$script_dir/claude-exec.sh" \
-    "$stage" "$number" "$id" "$effort" "${BASH_ENV+x}" "${BASH_ENV-}"
+    "$stage" "$number" "$id" "$effort" "$bash_env_exported" "$bash_env_value"
 }
 
 [[ $# -ge 1 ]] || fail "uso: stage-model.sh model|next|run ..."

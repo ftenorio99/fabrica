@@ -231,6 +231,75 @@ out="$(BASH_ENV="$tmp/startup.sh" TEST_BOOTSTRAPS=0 process_run 0)"
 check B1.2 "BASH_ENV roda só no lançador, na fachada e no binário falso" \
   "$(printf '3\n%s' "$tmp/startup.sh")" "$out"
 
+# CA1 (SPEC-247): confira o ambiente e as inicializações nos filhos da
+# fachada. As sondas falsas exercitam os mesmos pontos de chamada da base.
+cat > "$tmp/registrar-ambiente.sh" <<'EOF'
+#!/usr/bin/env bash
+printf '%s %s %s\n' "${0##*/}" "${BASH_ENV-<ausente>}" "${TEST_BOOTSTRAPS:-0}" >> "$TEST_LOG"
+case "${0##*/}" in
+  harness.sh) echo claude ;;
+  sbx-context.sh) echo 'onde host' ;;
+  setup-isolation.sh) echo sem-sandbox ;;
+esac
+EOF
+for child in harness.sh sbx-context.sh setup-isolation.sh; do
+  cp "$tmp/registrar-ambiente.sh" "$broken/scripts/$child"
+done
+cp "$tmp/registrar-ambiente.sh" "$executor"
+chmod +x "$executor"
+cat > "$tmp/startup.sh" <<'EOF'
+export TEST_BOOTSTRAPS=$(( ${TEST_BOOTSTRAPS:-0} + 1 ))
+printf 'início %s\n' "${0##*/}" >> "$TEST_LOG"
+if [[ ${0##*/} == stage-model.sh ]]; then
+  case "$TEST_CASE" in
+    local) unset BASH_ENV; BASH_ENV="$TEST_SECONDARY" ;;
+    desexportada) export -n BASH_ENV ;;
+    removida) unset BASH_ENV ;;
+    alterada) BASH_ENV="$TEST_SECONDARY" ;;
+  esac
+fi
+EOF
+cat > "$tmp/secondary.sh" <<'EOF'
+export TEST_BOOTSTRAPS=$(( ${TEST_BOOTSTRAPS:-0} + 1 ))
+printf 'alternativo %s\n' "${0##*/}" >> "$TEST_LOG"
+EOF
+bash_env_log() {
+  local scenario="$1"
+  shift
+  : > "$tmp/bootstrap.log"
+  env -u BASH_ENV -u CLAUDECODE -u FABRICA_HARNESS -u OPENCODE_SESSION_ID \
+    -u ANTIGRAVITY_AGENT -u ANTIGRAVITY_CONVERSATION_ID HOME="$tmp/home" \
+    FABRICA_CLAUDE_BIN="$executor" TEST_CASE="$scenario" TEST_BOOTSTRAPS=0 \
+    TEST_LOG="$tmp/bootstrap.log" TEST_SECONDARY="$tmp/secondary.sh" "$@" \
+    bash "$broken/scripts/stage-model.sh" run triagem 12 || return
+  cat "$tmp/bootstrap.log"
+}
+expect_bash_env() {
+  local scenario="$1" value="$2" bootstraps="$3" startup="$4" child_startup="$5"
+  shift 5
+  local expected child actual
+  expected="$(
+    if [[ -n "$startup" ]]; then
+      printf '%s stage-model.sh\n' "$startup"
+    fi
+    for child in harness.sh sbx-context.sh setup-isolation.sh "${executor##*/}"; do
+      if [[ -n "$child_startup" ]]; then
+        printf '%s %s\n' "$child_startup" "$child"
+      fi
+      printf '%s %s %s\n' "$child" "$value" "$bootstraps"
+    done
+  )"
+  actual="$(bash_env_log "$scenario" "$@")" || actual="falha ao executar a fachada: $?"
+  check CA1 "BASH_ENV $scenario preserva ambiente e inicializações" "$expected" "$actual"
+}
+expect_bash_env ausente '<ausente>' 0 '' ''
+expect_bash_env vazia '' 0 '' '' BASH_ENV=
+expect_bash_env exportada "$tmp/startup.sh" 2 início início BASH_ENV="$tmp/startup.sh"
+expect_bash_env local '<ausente>' 1 início '' BASH_ENV="$tmp/startup.sh"
+expect_bash_env desexportada '<ausente>' 1 início '' BASH_ENV="$tmp/startup.sh"
+expect_bash_env removida '<ausente>' 1 início '' BASH_ENV="$tmp/startup.sh"
+expect_bash_env alterada "$tmp/secondary.sh" 2 início alternativo BASH_ENV="$tmp/startup.sh"
+
 echo
 echo "$((total - failures)) de $total passaram."
 [[ $failures -eq 0 ]]
