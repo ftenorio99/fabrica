@@ -93,7 +93,7 @@ A pasta dos hooks é uma só por máquina e é compartilhada pelo Claude Code, p
   - clones usados com `--plugin-dir`: rebase sobre a `main`;
   - Codex: gere o pacote de novo depois da readequação da SPEC-245.
 
-  Depois, abra uma sessão ou rode o `/fabrica:setup` e confira que o `--check` responde `ok`. Numa máquina com umask 002, a pasta gravada pelo script antigo tem permissões 0775 e conta como danificada: a primeira execução nova a republica (`reparado`) ou, se este plugin for mais antigo que ela, avisa sem trocar nada.
+  Depois, abra uma sessão ou rode o `/fabrica:setup` e confira que o `--check` responde `ok`. Numa máquina com umask 002, se os arquivos do plugin também tiverem permissões 0775 (por exemplo, um clone feito com esse umask), a pasta gravada pelo script antigo fica com 0775 e conta como danificada: a primeira execução nova a republica (`reparado`) ou, se este plugin for mais antigo que ela, avisa sem trocar nada.
 - **Limites:** a proteção cobre interrupções, disco cheio, sessões simultâneas e distribuições de versões diferentes. Ela não cobre distribuições antigas, edição manual da pasta, processos do mesmo usuário que ignoram a trava, pasta em NFS ou compartilhada entre contêineres com o mesmo nome de host, nem o macOS, que não foi testado. A lista completa está na SPEC-246.
 
 ## "Commit direto na 'main' bloqueado" ou "Push para a main bloqueado"

@@ -570,8 +570,12 @@ for round in $(seq 1 "${CA7_RODADAS:-1}"); do
 done
 
 # CA8: instalação legada, gerada pelo script da base. O "arquivo válido" da
-# spec tem modo 0755: o script da base só gera isso com umask 022. Com umask
-# 002 ele gera 0775, e a pasta conta como danificada (caso no fim do CA8).
+# spec tem modo 0755. O script da base faz cp seguido de chmod +x, então o
+# modo depende do umask e do modo dos arquivos da origem: com umask 022, sai
+# 0755; com umask 002 e a origem em 0775, sai 0775, e a pasta conta como
+# danificada (caso no fim do CA8). A cópia de githooks/ das distribuições
+# herda o modo do checkout, que muda de máquina para máquina, por isso o caso
+# fixa a origem em 0775 em vez de depender dele.
 legacy() { reset; local m; m=$(umask); umask 022; run "$1"; umask "$m"; }
 legacy l1
 fake_reset
@@ -608,7 +612,10 @@ rm "$dest/pre-push"
 [[ $(state) == "danificada 1.0.0" ]]
 result $? CA8 "legada sem uma entrada de proteção é danificada"
 reset
+chmod 775 "$tmp/dist/l2/githooks/"*
 m=$(umask); umask 002; run l2; umask "$m"
+chmod 755 "$tmp/dist/l2/githooks/"*
+[[ $(stat -c '%a' "$dest/pre-push") == 775 ]] || echo "aviso: a legada do caso umask 002 não saiu com 0775" >&2
 before=$(content)
 run d1 --check
 [[ $OUT == "falha danificada" && $(content) == "$before" ]] && hook_is l2
