@@ -236,6 +236,9 @@ check B1.2 "BASH_ENV roda só no lançador, na fachada e no binário falso" \
 cat > "$tmp/registrar-ambiente.sh" <<'EOF'
 #!/usr/bin/env bash
 printf '%s %s %s\n' "${0##*/}" "${BASH_ENV-<ausente>}" "${TEST_BOOTSTRAPS:-0}" >> "$TEST_LOG"
+if [[ ${bash_env_exported+x} || ${bash_env_value+x} ]]; then
+  printf 'atributos internos exportados\n' >> "$TEST_LOG"
+fi
 case "${0##*/}" in
   harness.sh) echo claude ;;
   sbx-context.sh) echo 'onde host' ;;
@@ -256,6 +259,9 @@ if [[ ${0##*/} == stage-model.sh ]]; then
     desexportada) export -n BASH_ENV ;;
     removida) unset BASH_ENV ;;
     alterada) BASH_ENV="$TEST_SECONDARY" ;;
+    allexport) set -a ;;
+    readonly) readonly BASH_ENV ;;
+    array) unset BASH_ENV; declare -ax BASH_ENV=("$TEST_SECONDARY") ;;
   esac
 fi
 EOF
@@ -271,7 +277,11 @@ bash_env_log() {
     -u ANTIGRAVITY_AGENT -u ANTIGRAVITY_CONVERSATION_ID HOME="$tmp/home" \
     FABRICA_CLAUDE_BIN="$executor" TEST_CASE="$scenario" TEST_BOOTSTRAPS=0 \
     TEST_LOG="$tmp/bootstrap.log" TEST_SECONDARY="$tmp/secondary.sh" "$@" \
-    bash "$broken/scripts/stage-model.sh" run triagem 12 || return
+    bash "$broken/scripts/stage-model.sh" run triagem 12 2>"$tmp/bootstrap.err" || return
+  if [[ -s "$tmp/bootstrap.err" ]]; then
+    cat "$tmp/bootstrap.err"
+    return
+  fi
   cat "$tmp/bootstrap.log"
 }
 expect_bash_env() {
@@ -299,6 +309,9 @@ expect_bash_env local '<ausente>' 1 início '' BASH_ENV="$tmp/startup.sh"
 expect_bash_env desexportada '<ausente>' 1 início '' BASH_ENV="$tmp/startup.sh"
 expect_bash_env removida '<ausente>' 1 início '' BASH_ENV="$tmp/startup.sh"
 expect_bash_env alterada "$tmp/secondary.sh" 2 início alternativo BASH_ENV="$tmp/startup.sh"
+expect_bash_env allexport "$tmp/startup.sh" 2 início início BASH_ENV="$tmp/startup.sh"
+expect_bash_env readonly "$tmp/startup.sh" 2 início início BASH_ENV="$tmp/startup.sh"
+expect_bash_env array '<ausente>' 1 início '' BASH_ENV="$tmp/startup.sh"
 
 echo
 echo "$((total - failures)) de $total passaram."

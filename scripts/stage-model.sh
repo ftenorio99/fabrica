@@ -146,15 +146,15 @@ cmd_run() {
   [[ $rc -eq 0 ]] || exit $rc
   read -r alias id effort <<< "$selection"
 
-  # O executor não deve carregar BASH_ENV na partida. Restaure somente
-  # o valor que a fachada efetivamente transmitiria aos processos filhos.
-  local bash_env_exported="" bash_env_value=""
-  if [[ ${BASH_ENV+x} && $(declare -p BASH_ENV) =~ ^declare\ -[a-zA-Z]*x[a-zA-Z]*\  ]]; then
-    bash_env_exported=1
-    bash_env_value="$BASH_ENV"
+  # Remova BASH_ENV só do ambiente do Bash intermediário, mesmo quando a
+  # variável é readonly. Apenas escalares exportados chegam aos filhos.
+  if [[ ${BASH_ENV+x} && $(declare -p BASH_ENV) =~ ^declare\ -[ilrtux]*x[ilrtux]*\  ]]; then
+    exec /usr/bin/env -u BASH_ENV "$BASH" "$script_dir/claude-exec.sh" \
+      "$stage" "$number" "$id" "$effort" 1 "$BASH_ENV"
+  else
+    exec /usr/bin/env -u BASH_ENV "$BASH" "$script_dir/claude-exec.sh" \
+      "$stage" "$number" "$id" "$effort" "" ""
   fi
-  BASH_ENV= exec "$BASH" "$script_dir/claude-exec.sh" \
-    "$stage" "$number" "$id" "$effort" "$bash_env_exported" "$bash_env_value"
 }
 
 [[ $# -ge 1 ]] || fail "uso: stage-model.sh model|next|run ..."
